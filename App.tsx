@@ -98,7 +98,6 @@ export default function App() {
       token={token}
       onBack={() => setQuizOpen(false)}
       onCompleted={() => void fetchDashboard(token)}
-      onOpenQuiz={() => setQuizOpen(true)}
     />
   ) : lessonId ? (
     <LessonScreen
@@ -106,6 +105,7 @@ export default function App() {
       token={token}
       onBack={() => setLessonId(null)}
       onCompleted={() => void fetchDashboard(token)}
+      onOpenQuiz={() => setQuizOpen(true)}
     />
   ) : courseId ? (
     <CourseScreen
@@ -134,16 +134,20 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={colors.navy} />
-      <View style={styles.header}>
-        <Text style={styles.brand}>ATORA</Text>
-        <Text style={styles.product}>Aprendizaje móvil</Text>
-      </View>
+      {!quizOpen ? (
+        <View style={styles.header}>
+          <Text style={styles.brand}>ATORA</Text>
+          <Text style={styles.product}>Aprendizaje móvil</Text>
+        </View>
+      ) : null}
       <View style={styles.main}>{content}</View>
-      <View style={styles.navigation}>
-        {(Object.keys(labels) as AppSection[]).map((item) => (
-          <SectionButton key={item} label={labels[item]} section={item} active={section === item} onPress={changeSection} />
-        ))}
-      </View>
+      {!quizOpen ? (
+        <View style={styles.navigation}>
+          {(Object.keys(labels) as AppSection[]).map((item) => (
+            <SectionButton key={item} label={labels[item]} section={item} active={section === item} onPress={changeSection} />
+          ))}
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
