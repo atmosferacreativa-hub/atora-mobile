@@ -22,6 +22,39 @@ export type CourseSummary = {
   last_activity: string;
 };
 
+export type LessonSummary = {
+  id: number;
+  course_id: number;
+  title: string;
+  type: string;
+  duration_min: number;
+  section: string;
+  completed: boolean;
+};
+
+export type LessonDetail = {
+  id: number;
+  course_id: number;
+  title: string;
+  type: string;
+  duration_min: number;
+  video_url: string;
+  content_html: string;
+  content_text: string;
+  completed: boolean;
+};
+
+export type CourseDetail = {
+  course: Pick<CourseSummary, 'id' | 'title' | 'excerpt' | 'thumbnail_url' | 'duration_hours' | 'level' | 'language'>;
+  progress: {
+    total_lessons: number;
+    completed_lessons: number;
+    progress_pct: number;
+    is_complete: boolean;
+  };
+  curriculum: LessonSummary[];
+};
+
 export type StudentHome = {
   user: UserProfile;
   pending_activities: number;
