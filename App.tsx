@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { SectionButton } from './src/components/SectionButton';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { LoginScreen } from './src/screens/LoginScreen';
 import { colors, spacing } from './src/theme';
-import type { AppSection } from './src/types';
+import type { AppSection, StudentHome } from './src/types';
 
 const labels: Record<AppSection, string> = {
   home: 'Inicio',
@@ -14,6 +16,63 @@ const labels: Record<AppSection, string> = {
 
 export default function App() {
   const [section, setSection] = useState<AppSection>('home');
+  const [token, setToken] = useState<string | null>(null);
+  const [dashboard, setDashboard] = useState<StudentHome | null>(null);
+  const [starting, setStarting] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  const fetchDashboard = useCallback(async (accessToken: string) => {
+    setLoading(true);
+    try {
+      setDashboard(await loadDashboard(accessToken));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const restored = await restoreAccessToken();
+      if (!active) return;
+      setToken(restored);
+      if (restored) {
+        try {
+          await fetchDashboard(restored);
+        } catch {
+          setToken(null);
+        }
+      }
+      if (active) setStarting(false);
+    })();
+    return () => { active = false; };
+  }, [fetchDashboard]);
+
+  const handleLogin = async (loginValue: string, password: string) => {
+    const response = await login(loginValue, password);
+    setToken(response.session.access_token);
+    await fetchDashboard(response.session.access_token);
+  };
+
+  const handleLogout = async () => {
+    if (token) await logout(token);
+    setToken(null);
+    setDashboard(null);
+    setSection('home');
+  };
+
+  if (starting) {
+    return (
+      <View style={styles.starting}>
+        <Text style={styles.startingBrand}>ATORA</Text>
+        <ActivityIndicator color={colors.mustard} />
+      </View>
+    );
+  }
+
+  if (!token) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -25,11 +84,23 @@ export default function App() {
 
       <View style={styles.main}>
         {section === 'home' ? (
-          <HomeScreen />
+          <HomeScreen
+            data={dashboard}
+            loading={loading}
+            onRefresh={() => void fetchDashboard(token)}
+          />
+        ) : section === 'profile' ? (
+          <View style={styles.placeholder}>
+            <Text style={styles.placeholderTitle}>{dashboard?.user.display_name || 'Perfil'}</Text>
+            <Text style={styles.placeholderText}>{dashboard?.user.email}</Text>
+            <Pressable accessibilityRole="button" onPress={handleLogout} style={styles.logoutButton}>
+              <Text style={styles.logoutText}>Cerrar sesión</Text>
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.placeholder}>
             <Text style={styles.placeholderTitle}>{labels[section]}</Text>
-            <Text style={styles.placeholderText}>Esta sección se conectará con la API móvil de ATORA.</Text>
+            <Text style={styles.placeholderText}>Esta sección continuará en la siguiente fase del MVP.</Text>
           </View>
         )}
       </View>
@@ -50,6 +121,8 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  starting: { alignItems: 'center', backgroundColor: colors.navy, flex: 1, gap: spacing.lg, justifyContent: 'center' },
+  startingBrand: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: 3 },
   safe: { backgroundColor: colors.navy, flex: 1 },
   header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   brand: { color: colors.white, fontSize: 22, fontWeight: '900', letterSpacing: 2 },
@@ -57,6 +130,8 @@ const styles = StyleSheet.create({
   main: { backgroundColor: colors.paper, flex: 1 },
   navigation: { backgroundColor: colors.white, borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row' },
   placeholder: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: spacing.xl },
-  placeholderTitle: { color: colors.navy, fontSize: 28, fontWeight: '800' },
+  placeholderTitle: { color: colors.navy, fontSize: 28, fontWeight: '800', textAlign: 'center' },
   placeholderText: { color: colors.muted, fontSize: 16, marginTop: spacing.sm, textAlign: 'center' },
+  logoutButton: { borderColor: colors.red, borderRadius: 12, borderWidth: 1, marginTop: spacing.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  logoutText: { color: colors.red, fontWeight: '800' },
 });
