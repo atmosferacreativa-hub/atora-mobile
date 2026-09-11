@@ -1,35 +1,43 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing } from '../theme';
 import type { StudentHome } from '../types';
 
-const preview: StudentHome = {
-  displayName: 'Estudiante',
-  pendingActivities: 3,
-  courses: [
-    { id: 1, title: 'Liderazgo', progress: 68, nextLesson: 'Comunicación efectiva' },
-    { id: 2, title: 'Seguridad y Salud en el Trabajo', progress: 34, nextLesson: 'Prevención' },
-  ],
+type Props = {
+  data: StudentHome | null;
+  loading: boolean;
+  onRefresh: () => void;
 };
 
-export function HomeScreen() {
+export function HomeScreen({ data, loading, onRefresh }: Props) {
+  if (!data && loading) {
+    return <View style={styles.center}><ActivityIndicator color={colors.blue} size="large" /></View>;
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}
+    >
       <Text style={styles.eyebrow}>MI JORNADA</Text>
-      <Text style={styles.title}>Hola, {preview.displayName}</Text>
+      <Text style={styles.title}>Hola, {data?.user.display_name || 'Estudiante'}</Text>
       <Text style={styles.subtitle}>Continúa aprendiendo donde lo dejaste.</Text>
 
       <View style={styles.pending}>
-        <Text style={styles.pendingNumber}>{preview.pendingActivities}</Text>
+        <Text style={styles.pendingNumber}>{data?.pending_activities ?? 0}</Text>
         <Text style={styles.pendingText}>actividades pendientes</Text>
       </View>
 
       <Text style={styles.heading}>Cursos en progreso</Text>
-      {preview.courses.map((course) => (
+      {!data?.courses.length ? (
+        <Text style={styles.empty}>Todavía no tienes cursos activos.</Text>
+      ) : data.courses.map((course) => (
         <View key={course.id} style={styles.card}>
           <Text style={styles.cardTitle}>{course.title}</Text>
-          <Text style={styles.next}>Siguiente: {course.nextLesson}</Text>
+          <Text style={styles.next}>
+            {course.completed_lessons} de {course.total_lessons} lecciones
+          </Text>
           <View style={styles.track}>
-            <View style={[styles.bar, { width: `${course.progress}%` }]} />
+            <View style={[styles.bar, { width: `${Math.min(100, course.progress)}%` }]} />
           </View>
           <Text style={styles.progress}>{course.progress}% completado</Text>
         </View>
@@ -39,6 +47,7 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   content: { padding: spacing.lg, gap: spacing.md },
   eyebrow: { color: colors.mustard, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   title: { color: colors.navy, fontSize: 30, fontWeight: '800' },
@@ -47,6 +56,7 @@ const styles = StyleSheet.create({
   pendingNumber: { color: colors.mustard, fontSize: 36, fontWeight: '800' },
   pendingText: { color: colors.white, fontSize: 16 },
   heading: { color: colors.navy, fontSize: 20, fontWeight: '800', marginTop: spacing.sm },
+  empty: { color: colors.muted, fontSize: 15 },
   card: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: spacing.md, gap: spacing.sm },
   cardTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   next: { color: colors.muted },
