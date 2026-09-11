@@ -84,8 +84,9 @@ async function validRecords(records: DownloadRecord[]): Promise<DownloadRecord[]
 }
 
 export async function maintainDownloads(
-  settings = await getDownloadSettings(),
+  providedSettings?: DownloadSettings,
 ): Promise<DownloadRecord[]> {
+  const settings = providedSettings ?? await getDownloadSettings();
   const now = Date.now();
   let records = await validRecords(await readManifest());
   const expired = records.filter(
