@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { flushPendingCompletions } from './src/api/courses';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { SectionButton } from './src/components/SectionButton';
@@ -8,6 +8,7 @@ import { CoursesScreen } from './src/screens/CoursesScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LessonScreen } from './src/screens/LessonScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
 import { colors, spacing } from './src/theme';
 import type { AppSection, StudentHome } from './src/types';
 
@@ -106,13 +107,11 @@ export default function App() {
   ) : section === 'courses' ? (
     <CoursesScreen courses={dashboard?.courses ?? []} onOpen={setCourseId} />
   ) : section === 'profile' ? (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderTitle}>{dashboard?.user.display_name || 'Perfil'}</Text>
-      <Text style={styles.placeholderText}>{dashboard?.user.email}</Text>
-      <Pressable accessibilityRole="button" onPress={handleLogout} style={styles.logoutButton}>
-        <Text style={styles.logoutText}>Cerrar sesión</Text>
-      </Pressable>
-    </View>
+    <ProfileScreen
+      displayName={dashboard?.user.display_name || 'Perfil'}
+      email={dashboard?.user.email}
+      onLogout={() => void handleLogout()}
+    />
   ) : (
     <View style={styles.placeholder}>
       <Text style={styles.placeholderTitle}>{labels[section]}</Text>
@@ -149,6 +148,4 @@ const styles = StyleSheet.create({
   placeholder: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: spacing.xl },
   placeholderTitle: { color: colors.navy, fontSize: 28, fontWeight: '800', textAlign: 'center' },
   placeholderText: { color: colors.muted, fontSize: 16, marginTop: spacing.sm, textAlign: 'center' },
-  logoutButton: { borderColor: colors.red, borderRadius: 12, borderWidth: 1, marginTop: spacing.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  logoutText: { color: colors.red, fontWeight: '800' },
 });
