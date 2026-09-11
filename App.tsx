@@ -9,6 +9,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { LessonScreen } from './src/screens/LessonScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { QuizScreen } from './src/screens/QuizScreen';
 import { colors, spacing } from './src/theme';
 import type { AppSection, StudentHome } from './src/types';
 
@@ -27,6 +28,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [courseId, setCourseId] = useState<number | null>(null);
   const [lessonId, setLessonId] = useState<number | null>(null);
+  const [quizOpen, setQuizOpen] = useState(false);
 
   const fetchDashboard = useCallback(async (accessToken: string) => {
     setLoading(true);
@@ -69,12 +71,14 @@ export default function App() {
     setSection('home');
     setCourseId(null);
     setLessonId(null);
+    setQuizOpen(false);
   };
 
   const changeSection = (next: AppSection) => {
     setSection(next);
     setCourseId(null);
     setLessonId(null);
+    setQuizOpen(false);
   };
 
   if (starting) {
@@ -88,7 +92,15 @@ export default function App() {
 
   if (!token) return <LoginScreen onLogin={handleLogin} />;
 
-  const content = lessonId ? (
+  const content = lessonId && quizOpen ? (
+    <QuizScreen
+      lessonId={lessonId}
+      token={token}
+      onBack={() => setQuizOpen(false)}
+      onCompleted={() => void fetchDashboard(token)}
+      onOpenQuiz={() => setQuizOpen(true)}
+    />
+  ) : lessonId ? (
     <LessonScreen
       lessonId={lessonId}
       token={token}
