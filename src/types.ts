@@ -42,6 +42,36 @@ export type LessonDetail = {
   content_html: string;
   content_text: string;
   completed: boolean;
+  quiz_available?: boolean;
+};
+
+export type QuizAnswer = string | string[];
+
+export type QuizQuestion = {
+  id: number;
+  type: 'single' | 'multiple' | 'text' | 'textarea' | 'true_false' | 'number';
+  question: string;
+  options: string[];
+  weight: number;
+};
+
+export type QuizPayload = {
+  lesson_id: number;
+  token: string;
+  questions: QuizQuestion[];
+  can_submit: boolean;
+  remaining_seconds: number;
+  attempts: number;
+  best_score: number | null;
+  retry_context: Record<string, unknown>;
+};
+
+export type QuizResult = {
+  score: number;
+  best_score: number;
+  attempt: number;
+  student_message: string;
+  can_retry: boolean;
 };
 
 export type CourseDetail = {
