@@ -10,7 +10,7 @@ import {
 import { colors, spacing } from '../theme';
 import type { LessonDetail } from '../types';
 
-type Props = { lessonId: number; token: string; onBack: () => void; onCompleted: () => void };
+type Props = { lessonId: number; token: string; onBack: () => void; onCompleted: () => void; onOpenQuiz: () => void };
 
 function LessonContent({
   lesson,
@@ -21,6 +21,7 @@ function LessonContent({
   onComplete,
   onDownload,
   onRemoveDownload,
+  onOpenQuiz,
 }: {
   lesson: LessonDetail;
   mediaUri: string;
@@ -30,6 +31,7 @@ function LessonContent({
   onComplete: () => void;
   onDownload: () => void;
   onRemoveDownload: () => void;
+  onOpenQuiz: () => void;
 }) {
   const player = useVideoPlayer(mediaUri || null);
 
@@ -61,6 +63,18 @@ function LessonContent({
         </>
       ) : null}
       <Text style={styles.body}>{lesson.content_text || 'Esta lección no contiene texto adicional.'}</Text>
+      {lesson.quiz_available ? (
+        <View style={styles.quizCard}>
+          <View style={styles.quizCopy}>
+            <Text style={styles.quizEyebrow}>EVALUACIÓN</Text>
+            <Text style={styles.quizTitle}>Comprueba lo aprendido</Text>
+            <Text style={styles.quizHelp}>Responde con calma en una interfaz clara, una pregunta a la vez.</Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={onOpenQuiz} style={styles.quizButton}>
+            <Text style={styles.quizButtonText}>Comenzar evaluación</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Pressable
         disabled={busy || lesson.completed}
         onPress={onComplete}
@@ -74,7 +88,7 @@ function LessonContent({
   );
 }
 
-export function LessonScreen({ lessonId, token, onBack, onCompleted }: Props) {
+export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz }: Props) {
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [mediaUri, setMediaUri] = useState('');
   const [downloaded, setDownloaded] = useState(false);
@@ -161,6 +175,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted }: Props) {
           onComplete={markComplete}
           onDownload={() => void saveDownload()}
           onRemoveDownload={() => void deleteDownload()}
+          onOpenQuiz={onOpenQuiz}
         />
       ) : null}
       {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
@@ -179,6 +194,13 @@ const styles = StyleSheet.create({
   downloadButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, minHeight: 46, justifyContent: 'center', padding: spacing.sm },
   downloadText: { color: colors.blue, fontWeight: '800' },
   body: { color: colors.ink, fontSize: 17, lineHeight: 27 },
+  quizCard: { backgroundColor: colors.navy, borderRadius: 18, gap: spacing.md, padding: spacing.lg },
+  quizCopy: { gap: spacing.xs },
+  quizEyebrow: { color: colors.mustard, fontSize: 12, fontWeight: '900', letterSpacing: 1.2 },
+  quizTitle: { color: colors.white, fontSize: 21, fontWeight: '900' },
+  quizHelp: { color: '#D8DEE8', lineHeight: 20 },
+  quizButton: { alignItems: 'center', backgroundColor: colors.mustard, borderRadius: 12, minHeight: 52, justifyContent: 'center', padding: spacing.md },
+  quizButtonText: { color: colors.navy, fontSize: 16, fontWeight: '900' },
   button: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 14, minHeight: 52, justifyContent: 'center', padding: spacing.md },
   doneButton: { backgroundColor: colors.success },
   buttonText: { color: colors.white, fontWeight: '800' },
