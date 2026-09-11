@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { flushPendingCompletions } from './src/api/courses';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { SectionButton } from './src/components/SectionButton';
+import { CourseScreen } from './src/screens/CourseScreen';
+import { CoursesScreen } from './src/screens/CoursesScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { LessonScreen } from './src/screens/LessonScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { colors, spacing } from './src/theme';
 import type { AppSection, StudentHome } from './src/types';
@@ -20,10 +24,13 @@ export default function App() {
   const [dashboard, setDashboard] = useState<StudentHome | null>(null);
   const [starting, setStarting] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [lessonId, setLessonId] = useState<number | null>(null);
 
   const fetchDashboard = useCallback(async (accessToken: string) => {
     setLoading(true);
     try {
+      await flushPendingCompletions(accessToken);
       setDashboard(await loadDashboard(accessToken));
     } finally {
       setLoading(false);
@@ -59,6 +66,14 @@ export default function App() {
     setToken(null);
     setDashboard(null);
     setSection('home');
+    setCourseId(null);
+    setLessonId(null);
+  };
+
+  const changeSection = (next: AppSection) => {
+    setSection(next);
+    setCourseId(null);
+    setLessonId(null);
   };
 
   if (starting) {
@@ -70,9 +85,40 @@ export default function App() {
     );
   }
 
-  if (!token) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
+  if (!token) return <LoginScreen onLogin={handleLogin} />;
+
+  const content = lessonId ? (
+    <LessonScreen
+      lessonId={lessonId}
+      token={token}
+      onBack={() => setLessonId(null)}
+      onCompleted={() => void fetchDashboard(token)}
+    />
+  ) : courseId ? (
+    <CourseScreen
+      courseId={courseId}
+      token={token}
+      onBack={() => setCourseId(null)}
+      onOpenLesson={setLessonId}
+    />
+  ) : section === 'home' ? (
+    <HomeScreen data={dashboard} loading={loading} onRefresh={() => void fetchDashboard(token)} />
+  ) : section === 'courses' ? (
+    <CoursesScreen courses={dashboard?.courses ?? []} onOpen={setCourseId} />
+  ) : section === 'profile' ? (
+    <View style={styles.placeholder}>
+      <Text style={styles.placeholderTitle}>{dashboard?.user.display_name || 'Perfil'}</Text>
+      <Text style={styles.placeholderText}>{dashboard?.user.email}</Text>
+      <Pressable accessibilityRole="button" onPress={handleLogout} style={styles.logoutButton}>
+        <Text style={styles.logoutText}>Cerrar sesión</Text>
+      </Pressable>
+    </View>
+  ) : (
+    <View style={styles.placeholder}>
+      <Text style={styles.placeholderTitle}>{labels[section]}</Text>
+      <Text style={styles.placeholderText}>Esta sección continuará en la siguiente fase del MVP.</Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -81,39 +127,10 @@ export default function App() {
         <Text style={styles.brand}>ATORA</Text>
         <Text style={styles.product}>Aprendizaje móvil</Text>
       </View>
-
-      <View style={styles.main}>
-        {section === 'home' ? (
-          <HomeScreen
-            data={dashboard}
-            loading={loading}
-            onRefresh={() => void fetchDashboard(token)}
-          />
-        ) : section === 'profile' ? (
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderTitle}>{dashboard?.user.display_name || 'Perfil'}</Text>
-            <Text style={styles.placeholderText}>{dashboard?.user.email}</Text>
-            <Pressable accessibilityRole="button" onPress={handleLogout} style={styles.logoutButton}>
-              <Text style={styles.logoutText}>Cerrar sesión</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderTitle}>{labels[section]}</Text>
-            <Text style={styles.placeholderText}>Esta sección continuará en la siguiente fase del MVP.</Text>
-          </View>
-        )}
-      </View>
-
+      <View style={styles.main}>{content}</View>
       <View style={styles.navigation}>
         {(Object.keys(labels) as AppSection[]).map((item) => (
-          <SectionButton
-            key={item}
-            label={labels[item]}
-            section={item}
-            active={section === item}
-            onPress={setSection}
-          />
+          <SectionButton key={item} label={labels[item]} section={item} active={section === item} onPress={changeSection} />
         ))}
       </View>
     </SafeAreaView>
