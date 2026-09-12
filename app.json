@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "ATORA",
+    "slug": "atora-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "atora",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.atmosferacreativa.atora"
+    },
+    "android": {
+      "package": "com.atmosferacreativa.atora"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiBaseUrl": ""
+    }
+  }
+}
