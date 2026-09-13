@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { WebView } from 'react-native-webview';
 import { completeLesson, fetchLesson } from '../api/courses';
 import {
   downloadLessonMedia,
@@ -39,7 +40,25 @@ function LessonContent({
     <>
       <Text style={styles.title}>{lesson.title}</Text>
       <Text style={styles.meta}>{lesson.duration_min} minutos · {lesson.type}</Text>
-      {mediaUri ? (
+      {lesson.video_embed_url ? (
+        <>
+          <View style={styles.video}>
+            <WebView
+              allowsFullscreenVideo
+              javaScriptEnabled
+              mediaPlaybackRequiresUserAction={false}
+              onShouldStartLoadWithRequest={({ url }) =>
+                url === 'about:blank'
+                || /^https:\/\/([a-z0-9-]+\.)*(google\.com|googleusercontent\.com|gstatic\.com|googlevideo\.com)\//i.test(url)
+              }
+              originWhitelist={['https://*']}
+              source={{ uri: lesson.video_embed_url }}
+              style={styles.embed}
+            />
+          </View>
+          <Text style={styles.source}>Video protegido · Google Drive</Text>
+        </>
+      ) : mediaUri ? (
         <>
           <VideoView
             allowsFullscreen
@@ -61,7 +80,11 @@ function LessonContent({
             )}
           </Pressable>
         </>
-      ) : null}
+      ) : (
+        <View style={styles.mediaUnavailable}>
+          <Text style={styles.mediaUnavailableText}>Esta lección no tiene un video compatible configurado.</Text>
+        </View>
+      )}
       <Text style={styles.body}>{lesson.content_text || 'Esta lección no contiene texto adicional.'}</Text>
       {lesson.quiz_available ? (
         <View style={styles.quizCard}>
@@ -189,7 +212,10 @@ const styles = StyleSheet.create({
   back: { color: colors.blue, fontWeight: '800' },
   title: { color: colors.navy, fontSize: 28, fontWeight: '900' },
   meta: { color: colors.muted, textTransform: 'capitalize' },
-  video: { aspectRatio: 16 / 9, backgroundColor: colors.ink, borderRadius: 14, width: '100%' },
+  video: { aspectRatio: 16 / 9, backgroundColor: colors.ink, borderRadius: 14, overflow: 'hidden', width: '100%' },
+  embed: { backgroundColor: colors.ink, flex: 1 },
+  mediaUnavailable: { alignItems: 'center', backgroundColor: '#EEF2F6', borderRadius: 14, padding: spacing.lg },
+  mediaUnavailableText: { color: colors.muted, lineHeight: 21, textAlign: 'center' },
   source: { color: colors.success, fontSize: 12, fontWeight: '800', textAlign: 'center' },
   downloadButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, minHeight: 46, justifyContent: 'center', padding: spacing.sm },
   downloadText: { color: colors.blue, fontWeight: '800' },
