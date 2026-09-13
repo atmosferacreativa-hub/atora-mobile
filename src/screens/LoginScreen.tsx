@@ -33,7 +33,13 @@ export function LoginScreen({ onLogin }: Props) {
       await onLogin(login.trim(), password);
       setPassword('');
     } catch (reason) {
-      setError(reason instanceof ApiError ? reason.message : 'No pudimos iniciar sesión.');
+      if (reason instanceof ApiError) {
+        setError(reason.code ? `${reason.message} [${reason.code}]` : reason.message);
+      } else if (reason instanceof Error) {
+        setError(`Error interno: ${reason.name}: ${reason.message}`);
+      } else {
+        setError('Error interno desconocido al iniciar sesión.');
+      }
     } finally {
       setBusy(false);
     }
