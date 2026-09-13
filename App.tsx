@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { flushPendingCompletions } from './src/api/courses';
+import { ApiError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { SectionButton } from './src/components/SectionButton';
 import { CourseScreen } from './src/screens/CourseScreen';
@@ -26,6 +27,7 @@ export default function App() {
   const [dashboard, setDashboard] = useState<StudentHome | null>(null);
   const [starting, setStarting] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState('');
   const [courseId, setCourseId] = useState<number | null>(null);
   const [lessonId, setLessonId] = useState<number | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
@@ -35,6 +37,14 @@ export default function App() {
     try {
       await flushPendingCompletions(accessToken);
       setDashboard(await loadDashboard(accessToken));
+      setDashboardError('');
+    } catch (reason) {
+      setDashboardError(
+        reason instanceof ApiError
+          ? reason.message
+          : 'Iniciaste sesión, pero no pudimos cargar tu panel.',
+      );
+      throw reason;
     } finally {
       setLoading(false);
     }
@@ -61,7 +71,11 @@ export default function App() {
   const handleLogin = async (loginValue: string, password: string) => {
     const response = await login(loginValue, password);
     setToken(response.session.access_token);
-    await fetchDashboard(response.session.access_token);
+    try {
+      await fetchDashboard(response.session.access_token);
+    } catch {
+      // La sesión es válida: el panel muestra su propio error y permite reintentar.
+    }
   };
 
   const handleLogout = async () => {
@@ -140,7 +154,21 @@ export default function App() {
           <Text style={styles.product}>Aprendizaje móvil</Text>
         </View>
       ) : null}
-      <View style={styles.main}>{content}</View>
+      <View style={styles.main}>
+        {dashboardError ? (
+          <View style={styles.dashboardError}>
+            <Text accessibilityRole="alert" style={styles.dashboardErrorText}>{dashboardError}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void fetchDashboard(token).catch(() => undefined)}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>Reintentar</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {content}
+      </View>
       {!quizOpen ? (
         <View style={styles.navigation}>
           {(Object.keys(labels) as AppSection[]).map((item) => (
@@ -161,6 +189,10 @@ const styles = StyleSheet.create({
   product: { color: colors.mustard, fontSize: 12, fontWeight: '700' },
   main: { backgroundColor: colors.paper, flex: 1 },
   navigation: { backgroundColor: colors.white, borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row' },
+  dashboardError: { alignItems: 'center', backgroundColor: '#FFF1F0', borderBottomColor: colors.red, borderBottomWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  dashboardErrorText: { color: colors.red, flex: 1, fontSize: 14 },
+  retryButton: { backgroundColor: colors.red, borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  retryButtonText: { color: colors.white, fontSize: 13, fontWeight: '800' },
   placeholder: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: spacing.xl },
   placeholderTitle: { color: colors.navy, fontSize: 28, fontWeight: '800', textAlign: 'center' },
   placeholderText: { color: colors.muted, fontSize: 16, marginTop: spacing.sm, textAlign: 'center' },
