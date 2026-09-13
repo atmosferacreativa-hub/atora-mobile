@@ -39,6 +39,8 @@ export type LessonDetail = {
   type: string;
   duration_min: number;
   video_url: string;
+  video_embed_url?: string;
+  video_provider?: 'direct' | 'google_drive' | '';
   content_html: string;
   content_text: string;
   completed: boolean;
