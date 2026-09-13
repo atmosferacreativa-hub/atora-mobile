@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
-import { apiRequest } from './client';
+import { Platform } from 'react-native';
+import { ApiError, apiRequest } from './client';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 
 const SESSION_KEY = 'atora.mobile.session.v1';
@@ -19,9 +20,21 @@ function withExpirations(session: MobileSession): StoredSession {
 }
 
 async function persist(session: StoredSession): Promise<void> {
-  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session), {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  try {
+    await SecureStore.setItemAsync(
+      SESSION_KEY,
+      JSON.stringify(session),
+      Platform.OS === 'ios'
+        ? { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY }
+        : undefined,
+    );
+  } catch {
+    throw new ApiError(
+      'Tus datos fueron aceptados, pero Android no pudo guardar la sesión segura. Reinicia Expo Go e inténtalo otra vez.',
+      0,
+      'secure_storage_error',
+    );
+  }
 }
 
 export async function login(
