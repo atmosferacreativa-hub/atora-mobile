@@ -41,13 +41,37 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       throw new ApiError(
-        payload?.message ?? 'No fue posible completar la solicitud.',
+        payload?.message ?? `La academia respondió con el error ${response.status}.`,
         response.status,
         payload?.code,
       );
     }
 
+    if (payload === null) {
+      throw new ApiError(
+        'La academia respondió en un formato no válido. Revisa la API REST y la caché del sitio.',
+        response.status,
+        'invalid_json',
+      );
+    }
+
     return payload as T;
+  } catch (reason) {
+    if (reason instanceof ApiError) {
+      throw reason;
+    }
+    if (reason instanceof Error && reason.name === 'AbortError') {
+      throw new ApiError(
+        'La academia tardó demasiado en responder. Revisa la conexión e inténtalo otra vez.',
+        0,
+        'request_timeout',
+      );
+    }
+    throw new ApiError(
+      'No pudimos conectar con la academia. Verifica la URL, Internet, HTTPS y el plugin ATORA LMS.',
+      0,
+      'network_error',
+    );
   } finally {
     clearTimeout(timeout);
   }
