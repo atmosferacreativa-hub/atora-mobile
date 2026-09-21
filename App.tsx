@@ -11,6 +11,7 @@ import { CoursesScreen } from './src/screens/CoursesScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LessonScreen } from './src/screens/LessonScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { ProgramScreen } from './src/screens/ProgramScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { QuizScreen } from './src/screens/QuizScreen';
 import { initRuntimeConfig } from './src/runtimeConfig';
@@ -34,6 +35,7 @@ function AppShell() {
   const [courseId, setCourseId] = useState<number | null>(null);
   const [lessonId, setLessonId] = useState<number | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
+  const [programId, setProgramId] = useState<number | null>(null);
   const insets = useSafeAreaInsets();
 
   const fetchDashboard = useCallback(async (accessToken: string) => {
@@ -98,6 +100,7 @@ function AppShell() {
     setCourseId(null);
     setLessonId(null);
     setQuizOpen(false);
+    setProgramId(null);
   };
 
   if (starting) {
@@ -133,6 +136,14 @@ function AppShell() {
       onBack={() => setCourseId(null)}
       onOpenLesson={setLessonId}
     />
+  ) : programId ? (
+    <ProgramScreen
+      programId={programId}
+      token={token}
+      onBack={() => setProgramId(null)}
+      onOpenCourse={setCourseId}
+      onOpenLesson={setLessonId}
+    />
   ) : section === 'home' ? (
     <HomeScreen
       data={dashboard}
@@ -140,6 +151,7 @@ function AppShell() {
       token={token}
       onOpenCourse={setCourseId}
       onOpenLesson={setLessonId}
+      onOpenProgram={setProgramId}
       onRefresh={() => void fetchDashboard(token)}
     />
   ) : section === 'courses' ? (
@@ -148,6 +160,7 @@ function AppShell() {
       token={token}
       onOpenCourse={setCourseId}
       onOpenLesson={setLessonId}
+      onOpenProgram={setProgramId}
       onRefresh={() => void fetchDashboard(token)}
       refreshing={loading}
     />

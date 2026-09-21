@@ -1,6 +1,7 @@
-import { ActivityIndicator, Image, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
-import { getSiteBaseUrlSync } from '../runtimeConfig';
+import { fetchPrograms } from '../api/programs';
 import { colors, spacing } from '../theme';
 import type { StudentHome } from '../types';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -12,14 +13,26 @@ type Props = {
   token: string;
   onOpenCourse: (courseId: number) => void;
   onOpenLesson: (lessonId: number) => void;
+  onOpenProgram: (programId: number) => void;
 };
 
-export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOpenLesson }: Props) {
+export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOpenLesson, onOpenProgram }: Props) {
   if (!data && loading) {
     return <View style={styles.center}><ActivityIndicator color={colors.blue} size="large" /></View>;
   }
 
-  const siteBaseUrl = getSiteBaseUrlSync();
+  const [programId, setProgramId] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchPrograms(token)
+      .then((items) => {
+        if (!active) return;
+        setProgramId(items[0]?.id ?? null);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [token]);
 
   const continueCourse = async (courseId: number) => {
     try {
@@ -46,7 +59,7 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
         <Text style={styles.pendingText}>actividades pendientes</Text>
       </View>
 
-      {siteBaseUrl ? (
+      {programId ? (
         <View style={styles.programCard}>
           <View style={styles.programCopy}>
             <Text style={styles.programEyebrow}>PROGRAMA DE PRUEBA</Text>
@@ -55,10 +68,10 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
           </View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => void Linking.openURL(`${siteBaseUrl}/programas/diplomado-en-comunicacion/`)}
+            onPress={() => onOpenProgram(programId)}
             style={styles.programButton}
           >
-            <Text style={styles.programButtonText}>Ver programa</Text>
+            <Text style={styles.programButtonText}>Abrir programa</Text>
           </Pressable>
         </View>
       ) : null}

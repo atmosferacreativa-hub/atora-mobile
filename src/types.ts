@@ -14,12 +14,46 @@ export type CourseSummary = {
   duration_hours: number;
   level: string;
   language: string;
+  meta?: {
+    learning_outcomes?: string[];
+    benefits?: string[];
+    requirements?: string[];
+    audience?: string[];
+    entry_profile?: string[];
+    exit_profile?: string[];
+  };
   progress: number;
   total_lessons: number;
   completed_lessons: number;
   is_complete: boolean;
   grade: number | null;
   last_activity: string;
+};
+
+export type ProgramSummary = {
+  id: number;
+  title: string;
+  excerpt: string;
+  thumbnail_url: string;
+  subtitle?: string;
+  duration?: string;
+  difficulty?: string;
+  modality?: string;
+  meta?: {
+    learning_outcomes?: string[];
+    entry_profile?: string[];
+    exit_profile?: string[];
+    methodology?: string;
+    competencies?: string[];
+    evidence?: string;
+    evaluation_criteria?: string;
+    certification?: string;
+  };
+};
+
+export type ProgramDetail = {
+  program: ProgramSummary;
+  courses: CourseSummary[];
 };
 
 export type LessonSummary = {
