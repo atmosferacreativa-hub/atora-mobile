@@ -9,7 +9,7 @@ import {
   removeLessonDownload,
 } from '../offline/mediaDownloads';
 import { colors, spacing } from '../theme';
-import type { LessonDetail } from '../types';
+import type { LessonDetail, LessonResource } from '../types';
 
 type Props = { lessonId: number; token: string; onBack: () => void; onCompleted: () => void; onOpenQuiz: () => void };
 
@@ -37,6 +37,17 @@ function LessonContent({
   const player = useVideoPlayer(mediaUri || null);
   const [embedLoading, setEmbedLoading] = useState(false);
   const [embedFailed, setEmbedFailed] = useState(false);
+  const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
+
+  const openResource = async (resource: LessonResource) => {
+    const target = resource.download_url || resource.url;
+    if (!target) return;
+    try {
+      await Linking.openURL(target);
+    } catch {
+      // no-op: Linking puede fallar si no hay handler; el usuario verá que no abre.
+    }
+  };
 
   return (
     <>
@@ -108,6 +119,31 @@ function LessonContent({
         </View>
       )}
       <Text style={styles.body}>{lesson.content_text || 'Esta lección no contiene texto adicional.'}</Text>
+      {resources.length ? (
+        <View style={styles.resources}>
+          <Text style={styles.sectionTitle}>Materiales</Text>
+          <Text style={styles.sectionHint}>Guías, enlaces y archivos disponibles para descargar o abrir.</Text>
+          <View style={styles.resourceList}>
+            {resources.map((resource, index) => (
+              <Pressable
+                key={`${resource.url}-${index}`}
+                accessibilityRole="button"
+                onPress={() => void openResource(resource)}
+                style={styles.resourceCard}
+              >
+                <View style={styles.resourceMeta}>
+                  <Text style={styles.resourceType}>{(resource.type || 'recurso').toUpperCase()}</Text>
+                  <Text style={styles.resourceTitle} numberOfLines={2}>{resource.title}</Text>
+                  {resource.description ? (
+                    <Text style={styles.resourceDescription} numberOfLines={2}>{resource.description}</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.resourceAction}>Abrir</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
       {lesson.quiz_available ? (
         <View style={styles.quizCard}>
           <View style={styles.quizCopy}>
@@ -247,6 +283,16 @@ const styles = StyleSheet.create({
   downloadButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, minHeight: 46, justifyContent: 'center', padding: spacing.sm },
   downloadText: { color: colors.blue, fontWeight: '800' },
   body: { color: colors.ink, fontSize: 17, lineHeight: 27 },
+  resources: { gap: spacing.sm },
+  sectionTitle: { color: colors.navy, fontSize: 18, fontWeight: '900' },
+  sectionHint: { color: colors.muted, lineHeight: 20 },
+  resourceList: { gap: spacing.sm },
+  resourceCard: { alignItems: 'center', backgroundColor: '#EEF2F6', borderRadius: 16, flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between', padding: spacing.md },
+  resourceMeta: { flex: 1, gap: 4 },
+  resourceType: { color: colors.muted, fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  resourceTitle: { color: colors.navy, fontSize: 16, fontWeight: '900' },
+  resourceDescription: { color: colors.ink, lineHeight: 19, opacity: 0.85 },
+  resourceAction: { color: colors.blue, fontWeight: '900' },
   quizCard: { backgroundColor: colors.navy, borderRadius: 18, gap: spacing.md, padding: spacing.lg },
   quizCopy: { gap: spacing.xs },
   quizEyebrow: { color: colors.mustard, fontSize: 12, fontWeight: '900', letterSpacing: 1.2 },

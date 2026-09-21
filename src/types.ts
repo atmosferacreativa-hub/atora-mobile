@@ -79,6 +79,18 @@ export type LessonDetail = {
   content_text: string;
   completed: boolean;
   quiz_available?: boolean;
+  resources?: LessonResource[];
+};
+
+export type LessonResource = {
+  type: string;
+  title: string;
+  description?: string;
+  url: string;
+  download_url?: string;
+  file_id?: number;
+  mime?: string;
+  thumb_url?: string;
 };
 
 export type QuizAnswer = string | string[];
