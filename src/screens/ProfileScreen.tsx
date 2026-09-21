@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { AcademyEndpointModal } from '../components/AcademyEndpointModal';
 import {
   clearAllDownloads,
   getDownloadSettings,
@@ -16,6 +18,7 @@ import {
   type DownloadSettings,
   type StorageSummary,
 } from '../offline/mediaDownloads';
+import { getApiBaseUrlSync, getSiteBaseUrlSync } from '../runtimeConfig';
 import { colors, spacing } from '../theme';
 
 type Props = {
@@ -31,6 +34,9 @@ export function ProfileScreen({ displayName, email, onLogout }: Props) {
   const [summary, setSummary] = useState<StorageSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [setupOpen, setSetupOpen] = useState(false);
+  const apiBaseUrl = getApiBaseUrlSync();
+  const siteBaseUrl = getSiteBaseUrlSync();
 
   const refresh = useCallback(async () => {
     const [nextSettings, nextSummary] = await Promise.all([
@@ -74,8 +80,29 @@ export function ProfileScreen({ displayName, email, onLogout }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <Text style={styles.title}>{displayName || 'Perfil'}</Text>
       {email ? <Text style={styles.email}>{email}</Text> : null}
+
+      <View style={styles.card}>
+        <Text style={styles.heading}>Academia</Text>
+        <Text style={styles.help}>URL usada para conectar con tu entorno (ATORA Lab / producción).</Text>
+        <Pressable accessibilityRole="button" onPress={() => setSetupOpen(true)} style={styles.academyButton}>
+          <Text style={styles.academyValue} numberOfLines={1}>
+            {apiBaseUrl ? apiBaseUrl : 'Configurar URL de la academia'}
+          </Text>
+          <Text style={styles.academyEdit}>Editar</Text>
+        </Pressable>
+        {siteBaseUrl ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void Linking.openURL(`${siteBaseUrl}/panel-estudiante/`)}
+            style={styles.panelButton}
+          >
+            <Text style={styles.panelText}>Abrir panel estudiante (web)</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       <View style={styles.card}>
         <Text style={styles.heading}>Descargas y datos</Text>
@@ -130,6 +157,11 @@ const styles = StyleSheet.create({
   email: { color: colors.muted, fontSize: 15 },
   card: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: spacing.md, padding: spacing.md },
   heading: { color: colors.navy, fontSize: 20, fontWeight: '800' },
+  academyButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', padding: spacing.md },
+  academyValue: { color: colors.navy, flex: 1, fontSize: 13, fontWeight: '800' },
+  academyEdit: { color: colors.blue, fontWeight: '900', marginLeft: spacing.md },
+  panelButton: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 12, minHeight: 46, justifyContent: 'center', padding: spacing.md },
+  panelText: { color: colors.white, fontWeight: '900' },
   row: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between' },
   rowText: { flex: 1 },
   label: { color: colors.ink, fontSize: 16, fontWeight: '700' },

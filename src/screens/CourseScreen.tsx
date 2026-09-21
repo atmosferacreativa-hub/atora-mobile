@@ -25,6 +25,14 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
 
   if (!data && !error) return <View style={styles.center}><ActivityIndicator color={colors.blue} /></View>;
 
+  const sections = data
+    ? data.curriculum.reduce<Record<string, CourseDetail['curriculum']>>((acc, lesson) => {
+        const key = lesson.section?.trim() || 'Contenido';
+        (acc[key] ??= []).push(lesson);
+        return acc;
+      }, {})
+    : {};
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Pressable onPress={onBack}><Text style={styles.back}>← Mis cursos</Text></Pressable>
@@ -40,18 +48,27 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
             </Text>
           </View>
           <Text style={styles.heading}>Contenido</Text>
-          {data.curriculum.map((lesson, index) => (
-            <Pressable key={lesson.id} onPress={() => onOpenLesson(lesson.id)} style={styles.lesson}>
-              <View style={[styles.number, lesson.completed && styles.done]}>
-                <Text style={styles.numberText}>{lesson.completed ? '✓' : index + 1}</Text>
+          {!data.curriculum.length ? (
+            <Text style={styles.empty}>Este curso todavía no tiene lecciones publicadas.</Text>
+          ) : (
+            Object.entries(sections).map(([section, lessons]) => (
+              <View key={section} style={styles.section}>
+                <Text style={styles.sectionTitle}>{section}</Text>
+                {lessons.map((lesson, index) => (
+                  <Pressable key={lesson.id} onPress={() => onOpenLesson(lesson.id)} style={styles.lesson}>
+                    <View style={[styles.number, lesson.completed && styles.done]}>
+                      <Text style={styles.numberText}>{lesson.completed ? '✓' : index + 1}</Text>
+                    </View>
+                    <View style={styles.lessonText}>
+                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                      <Text style={styles.meta}>{lesson.type} · {lesson.duration_min} min</Text>
+                    </View>
+                    <Text style={styles.chevron}>›</Text>
+                  </Pressable>
+                ))}
               </View>
-              <View style={styles.lessonText}>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                <Text style={styles.meta}>{lesson.type} · {lesson.duration_min} min</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          ))}
+            ))
+          )}
         </>
       ) : null}
     </ScrollView>
@@ -69,6 +86,9 @@ const styles = StyleSheet.create({
   progressValue: { color: colors.mustard, fontSize: 34, fontWeight: '900' },
   progressLabel: { color: colors.white },
   heading: { color: colors.navy, fontSize: 20, fontWeight: '800' },
+  empty: { color: colors.muted, fontSize: 14 },
+  section: { gap: spacing.sm },
+  sectionTitle: { color: colors.muted, fontSize: 12, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   lesson: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   number: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
   done: { backgroundColor: colors.success },

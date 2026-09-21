@@ -1,4 +1,5 @@
 import { config } from '../config';
+import { getApiBaseUrlSync } from '../runtimeConfig';
 
 export class ApiError extends Error {
   constructor(
@@ -13,11 +14,22 @@ export class ApiError extends Error {
 
 type RequestOptions = RequestInit & { token?: string };
 
+export function isOfflineError(reason: unknown): boolean {
+  return reason instanceof ApiError && reason.status === 0;
+}
+
+export function isRetriableError(reason: unknown): boolean {
+  if (!(reason instanceof ApiError)) return false;
+  if (reason.status === 0) return true;
+  return reason.status >= 500;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  if (!config.apiBaseUrl) {
+  const apiBaseUrl = getApiBaseUrlSync() || config.apiBaseUrl;
+  if (!apiBaseUrl) {
     throw new ApiError('La URL de la academia no está configurada.', 0, 'missing_api_url');
   }
 
@@ -26,7 +38,7 @@ export async function apiRequest<T>(
   const { token, headers, ...requestOptions } = options;
 
   try {
-    const response = await fetch(`${config.apiBaseUrl}/${path.replace(/^\//, '')}`, {
+    const response = await fetch(`${apiBaseUrl}/${path.replace(/^\//, '')}`, {
       ...requestOptions,
       signal: controller.signal,
       headers: {
@@ -41,13 +53,37 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       throw new ApiError(
-        payload?.message ?? 'No fue posible completar la solicitud.',
+        payload?.message ?? `La academia respondió con el error ${response.status}.`,
         response.status,
         payload?.code,
       );
     }
 
+    if (payload === null) {
+      throw new ApiError(
+        'La academia respondió en un formato no válido. Revisa la API REST y la caché del sitio.',
+        response.status,
+        'invalid_json',
+      );
+    }
+
     return payload as T;
+  } catch (reason) {
+    if (reason instanceof ApiError) {
+      throw reason;
+    }
+    if (reason instanceof Error && reason.name === 'AbortError') {
+      throw new ApiError(
+        'La academia tardó demasiado en responder. Revisa la conexión e inténtalo otra vez.',
+        0,
+        'request_timeout',
+      );
+    }
+    throw new ApiError(
+      'No pudimos conectar con la academia. Verifica la URL, Internet, HTTPS y el plugin ATORA LMS.',
+      0,
+      'network_error',
+    );
   } finally {
     clearTimeout(timeout);
   }

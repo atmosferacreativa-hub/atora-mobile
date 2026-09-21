@@ -1,8 +1,8 @@
-import { apiRequest } from './client';
+import { authenticatedRequest } from './authenticated';
 import type { QuizPayload, QuizResult, QuizAnswer } from '../types';
 
 export async function fetchQuiz(lessonId: number, token: string): Promise<QuizPayload> {
-  const response = await apiRequest<{ quiz: QuizPayload }>(`lessons/${lessonId}/quiz`, { token });
+  const response = await authenticatedRequest<{ quiz: QuizPayload }>(`lessons/${lessonId}/quiz`, { token });
   return response.quiz;
 }
 
@@ -12,7 +12,7 @@ export async function submitQuiz(
   answers: QuizAnswer[],
   token: string,
 ): Promise<QuizResult> {
-  const response = await apiRequest<{ result: QuizResult }>(`lessons/${lessonId}/quiz`, {
+  const response = await authenticatedRequest<{ result: QuizResult }>(`lessons/${lessonId}/quiz`, {
     method: 'POST',
     token,
     body: JSON.stringify({ token: quizToken, answers }),
