@@ -1,7 +1,10 @@
 const rawApiUrl = process.env.EXPO_PUBLIC_ATORA_API_URL ?? '';
 
+export const defaultApiBaseUrl = rawApiUrl.replace(/\/$/, '');
+
+// Nota: `config.apiBaseUrl` puede actualizarse en runtime vía `runtimeConfig.ts`.
 export const config = {
-  apiBaseUrl: rawApiUrl.replace(/\/$/, ''),
+  apiBaseUrl: defaultApiBaseUrl,
   requestTimeoutMs: 15000,
 };
 

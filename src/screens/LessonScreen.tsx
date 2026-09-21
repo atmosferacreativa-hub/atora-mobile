@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 import { completeLesson, fetchLesson } from '../api/courses';
@@ -35,6 +35,8 @@ function LessonContent({
   onOpenQuiz: () => void;
 }) {
   const player = useVideoPlayer(mediaUri || null);
+  const [embedLoading, setEmbedLoading] = useState(false);
+  const [embedFailed, setEmbedFailed] = useState(false);
 
   return (
     <>
@@ -47,6 +49,9 @@ function LessonContent({
               allowsFullscreenVideo
               javaScriptEnabled
               mediaPlaybackRequiresUserAction={false}
+              onLoadStart={() => { setEmbedLoading(true); setEmbedFailed(false); }}
+              onLoadEnd={() => setEmbedLoading(false)}
+              onError={() => { setEmbedLoading(false); setEmbedFailed(true); }}
               onShouldStartLoadWithRequest={({ url }) =>
                 url === 'about:blank'
                 || /^https:\/\/([a-z0-9-]+\.)*(google\.com|googleusercontent\.com|gstatic\.com|googlevideo\.com)\//i.test(url)
@@ -55,8 +60,25 @@ function LessonContent({
               source={{ uri: lesson.video_embed_url }}
               style={styles.embed}
             />
+            {embedLoading ? (
+              <View style={styles.embedOverlay}>
+                <ActivityIndicator color={colors.mustard} />
+              </View>
+            ) : null}
           </View>
           <Text style={styles.source}>Video protegido · Google Drive</Text>
+          <View style={styles.embedActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void Linking.openURL(lesson.video_embed_url as string)}
+              style={styles.embedButton}
+            >
+              <Text style={styles.embedButtonText}>Abrir video en el navegador</Text>
+            </Pressable>
+            {embedFailed ? (
+              <Text style={styles.embedHint}>Si el video no carga aquí, el navegador suele funcionar mejor.</Text>
+            ) : null}
+          </View>
         </>
       ) : mediaUri ? (
         <>
@@ -214,6 +236,11 @@ const styles = StyleSheet.create({
   meta: { color: colors.muted, textTransform: 'capitalize' },
   video: { aspectRatio: 16 / 9, backgroundColor: colors.ink, borderRadius: 14, overflow: 'hidden', width: '100%' },
   embed: { backgroundColor: colors.ink, flex: 1 },
+  embedOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  embedActions: { gap: spacing.xs },
+  embedButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, minHeight: 46, justifyContent: 'center', padding: spacing.sm },
+  embedButtonText: { color: colors.blue, fontWeight: '900' },
+  embedHint: { color: colors.muted, fontSize: 12, textAlign: 'center' },
   mediaUnavailable: { alignItems: 'center', backgroundColor: '#EEF2F6', borderRadius: 14, padding: spacing.lg },
   mediaUnavailableText: { color: colors.muted, lineHeight: 21, textAlign: 'center' },
   source: { color: colors.success, fontSize: 12, fontWeight: '800', textAlign: 'center' },

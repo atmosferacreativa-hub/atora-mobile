@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { ApiError } from '../api/client';
+import { AcademyEndpointModal } from '../components/AcademyEndpointModal';
+import { getApiBaseUrlSync } from '../runtimeConfig';
 import { colors, spacing } from '../theme';
 
 type Props = {
@@ -21,6 +23,8 @@ export function LoginScreen({ onLogin }: Props) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [setupOpen, setSetupOpen] = useState(false);
+  const apiBaseUrl = getApiBaseUrlSync();
 
   const submit = async () => {
     if (!login.trim() || !password) {
@@ -34,6 +38,9 @@ export function LoginScreen({ onLogin }: Props) {
       setPassword('');
     } catch (reason) {
       if (reason instanceof ApiError) {
+        if (reason.code === 'missing_api_url') {
+          setSetupOpen(true);
+        }
         setError(reason.code ? `${reason.message} [${reason.code}]` : reason.message);
       } else if (reason instanceof Error) {
         setError(`Error interno: ${reason.name}: ${reason.message}`);
@@ -50,12 +57,19 @@ export function LoginScreen({ onLogin }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.page}
     >
+      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <View style={styles.brandBlock}>
         <Text style={styles.brand}>ATORA</Text>
         <Text style={styles.tagline}>Tu aprendizaje, siempre contigo.</Text>
       </View>
       <View style={styles.card}>
         <Text style={styles.title}>Ingresar a tu academia</Text>
+        <Pressable accessibilityRole="button" onPress={() => setSetupOpen(true)} style={styles.setup}>
+          <Text style={styles.setupTitle}>Academia</Text>
+          <Text style={styles.setupValue} numberOfLines={1}>
+            {apiBaseUrl ? apiBaseUrl : 'Configura la URL del entorno (ATORA Lab)'}
+          </Text>
+        </Pressable>
         <TextInput
           autoCapitalize="none"
           autoComplete="username"
@@ -98,6 +112,9 @@ const styles = StyleSheet.create({
   tagline: { color: colors.mustard, fontSize: 16, fontWeight: '700', marginTop: spacing.xs },
   card: { backgroundColor: colors.paper, borderRadius: 24, gap: spacing.md, padding: spacing.lg },
   title: { color: colors.navy, fontSize: 22, fontWeight: '800' },
+  setup: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 14, borderWidth: 1, padding: spacing.md },
+  setupTitle: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  setupValue: { color: colors.navy, fontSize: 13, fontWeight: '800', marginTop: 4 },
   input: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.ink, fontSize: 16, padding: spacing.md },
   error: { color: colors.red, fontSize: 14 },
   button: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 12, minHeight: 52, justifyContent: 'center' },

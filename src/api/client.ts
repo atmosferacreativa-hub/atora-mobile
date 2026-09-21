@@ -1,4 +1,5 @@
 import { config } from '../config';
+import { getApiBaseUrlSync } from '../runtimeConfig';
 
 export class ApiError extends Error {
   constructor(
@@ -17,7 +18,8 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  if (!config.apiBaseUrl) {
+  const apiBaseUrl = getApiBaseUrlSync() || config.apiBaseUrl;
+  if (!apiBaseUrl) {
     throw new ApiError('La URL de la academia no está configurada.', 0, 'missing_api_url');
   }
 
@@ -26,7 +28,7 @@ export async function apiRequest<T>(
   const { token, headers, ...requestOptions } = options;
 
   try {
-    const response = await fetch(`${config.apiBaseUrl}/${path.replace(/^\//, '')}`, {
+    const response = await fetch(`${apiBaseUrl}/${path.replace(/^\//, '')}`, {
       ...requestOptions,
       signal: controller.signal,
       headers: {

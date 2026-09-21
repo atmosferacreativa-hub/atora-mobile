@@ -40,6 +40,12 @@ Para el entorno beta de ATORA:
 EXPO_PUBLIC_ATORA_API_URL=https://beta.academia.atmosferacreativa.com/wp-json/atora-mobile/v1
 ```
 
+### Conectar con ATORA Lab (local en Docker)
+
+- Asegúrate de que WordPress esté disponible en tu red (ej. `http://192.168.1.16:8080`).
+- En la app (pantalla de login) abre **“Academia”** y pega la URL del sitio.
+  - La app completa automáticamente el endpoint REST: `/wp-json/atora-mobile/v1`.
+
 Después de cambiar `.env`, reinicia Metro limpiando la caché:
 
 ```bash
