@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ApiError, apiRequest } from './client';
+import { ApiError, isRetriableError } from './client';
+import { authenticatedRequest } from './authenticated';
 import type { CourseDetail, CourseSummary, LessonDetail } from '../types';
 
 const COURSE_CACHE = 'atora.cache.course.';
@@ -10,11 +11,11 @@ type QueuedCompletion = { lessonId: number; queuedAt: number };
 
 async function cachedRequest<T>(path: string, cacheKey: string, token: string): Promise<T> {
   try {
-    const data = await apiRequest<T>(path, { token });
+    const data = await authenticatedRequest<T>(path, { token });
     await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
     return data;
   } catch (reason) {
-    if (reason instanceof ApiError) throw reason;
+    if (reason instanceof ApiError && !isRetriableError(reason)) throw reason;
     const cached = await AsyncStorage.getItem(cacheKey);
     if (!cached) throw reason;
     return JSON.parse(cached) as T;
@@ -44,13 +45,13 @@ export async function completeLesson(
   token: string,
 ): Promise<{ completed: boolean; queued: boolean }> {
   try {
-    const result = await apiRequest<{ completed: boolean }>(`lessons/${lessonId}/complete`, {
+    const result = await authenticatedRequest<{ completed: boolean }>(`lessons/${lessonId}/complete`, {
       method: 'POST',
       token,
     });
     return { completed: result.completed, queued: false };
   } catch (reason) {
-    if (reason instanceof ApiError) throw reason;
+    if (reason instanceof ApiError && !isRetriableError(reason)) throw reason;
     await queueCompletion(lessonId);
     return { completed: true, queued: true };
   }
@@ -63,10 +64,11 @@ export async function flushPendingCompletions(token: string): Promise<number> {
 
   for (const item of queue) {
     try {
-      await apiRequest(`lessons/${item.lessonId}/complete`, { method: 'POST', token });
+      await authenticatedRequest(`lessons/${item.lessonId}/complete`, { method: 'POST', token });
       synced += 1;
     } catch (reason) {
-      if (!(reason instanceof ApiError)) remaining.push(item);
+      if (isRetriableError(reason)) remaining.push(item);
+      else if (reason instanceof ApiError && reason.status === 401) throw reason;
     }
   }
 

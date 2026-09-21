@@ -1,38 +1,9 @@
-import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import * as Network from 'expo-network';
+import { useNetworkState } from '../hooks/useNetworkState';
 import { colors, spacing } from '../theme';
 
-type State = { isConnected: boolean; isInternetReachable: boolean | null };
-
 export function NetworkBanner() {
-  const [state, setState] = useState<State>({ isConnected: true, isInternetReachable: null });
-
-  useEffect(() => {
-    let active = true;
-
-    const poll = async () => {
-      try {
-        const info = await Network.getNetworkStateAsync();
-        if (!active) return;
-        setState({
-          isConnected: Boolean(info.isConnected),
-          isInternetReachable: info.isInternetReachable ?? null,
-        });
-      } catch {
-        // Si falla, no bloqueamos la UI.
-      }
-    };
-
-    void poll();
-    const id = setInterval(() => void poll(), 4000);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, []);
-
-  const offline = !state.isConnected || state.isInternetReachable === false;
+  const { offline } = useNetworkState();
   if (!offline) return null;
 
   return (
@@ -48,4 +19,3 @@ const styles = StyleSheet.create({
   title: { color: colors.mustard, fontSize: 12, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   text: { color: colors.white, fontSize: 12, marginTop: 2 },
 });
-

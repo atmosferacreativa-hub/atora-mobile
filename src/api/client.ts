@@ -14,6 +14,16 @@ export class ApiError extends Error {
 
 type RequestOptions = RequestInit & { token?: string };
 
+export function isOfflineError(reason: unknown): boolean {
+  return reason instanceof ApiError && reason.status === 0;
+}
+
+export function isRetriableError(reason: unknown): boolean {
+  if (!(reason instanceof ApiError)) return false;
+  if (reason.status === 0) return true;
+  return reason.status >= 500;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},

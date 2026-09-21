@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { flushPendingCompletions } from './src/api/courses';
-import { ApiError } from './src/api/client';
+import { ApiError, isRetriableError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { NetworkBanner } from './src/components/NetworkBanner';
 import { SectionButton } from './src/components/SectionButton';
+import { useNetworkState } from './src/hooks/useNetworkState';
 import { CourseScreen } from './src/screens/CourseScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -37,6 +38,8 @@ function AppShell() {
   const [quizOpen, setQuizOpen] = useState(false);
   const [programId, setProgramId] = useState<number | null>(null);
   const insets = useSafeAreaInsets();
+  const network = useNetworkState();
+  const prevOffline = useRef<boolean>(network.offline);
 
   const fetchDashboard = useCallback(async (accessToken: string) => {
     setLoading(true);
@@ -66,14 +69,28 @@ function AppShell() {
       if (restored) {
         try {
           await fetchDashboard(restored);
-        } catch {
-          setToken(null);
+        } catch (reason) {
+          if (isRetriableError(reason)) {
+            // Mantener sesión local para permitir caché/offline.
+          } else {
+            setToken(null);
+          }
         }
       }
       if (active) setStarting(false);
     })();
     return () => { active = false; };
   }, [fetchDashboard]);
+
+  useEffect(() => {
+    if (!token) return;
+    const wasOffline = prevOffline.current;
+    const isOffline = network.offline;
+    prevOffline.current = isOffline;
+    if (wasOffline && !isOffline) {
+      void flushPendingCompletions(token).catch(() => undefined);
+    }
+  }, [network.offline, token]);
 
   const handleLogin = async (loginValue: string, password: string) => {
     const response = await login(loginValue, password);
