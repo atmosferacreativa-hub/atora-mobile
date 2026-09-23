@@ -1,6 +1,6 @@
 {
   "name": "atora-mobile",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -9,7 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "doctor": "expo-doctor"
+    "doctor": "expo-doctor",
+    "build:apk": "eas build --platform android --profile preview",
+    "build:android": "eas build --platform android --profile production"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

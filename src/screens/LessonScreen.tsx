@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 import { completeLesson, fetchLesson } from '../api/courses';
@@ -209,7 +209,19 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz 
     }
   };
 
-  const deleteDownload = async () => {
+  const deleteDownload = () => {
+    if (!lesson) return;
+    Alert.alert(
+      '¿Eliminar descarga?',
+      'El video dejará de estar disponible sin conexión. Podrás volver a descargarlo cuando tengas Wi-Fi.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => void confirmDeleteDownload() },
+      ],
+    );
+  };
+
+  const confirmDeleteDownload = async () => {
     if (!lesson) return;
     setDownloadBusy(true);
     try {

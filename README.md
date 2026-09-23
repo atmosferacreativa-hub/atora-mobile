@@ -68,3 +68,31 @@ npx expo start --tunnel --clear
 ## Seguridad
 
 Nunca almacenes contraseñas ni tokens en el repositorio. La app exige HTTPS para descargar medios y usa sesiones móviles opacas y revocables emitidas por ATORA LMS.
+
+## Generar un APK (EAS Build)
+
+El repo ya trae `eas.json` con tres perfiles:
+
+- `development` — cliente de desarrollo, APK.
+- `preview` — APK instalable directo en un teléfono, sin pasar por las tiendas; apunta por defecto al entorno beta (`beta.academia.atmosferacreativa.com`).
+- `production` — Android App Bundle (`.aab`) para publicar en Play Store, con `versionCode` autoincremental.
+
+Primer uso (una sola vez, requiere una cuenta de Expo/EAS — no algo que se pueda dejar preconfigurado en el repo):
+
+```bash
+npm install -g eas-cli
+eas login
+eas init            # vincula el proyecto a tu cuenta/organización de Expo
+```
+
+Después, para generar el APK de prueba:
+
+```bash
+npm run build:apk
+```
+
+Eso corre en la nube de EAS (no localmente) y al terminar da un link de descarga directa del `.apk`. Para el `.aab` de producción: `npm run build:android`.
+
+## Versión
+
+- **0.2.0** — cierra el aislamiento de caché/colas/descargas offline por usuario (antes una cuenta podía heredar caché, cola de progreso o video descargado de la cuenta anterior en el mismo teléfono) y añade confirmación antes de borrar una descarga. Base: MVP nativo de estudiante (auth, cursos, programas, lecciones, quizzes, descargas offline) sobre Mobile API v1.
