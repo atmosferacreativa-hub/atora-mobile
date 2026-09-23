@@ -1,10 +1,25 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Network from 'expo-network';
+import { getSessionUserId } from '../api/session';
 
-const MANIFEST_KEY = 'atora.offline.media.v1';
-const SETTINGS_KEY = 'atora.offline.settings.v1';
+const LEGACY_MANIFEST_KEY = 'atora.offline.media.v1';
+const LEGACY_SETTINGS_KEY = 'atora.offline.settings.v1';
 const DOWNLOAD_DIR = `${FileSystem.documentDirectory}atora-offline/`;
+
+// Las descargas (manifiesto + preferencias) se namespacean por usuario, igual
+// que la caché de cursos/lecciones (ver api/session.ts, api/courses.ts): sin
+// esto, dos cuentas en el mismo teléfono compartían el panel "contenido
+// descargado" y la cuota de almacenamiento del usuario anterior.
+async function manifestKey(): Promise<string> {
+  const userId = await getSessionUserId();
+  return userId ? `atora.offline.u${userId}.media.v1` : LEGACY_MANIFEST_KEY;
+}
+
+async function settingsKey(): Promise<string> {
+  const userId = await getSessionUserId();
+  return userId ? `atora.offline.u${userId}.settings.v1` : LEGACY_SETTINGS_KEY;
+}
 const DEFAULT_MAX_BYTES = 1024 * 1024 * 1024;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -38,7 +53,7 @@ const defaults: DownloadSettings = {
 };
 
 async function readManifest(): Promise<DownloadRecord[]> {
-  const raw = await AsyncStorage.getItem(MANIFEST_KEY);
+  const raw = await AsyncStorage.getItem(await manifestKey());
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -49,11 +64,11 @@ async function readManifest(): Promise<DownloadRecord[]> {
 }
 
 async function writeManifest(records: DownloadRecord[]): Promise<void> {
-  await AsyncStorage.setItem(MANIFEST_KEY, JSON.stringify(records));
+  await AsyncStorage.setItem(await manifestKey(), JSON.stringify(records));
 }
 
 export async function getDownloadSettings(): Promise<DownloadSettings> {
-  const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+  const raw = await AsyncStorage.getItem(await settingsKey());
   if (!raw) return defaults;
   try {
     return { ...defaults, ...JSON.parse(raw) } as DownloadSettings;
@@ -66,9 +81,19 @@ export async function updateDownloadSettings(
   values: Partial<DownloadSettings>,
 ): Promise<DownloadSettings> {
   const settings = { ...await getDownloadSettings(), ...values };
-  await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  await AsyncStorage.setItem(await settingsKey(), JSON.stringify(settings));
   await maintainDownloads(settings);
   return settings;
+}
+
+/**
+ * Purga por completo las descargas (archivos + manifiesto) del usuario que
+ * tiene la sesión actual. Se llama desde el flujo de logout (App.tsx) antes
+ * de limpiar la sesión, para que la próxima cuenta que inicie sesión en el
+ * mismo dispositivo no herede ni vea el contenido descargado de la anterior.
+ */
+export async function purgeCurrentUserDownloads(): Promise<void> {
+  await clearAllDownloads();
 }
 
 async function deleteRecordFile(record: DownloadRecord): Promise<void> {

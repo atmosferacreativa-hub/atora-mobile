@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import { flushPendingCompletions } from './src/api/courses';
 import { ApiError, isRetriableError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
+import { purgeCurrentUserDownloads } from './src/offline/mediaDownloads';
 import { NetworkBanner } from './src/components/NetworkBanner';
 import { SectionButton } from './src/components/SectionButton';
 import { useNetworkState } from './src/hooks/useNetworkState';
@@ -103,6 +104,12 @@ function AppShell() {
   };
 
   const handleLogout = async () => {
+    // Purga las descargas offline del usuario saliente ANTES de cerrar la
+    // sesión: purgeCurrentUserDownloads() necesita leer el user_id todavía
+    // activo para resolver el manifiesto correcto a borrar. Si esto fallara
+    // (por ejemplo, sin espacio para reescribir el manifiesto vacío) no debe
+    // impedir el logout en sí.
+    await purgeCurrentUserDownloads().catch(() => undefined);
     if (token) await logout(token);
     setToken(null);
     setDashboard(null);
