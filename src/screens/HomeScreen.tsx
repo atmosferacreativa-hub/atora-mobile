@@ -17,10 +17,6 @@ type Props = {
 };
 
 export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOpenLesson, onOpenProgram }: Props) {
-  if (!data && loading) {
-    return <View style={styles.center}><ActivityIndicator color={colors.blue} size="large" /></View>;
-  }
-
   const [programId, setProgramId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -33,6 +29,10 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
       .catch(() => undefined);
     return () => { active = false; };
   }, [token]);
+
+  if (!data && loading) {
+    return <View style={styles.center}><ActivityIndicator color={colors.blue} size="large" /></View>;
+  }
 
   const continueCourse = async (courseId: number) => {
     try {
