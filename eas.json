@@ -23,8 +23,8 @@
     },
     "production": {
       "channel": "production",
-      "autoIncrement": "versionCode",
       "android": {
+        "autoIncrement": "versionCode",
         "buildType": "app-bundle"
       }
     }
