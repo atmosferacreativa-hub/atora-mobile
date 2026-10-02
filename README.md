@@ -4,7 +4,7 @@ Aplicación móvil oficial de ATORA LMS para Android e iOS.
 
 ## Estado
 
-MVP nativo de estudiantes conectado a **ATORA LMS 6.26.0** mediante Mobile API v1. El desarrollo se mantiene separado:
+MVP nativo de estudiantes conectado a **ATORA LMS 6.26.71** mediante Mobile API v1. El desarrollo se mantiene separado:
 
 - `Atora-LMS-6`: backend académico y API REST.
 - `atora-mobile`: cliente móvil, navegación y experiencia de usuario.
@@ -34,11 +34,13 @@ Configura en `.env` la URL de la academia, sin Markdown, corchetes ni slash fina
 EXPO_PUBLIC_ATORA_API_URL=https://tu-academia.com/wp-json/atora-mobile/v1
 ```
 
-Para el entorno beta de ATORA:
+Para la demo pública (referencia interna de QA):
 
 ```dotenv
-EXPO_PUBLIC_ATORA_API_URL=https://beta.academia.atmosferacreativa.com/wp-json/atora-mobile/v1
+EXPO_PUBLIC_ATORA_API_URL=https://demo.atora.studio/wp-json/atora-mobile/v1
 ```
+
+También puedes cambiar la academia dentro de la app: en la pantalla de login abre **“Academia”** y pega la URL del sitio.
 
 ### Conectar con ATORA Lab (local en Docker)
 
@@ -74,8 +76,8 @@ Nunca almacenes contraseñas ni tokens en el repositorio. La app exige HTTPS par
 El repo ya trae `eas.json` con tres perfiles:
 
 - `development` — cliente de desarrollo, APK.
-- `preview` — APK instalable directo en un teléfono, sin pasar por las tiendas; apunta por defecto al entorno beta (`beta.academia.atmosferacreativa.com`).
-- `production` — Android App Bundle (`.aab`) para publicar en Play Store, con `versionCode` autoincremental.
+- `preview` — APK instalable directo en un teléfono, sin pasar por las tiendas; apunta por defecto a `demo.atora.studio`.
+- `production` — Android App Bundle (`.aab`) para publicar en Play Store, con `versionCode` autoincremental. (No fija una URL: se configura por EAS env o en runtime desde **“Academia”**.)
 
 Primer uso (una sola vez, requiere una cuenta de Expo/EAS — no algo que se pueda dejar preconfigurado en el repo):
 
