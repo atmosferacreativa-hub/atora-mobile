@@ -36,7 +36,11 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": ""
-    }
+      "apiBaseUrl": "",
+      "eas": {
+        "projectId": "a3b6c6d0-c58c-4508-ac3b-25c6ea11dd62"
+      }
+    },
+    "owner": "atmosfera-creativa"
   }
 }
