@@ -6,6 +6,8 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly code?: string,
+    /** `data` del error REST (p. ej. `received_bytes` en una subida fuera de orden). */
+    readonly data?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -56,6 +58,7 @@ export async function apiRequest<T>(
         payload?.message ?? `La academia respondió con el error ${response.status}.`,
         response.status,
         payload?.code,
+        payload?.data && typeof payload.data === 'object' ? (payload.data as Record<string, unknown>) : undefined,
       );
     }
 

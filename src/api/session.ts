@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { ApiError, apiRequest, isRetriableError } from './client';
 import { purgeLocalDb } from '../offline/db';
 import { cacheGet, cacheSet } from '../offline/localCache';
+import { purgeOutboxFiles } from '../offline/outboxFiles';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 
 const SESSION_KEY = 'atora.mobile.session.v1';
@@ -29,6 +30,11 @@ function withExpirations(session: MobileSession, userId: number): StoredSession 
 async function clearAppCaches(): Promise<void> {
   // Base local (cachés y cola): no queda nada del usuario anterior.
   await purgeLocalDb().catch(() => undefined);
+  try {
+    purgeOutboxFiles();
+  } catch {
+    // Sin adjuntos pendientes o sin permiso: no debe impedir el cierre de sesión.
+  }
   const keys = await AsyncStorage.getAllKeys();
   if (!keys.length) return;
   const toRemove = keys.filter((key) => key.startsWith(CACHE_PREFIX) || key.startsWith(QUEUE_PREFIX));

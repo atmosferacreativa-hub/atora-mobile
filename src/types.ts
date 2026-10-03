@@ -79,6 +79,7 @@ export type LessonDetail = {
   content_text: string;
   completed: boolean;
   quiz_available?: boolean;
+  assignment_available?: boolean;
   resources?: LessonResource[];
 };
 
@@ -154,3 +155,39 @@ export type LoginResponse = {
   user: UserProfile;
 };
 
+
+export type ServerCapabilities = { assignments?: boolean };
+
+export type AssignmentInfo = {
+  lesson_id: number;
+  course_id: number;
+  title: string;
+  instructions_html: string;
+  /** UTC, `Y-m-d H:i:s`. */
+  due_at: string | null;
+  allow_resubmission: boolean;
+  /** null = sin límite. */
+  attempts_allowed: number | null;
+  attempts_used: number;
+  group_mode: boolean;
+  can_submit: boolean;
+  accepted_files: { extensions: string[]; mime_types: string[]; max_bytes: number; max_files: number };
+};
+
+export type AssignmentSubmission = {
+  id: number;
+  lesson_id: number;
+  attempt: number;
+  status: string;
+  body_text: string;
+  files: { filename: string; mime_type: string; bytes: number }[];
+  client_submitted_at: string | null;
+  server_received_at: string;
+  due_at: string | null;
+  is_late: boolean;
+  grade?: number | null;
+  feedback?: string | null;
+  review_status?: string;
+};
+
+export type AssignmentResponse = { assignment: AssignmentInfo; submissions: AssignmentSubmission[] };

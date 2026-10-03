@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import './src/api/courses';
+import './src/api/assignments';
+import { loadServerCapabilities } from './src/api/discovery';
 import { ApiError, isRetriableError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { purgeCurrentUserDownloads } from './src/offline/mediaDownloads';
@@ -51,6 +53,7 @@ function AppShell() {
       await initRuntimeConfig();
       // Antes de restaurar la sesión: si el token ya no sirve, la restauración purga el almacenamiento.
       await migrateLegacyStorage().catch(() => undefined);
+      void loadServerCapabilities();
       const restored = await restoreAccessToken();
       if (!active) return;
       setToken(restored);
@@ -78,6 +81,21 @@ function AppShell() {
     if (wasOffline && !isOffline) {
       void flushOutbox(token).catch(() => undefined);
     }
+  }, [network.offline, token]);
+
+  // Adjuntos que esperaban Wi-Fi y reintentos cuya espera ya venció.
+  const prevWifi = useRef<boolean>(network.isWifi);
+  useEffect(() => {
+    if (!token) return;
+    const becameWifi = !prevWifi.current && network.isWifi;
+    prevWifi.current = network.isWifi;
+    if (becameWifi && !network.offline) void flushOutbox(token).catch(() => undefined);
+  }, [network.isWifi, network.offline, token]);
+
+  useEffect(() => {
+    if (!token || network.offline) return;
+    const id = setInterval(() => void flushOutbox(token).catch(() => undefined), 30_000);
+    return () => clearInterval(id);
   }, [network.offline, token]);
 
   const handleLogin = async (loginValue: string, password: string) => {

@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { ApiError } from '../../api/client';
 import { getSessionUserId } from '../../api/session';
+import { deleteEventFiles } from '../outboxFiles';
 import { classifyStatus, enqueue, failedEvents, pendingEvents, processQueue } from './engine';
 import { sqliteOutboxStore } from './sqliteStore';
 import type { EnqueueInput, ErrorClass, OutboxEvent, OutboxHandler, ProcessResult } from './types';
@@ -90,5 +91,10 @@ export async function listOutbox(): Promise<{ pending: OutboxEvent[]; failed: Ou
 /** El estudiante descarta un evento fallido después de verlo. */
 export async function dismissOutboxEvent(id: string): Promise<void> {
   await sqliteOutboxStore.remove(id);
+  try {
+    deleteEventFiles(id);
+  } catch {
+    // Sin adjuntos.
+  }
   notify();
 }
