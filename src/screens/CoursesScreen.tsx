@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
 import { fetchPrograms } from '../api/programs';
+import { MediaImage } from '../components/MediaImage';
 import { colors, spacing } from '../theme';
 import type { CourseSummary, ProgramSummary } from '../types';
-import { resolveMediaUrl } from '../utils/mediaUrl';
 
 type Props = {
   courses: CourseSummary[];
@@ -57,7 +57,7 @@ export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOp
           <Text style={styles.programHeading}>Programas</Text>
           {programs.map((program) => (
             <Pressable key={program.id} onPress={() => onOpenProgram(program.id)} style={styles.programCard}>
-              {program.thumbnail_url ? <Image source={{ uri: resolveMediaUrl(program.thumbnail_url) }} style={styles.programThumb} /> : null}
+              <MediaImage style={styles.programThumb} uri={program.thumbnail_url} />
               <View style={styles.programCopy}>
                 <Text style={styles.programTitle}>{program.title}</Text>
                 <Text numberOfLines={2} style={styles.programText}>{program.subtitle || program.excerpt || 'Programa académico'}</Text>
@@ -69,13 +69,7 @@ export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOp
       ) : null}
       {courses.map((course) => (
         <Pressable key={course.id} onPress={() => onOpenCourse(course.id)} style={styles.card}>
-          {course.thumbnail_url ? (
-            <Image source={{ uri: resolveMediaUrl(course.thumbnail_url) }} style={styles.thumb} />
-          ) : (
-            <View style={styles.thumbPlaceholder}>
-              <Text style={styles.thumbPlaceholderText}>ATORA</Text>
-            </View>
-          )}
+          <MediaImage uri={course.thumbnail_url} />
           <View style={styles.row}>
             <Text style={styles.cardTitle}>{course.title}</Text>
             <Text style={styles.percent}>{course.progress}%</Text>
@@ -110,9 +104,6 @@ const styles = StyleSheet.create({
   title: { color: colors.navy, fontSize: 28, fontWeight: '800' },
   subtitle: { color: colors.muted, fontSize: 15 },
   card: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
-  thumb: { backgroundColor: colors.border, borderRadius: 12, height: 140, width: '100%' },
-  thumbPlaceholder: { alignItems: 'center', backgroundColor: colors.navy, borderRadius: 12, height: 140, justifyContent: 'center', width: '100%' },
-  thumbPlaceholderText: { color: colors.mustard, fontSize: 18, fontWeight: '900', letterSpacing: 2 },
   row: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   cardTitle: { color: colors.ink, flex: 1, fontSize: 18, fontWeight: '800' },
   percent: { color: colors.blue, fontWeight: '800' },
@@ -128,7 +119,7 @@ const styles = StyleSheet.create({
   programWrap: { gap: spacing.sm },
   programHeading: { color: colors.navy, fontSize: 18, fontWeight: '900', marginTop: spacing.sm },
   programCard: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: spacing.md, overflow: 'hidden' },
-  programThumb: { backgroundColor: colors.border, height: 92, width: 120 },
+  programThumb: { borderRadius: 0, width: 140 },
   programCopy: { flex: 1, gap: 4, padding: spacing.md },
   programTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },
   programText: { color: colors.muted, lineHeight: 18 },

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
 import { fetchProgram } from '../api/programs';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { MediaImage } from '../components/MediaImage';
 import { colors, spacing } from '../theme';
 import type { ProgramDetail } from '../types';
 
@@ -56,7 +56,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {program ? (
         <>
-          {program.thumbnail_url ? <Image source={{ uri: resolveMediaUrl(program.thumbnail_url) }} style={styles.hero} /> : null}
+          <MediaImage uri={program.thumbnail_url} />
           <Text style={styles.title}>{program.title}</Text>
           {program.subtitle ? <Text style={styles.subtitle}>{program.subtitle}</Text> : null}
 
@@ -84,7 +84,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
           <Text style={styles.heading}>Cursos del programa</Text>
           {(data.courses ?? []).map((course) => (
             <View key={course.id} style={styles.courseCard}>
-              {course.thumbnail_url ? <Image source={{ uri: resolveMediaUrl(course.thumbnail_url) }} style={styles.thumb} /> : null}
+              <MediaImage uri={course.thumbnail_url} />
               <View style={styles.courseTop}>
                 <Text style={styles.courseTitle}>{course.title}</Text>
                 <Text style={styles.percent}>{course.progress}%</Text>
@@ -111,7 +111,6 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md, padding: spacing.lg },
   back: { color: colors.blue, fontWeight: '800' },
   error: { color: colors.red },
-  hero: { backgroundColor: colors.border, borderRadius: 16, height: 180, width: '100%' },
   title: { color: colors.navy, fontSize: 28, fontWeight: '900' },
   subtitle: { color: colors.muted, fontSize: 15, lineHeight: 21 },
   metaCard: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
@@ -119,7 +118,6 @@ const styles = StyleSheet.create({
   bullet: { color: colors.ink, lineHeight: 20 },
   heading: { color: colors.navy, fontSize: 20, fontWeight: '900' },
   courseCard: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
-  thumb: { backgroundColor: colors.border, borderRadius: 12, height: 130, width: '100%' },
   courseTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
   courseTitle: { color: colors.ink, flex: 1, fontSize: 18, fontWeight: '900' },
   percent: { color: colors.blue, fontWeight: '900' },
