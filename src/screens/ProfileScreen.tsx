@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { AcademyEndpointModal } from '../components/AcademyEndpointModal';
 import { MediaImage } from '../components/MediaImage';
+import { Button, Card } from '../components/ui';
 import {
   clearAllDownloads,
   getDownloadSettings,
@@ -125,7 +126,7 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
       {email ? <Text style={styles.email}>{email}</Text> : null}
 
       {outbox.pending.length || outbox.failed.length ? (
-        <View style={styles.card}>
+        <Card>
           <Text style={styles.heading}>Sincronización</Text>
           {outbox.pending.length ? (
             <Text style={styles.help}>
@@ -141,11 +142,11 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
               </Pressable>
             </View>
           ))}
-        </View>
+        </Card>
       ) : null}
 
       {onSwitchMode ? (
-        <View style={styles.card}>
+        <Card>
           <Text style={styles.heading}>Modo</Text>
           <Text style={styles.help}>
             {mode === 'teacher' ? 'Estás viendo la app como docente.' : 'Estás viendo la app como estudiante.'}
@@ -157,10 +158,10 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
           >
             <Text style={styles.panelText}>{mode === 'teacher' ? 'Cambiar a modo estudiante' : 'Cambiar a modo docente'}</Text>
           </Pressable>
-        </View>
+        </Card>
       ) : null}
 
-      <View style={styles.card}>
+      <Card>
         <Text style={styles.heading}>Academia</Text>
         <Text style={styles.help}>URL usada para conectar con tu entorno (ATORA Lab / producción).</Text>
         <Pressable accessibilityRole="button" onPress={() => setSetupOpen(true)} style={styles.academyButton}>
@@ -178,9 +179,9 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
             <Text style={styles.panelText}>Abrir panel estudiante (web)</Text>
           </Pressable>
         ) : null}
-      </View>
+      </Card>
 
-      <View style={styles.card}>
+      <Card>
         <Text style={styles.heading}>Descargas y datos</Text>
         {!settings || !summary ? <ActivityIndicator color={colors.blue} /> : (
           <>
@@ -227,11 +228,9 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
           </>
         )}
         {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
-      </View>
+      </Card>
 
-      <Pressable accessibilityRole="button" onPress={confirmLogout} style={styles.logoutButton}>
-        <Text style={styles.logoutText}>Cerrar sesión</Text>
-      </Pressable>
+      <Button label="Cerrar sesión" onPress={confirmLogout} variant="danger" />
     </ScrollView>
   );
 }
@@ -240,7 +239,6 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md, padding: spacing.lg },
   title: { color: colors.navy, fontSize: 28, fontWeight: '800' },
   email: { color: colors.muted, fontSize: 15 },
-  card: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: spacing.md, padding: spacing.md },
   heading: { color: colors.navy, fontSize: 20, fontWeight: '800' },
   academyButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', padding: spacing.md },
   academyValue: { color: colors.navy, flex: 1, fontSize: 13, fontWeight: '800' },
@@ -258,6 +256,4 @@ const styles = StyleSheet.create({
   clearButton: { alignItems: 'center', borderColor: colors.red, borderRadius: 12, borderWidth: 1, padding: spacing.md },
   clearText: { color: colors.red, fontWeight: '800' },
   notice: { color: colors.muted, textAlign: 'center' },
-  logoutButton: { alignItems: 'center', borderColor: colors.red, borderRadius: 12, borderWidth: 1, padding: spacing.md },
-  logoutText: { color: colors.red, fontWeight: '800' },
 });

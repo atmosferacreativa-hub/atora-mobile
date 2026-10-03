@@ -10,6 +10,7 @@ import {
   type PickedFile,
 } from '../api/assignments';
 import { ApiError } from '../api/client';
+import { Button, Card } from '../components/ui';
 import { useNetworkState } from '../hooks/useNetworkState';
 import { dismissOutboxEvent, flushOutbox, listOutbox, subscribeOutbox } from '../offline/outbox/runtime';
 import type { OutboxEvent } from '../offline/outbox/types';
@@ -173,7 +174,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
           {assignment.group_mode ? (
             <Text style={styles.notice}>Esta es una tarea grupal: entrégala desde la web.</Text>
           ) : canSubmit ? (
-            <View style={styles.card}>
+            <Card>
               <Text style={styles.heading}>Tu entrega</Text>
               <TextInput
                 multiline
@@ -194,14 +195,10 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
                 Formatos: {assignment.accepted_files.extensions.join(', ')} · hasta {(assignment.accepted_files.max_bytes / (1024 * 1024)).toFixed(0)} MB
                 · máximo {assignment.accepted_files.max_files} archivo(s).
               </Text>
-              <Pressable accessibilityRole="button" disabled={busy} onPress={() => void pick()} style={styles.secondaryButton}>
-                <Text style={styles.secondaryText}>Adjuntar archivo</Text>
-              </Pressable>
+              <Button disabled={busy} label="Adjuntar archivo" onPress={() => void pick()} variant="secondary" />
               {formError ? <Text style={styles.error}>{formError}</Text> : null}
-              <Pressable accessibilityRole="button" disabled={busy} onPress={() => void submit()} style={styles.primaryButton}>
-                {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>Entregar</Text>}
-              </Pressable>
-            </View>
+              <Button busy={busy} label="Entregar" onPress={() => void submit()} />
+            </Card>
           ) : (
             <Text style={styles.notice}>Ya no quedan intentos para esta tarea.</Text>
           )}
@@ -272,12 +269,11 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   content: { gap: spacing.md, padding: spacing.lg },
   back: { color: colors.blue, fontWeight: '800' },
-  eyebrow: { color: colors.mustard, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
+  eyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   title: { color: colors.navy, fontSize: 26, fontWeight: '900' },
   facts: { gap: 4 },
   fact: { color: colors.ink, fontSize: 14, fontWeight: '700' },
   body: { color: colors.ink, fontSize: 15, lineHeight: 22 },
-  card: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
   heading: { color: colors.navy, fontSize: 18, fontWeight: '800' },
   input: { borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.ink, fontSize: 15, minHeight: 110, padding: spacing.sm, textAlignVertical: 'top' },
   fileRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
@@ -287,18 +283,14 @@ const styles = StyleSheet.create({
   notice: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.ink, padding: spacing.md },
   error: { color: colors.red, fontSize: 14 },
   errorSmall: { color: colors.red, fontSize: 12 },
-  secondaryButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, padding: spacing.sm },
-  secondaryText: { color: colors.blue, fontWeight: '800' },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 12, padding: spacing.md },
-  primaryText: { color: colors.white, fontSize: 16, fontWeight: '900' },
-  savedBox: { backgroundColor: '#FFF8E6', borderColor: colors.mustard, borderRadius: 12, borderWidth: 1, gap: 4, padding: spacing.md },
+  savedBox: { backgroundColor: colors.accentSoft, borderColor: colors.accent, borderRadius: 12, borderWidth: 1, gap: 4, padding: spacing.md },
   savedTitle: { color: colors.navy, fontSize: 15, fontWeight: '800' },
   historyItem: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 12, borderWidth: 1, gap: 4, padding: spacing.md },
   badge: { alignSelf: 'flex-start', borderRadius: 999, fontSize: 12, fontWeight: '800', overflow: 'hidden', paddingHorizontal: spacing.sm, paddingVertical: 3 },
-  badgeQueued: { backgroundColor: '#FFF1CC', color: '#7A5A00' },
-  badgeFailed: { backgroundColor: '#FDE2E2', color: colors.red },
-  badgeOk: { backgroundColor: '#E2F2EA', color: colors.success },
-  badgeLate: { backgroundColor: '#FDEBD3', color: '#8A4B00' },
-  badgeGraded: { backgroundColor: '#E1ECF7', color: colors.blue },
+  badgeQueued: { backgroundColor: colors.accentSoft, color: colors.accentText },
+  badgeFailed: { backgroundColor: colors.dangerSoft, color: colors.danger },
+  badgeOk: { backgroundColor: colors.successSoft, color: colors.success },
+  badgeLate: { backgroundColor: colors.accentSoft, color: colors.accentText },
+  badgeGraded: { backgroundColor: colors.primarySoft, color: colors.primary },
   feedback: { color: colors.ink, fontSize: 14, fontStyle: 'italic' },
 });

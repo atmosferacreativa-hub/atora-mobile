@@ -106,11 +106,11 @@ export function LoginScreen({ onLogin }: Props) {
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.navy, flex: 1, justifyContent: 'center', padding: spacing.lg },
+  page: { backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: spacing.lg },
   brandBlock: { marginBottom: spacing.xl },
-  brand: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: 3 },
-  tagline: { color: colors.mustard, fontSize: 16, fontWeight: '700', marginTop: spacing.xs },
-  card: { backgroundColor: colors.paper, borderRadius: 24, gap: spacing.md, padding: spacing.lg },
+  brand: { color: colors.primary, fontSize: 38, fontWeight: '900', letterSpacing: 3 },
+  tagline: { color: colors.accentText, fontSize: 16, fontWeight: '700', marginTop: spacing.xs },
+  card: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: 24, borderWidth: 1, gap: spacing.md, padding: spacing.lg },
   title: { color: colors.navy, fontSize: 22, fontWeight: '800' },
   setup: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 14, borderWidth: 1, padding: spacing.md },
   setupTitle: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },

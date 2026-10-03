@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
 import { MediaImage } from '../components/MediaImage';
+import { ListRow } from '../components/ui';
 import { getLocalThumbnail } from '../offline/videoThumbnails';
 import { colors, spacing } from '../theme';
 import type { CourseDetail } from '../types';
@@ -66,8 +67,12 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
               <View key={section} style={styles.section}>
                 <Text style={styles.sectionTitle}>{section}</Text>
                 {lessons.map((lesson, index) => (
-                  <Pressable key={lesson.id} onPress={() => onOpenLesson(lesson.id)} style={styles.lesson}>
-                    {lesson.has_video ? (
+                  <ListRow
+                    key={lesson.id}
+                    onPress={() => onOpenLesson(lesson.id)}
+                    subtitle={`${lesson.type} · ${lesson.duration_min} min`}
+                    title={lesson.title}
+                    leading={lesson.has_video ? (
                       <View style={styles.thumbWrap}>
                         <MediaImage
                           badge={lesson.duration_min ? `${lesson.duration_min} min` : undefined}
@@ -82,12 +87,7 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
                         <Text style={styles.numberText}>{lesson.completed ? '✓' : index + 1}</Text>
                       </View>
                     )}
-                    <View style={styles.lessonText}>
-                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                      <Text style={styles.meta}>{lesson.type} · {lesson.duration_min} min</Text>
-                    </View>
-                    <Text style={styles.chevron}>›</Text>
-                  </Pressable>
+                  />
                 ))}
               </View>
             ))
@@ -112,14 +112,9 @@ const styles = StyleSheet.create({
   empty: { color: colors.muted, fontSize: 14 },
   section: { gap: spacing.sm },
   sectionTitle: { color: colors.muted, fontSize: 12, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
-  lesson: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   number: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
   done: { backgroundColor: colors.success },
   numberText: { color: colors.white, fontWeight: '900' },
-  lessonText: { flex: 1 },
-  lessonTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  meta: { color: colors.muted, fontSize: 12, marginTop: 3, textTransform: 'capitalize' },
-  chevron: { color: colors.blue, fontSize: 28 },
   thumbWrap: { width: 120 },
   thumb: { borderRadius: 10 },
   thumbDone: { backgroundColor: colors.success, borderRadius: 10, color: colors.white, fontSize: 11, fontWeight: '900', left: 6, overflow: 'hidden', paddingHorizontal: 5, position: 'absolute', top: 6 },
