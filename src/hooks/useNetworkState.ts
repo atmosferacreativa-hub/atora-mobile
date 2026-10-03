@@ -5,6 +5,7 @@ export type NetworkState = {
   isConnected: boolean;
   isInternetReachable: boolean | null;
   offline: boolean;
+  isWifi: boolean;
 };
 
 export function useNetworkState(pollMs = 4000): NetworkState {
@@ -12,6 +13,7 @@ export function useNetworkState(pollMs = 4000): NetworkState {
     isConnected: true,
     isInternetReachable: null,
     offline: false,
+    isWifi: false,
   });
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export function useNetworkState(pollMs = 4000): NetworkState {
           isConnected,
           isInternetReachable,
           offline: !isConnected || isInternetReachable === false,
+          isWifi: info.type === Network.NetworkStateType.WIFI,
         });
       } catch {
         // No bloqueamos la UI si falla.

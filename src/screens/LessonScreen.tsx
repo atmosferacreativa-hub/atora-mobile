@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, T
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 import { completeLesson, fetchLesson } from '../api/courses';
+import { getServerCapabilities } from '../api/discovery';
 import {
   downloadLessonMedia,
   findLessonDownload,
@@ -11,7 +12,14 @@ import {
 import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
 
-type Props = { lessonId: number; token: string; onBack: () => void; onCompleted: () => void; onOpenQuiz: () => void };
+type Props = {
+  lessonId: number;
+  token: string;
+  onBack: () => void;
+  onCompleted: () => void;
+  onOpenQuiz: () => void;
+  onOpenAssignment: () => void;
+};
 
 function LessonContent({
   lesson,
@@ -23,6 +31,8 @@ function LessonContent({
   onDownload,
   onRemoveDownload,
   onOpenQuiz,
+  showAssignment,
+  onOpenAssignment,
 }: {
   lesson: LessonDetail;
   mediaUri: string;
@@ -33,6 +43,8 @@ function LessonContent({
   onDownload: () => void;
   onRemoveDownload: () => void;
   onOpenQuiz: () => void;
+  showAssignment: boolean;
+  onOpenAssignment: () => void;
 }) {
   const player = useVideoPlayer(mediaUri || null);
   const [embedLoading, setEmbedLoading] = useState(false);
@@ -156,6 +168,18 @@ function LessonContent({
           </Pressable>
         </View>
       ) : null}
+      {showAssignment ? (
+        <View style={styles.quizCard}>
+          <View style={styles.quizCopy}>
+            <Text style={styles.quizEyebrow}>TAREA</Text>
+            <Text style={styles.quizTitle}>Entrega tu trabajo</Text>
+            <Text style={styles.quizHelp}>Puedes prepararla sin conexión: se enviará sola cuando vuelvas a tenerla.</Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={onOpenAssignment} style={styles.quizButton}>
+            <Text style={styles.quizButtonText}>Ver tarea</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Pressable
         disabled={busy || lesson.completed}
         onPress={onComplete}
@@ -169,13 +193,21 @@ function LessonContent({
   );
 }
 
-export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz }: Props) {
+export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment }: Props) {
+  const [assignmentsSupported, setAssignmentsSupported] = useState(false);
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [mediaUri, setMediaUri] = useState('');
   const [downloaded, setDownloaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [downloadBusy, setDownloadBusy] = useState(false);
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    // Servidores anteriores a 6.27.0 no declaran la capacidad: la función se oculta.
+    void getServerCapabilities().then((caps) => { if (active) setAssignmentsSupported(Boolean(caps.assignments)); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -269,6 +301,8 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz 
           onDownload={() => void saveDownload()}
           onRemoveDownload={() => void deleteDownload()}
           onOpenQuiz={onOpenQuiz}
+          showAssignment={assignmentsSupported && Boolean(lesson.assignment_available)}
+          onOpenAssignment={onOpenAssignment}
         />
       ) : null}
       {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}

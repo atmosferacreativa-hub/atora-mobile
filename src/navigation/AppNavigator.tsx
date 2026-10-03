@@ -5,6 +5,7 @@ import { NavigationContainer, DefaultTheme, getFocusedRouteNameFromRoute, type R
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NetworkBanner } from '../components/NetworkBanner';
+import { AssignmentScreen } from '../screens/AssignmentScreen';
 import { ComingSoonScreen } from '../screens/ComingSoonScreen';
 import { CourseScreen } from '../screens/CourseScreen';
 import { CoursesScreen } from '../screens/CoursesScreen';
@@ -44,6 +45,7 @@ export type LearningStackParams = {
   Program: { programId: number };
   Lesson: { lessonId: number };
   Quiz: { lessonId: number };
+  Assignment: { lessonId: number };
 };
 
 type LearningProps<T extends keyof LearningStackParams> = NativeStackScreenProps<LearningStackParams, T>;
@@ -82,6 +84,7 @@ function LessonRoute({ route, navigation }: LearningProps<'Lesson'>) {
       onBack={() => navigation.goBack()}
       onCompleted={refresh}
       onOpenQuiz={() => navigation.push('Quiz', { lessonId: route.params.lessonId })}
+      onOpenAssignment={() => navigation.push('Assignment', { lessonId: route.params.lessonId })}
     />
   );
 }
@@ -89,6 +92,11 @@ function LessonRoute({ route, navigation }: LearningProps<'Lesson'>) {
 function QuizRoute({ route, navigation }: LearningProps<'Quiz'>) {
   const { token, refresh } = useAppSession();
   return <QuizScreen lessonId={route.params.lessonId} token={token} onBack={() => navigation.goBack()} onCompleted={refresh} />;
+}
+
+function AssignmentRoute({ route, navigation }: LearningProps<'Assignment'>) {
+  const { token } = useAppSession();
+  return <AssignmentScreen lessonId={route.params.lessonId} token={token} onBack={() => navigation.goBack()} />;
 }
 
 function TodayRoot({ navigation }: LearningProps<'Root'>) {
@@ -145,6 +153,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Program" component={ProgramRoute} />
         <Stack.Screen name="Lesson" component={LessonRoute} />
         <Stack.Screen name="Quiz" component={QuizRoute} />
+        <Stack.Screen name="Assignment" component={AssignmentRoute} />
       </Stack.Navigator>
     );
   };
