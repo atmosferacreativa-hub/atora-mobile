@@ -4,7 +4,7 @@ Aplicación móvil oficial de ATORA LMS para Android e iOS.
 
 ## Estado
 
-MVP nativo de estudiantes conectado a **ATORA LMS 6.26.71** mediante Mobile API v1. El desarrollo se mantiene separado:
+Versión **0.3.0**. Requiere **ATORA LMS 6.27.1** o superior (Mobile API v1) para entregas de tareas y miniaturas de video; con versiones anteriores esas funciones se ocultan. El desarrollo se mantiene separado:
 
 - `Atora-LMS-6`: backend académico y API REST.
 - `atora-mobile`: cliente móvil, navegación y experiencia de usuario.
@@ -17,6 +17,10 @@ MVP nativo de estudiantes conectado a **ATORA LMS 6.26.71** mediante Mobile API 
 - Caché local y cola de sincronización
 - Descargas administradas con `expo-file-system`
 - Detección de Wi-Fi con `expo-network`
+- Navegación con React Navigation (pestañas por rol)
+- Base local `expo-sqlite` con una sola cola de envíos sin conexión
+- Imágenes con `expo-image` (caché en disco)
+- Jest para la lógica de la cola (`npm test`)
 
 ## Primer arranque
 
@@ -44,7 +48,9 @@ También puedes cambiar la academia dentro de la app: en la pantalla de login ab
 
 ### Conectar con ATORA Lab (local en Docker)
 
-- Asegúrate de que WordPress esté disponible en tu red (ej. `http://192.168.1.16:8080`).
+- Asegúrate de que WordPress esté disponible en tu red (ej. `http://192.168.1.16:8080`; desde el emulador de Android, `http://10.0.2.2:8080`).
+- La API acepta HTTP solo si WordPress está en entorno `local` o con `ATORA_DEV_MODE`.
+- **HTTP solo funciona en desarrollo** (Expo Go o cliente de desarrollo): las descargas de medios aceptan `http://` únicamente con `__DEV__`, y Android bloquea el tráfico sin cifrar en las compilaciones `preview` y `production`. Para probar un APK contra el Lab local, publícalo por HTTPS (por ejemplo, con un túnel).
 - En la app (pantalla de login) abre **“Academia”** y pega la URL del sitio.
   - La app completa automáticamente el endpoint REST: `/wp-json/atora-mobile/v1`.
 
@@ -65,11 +71,14 @@ npx expo start --tunnel --clear
 - Preferencia de descargas solo por Wi-Fi.
 - Cuota local predeterminada de 1 GB.
 - Caducidad automática después de 30 días sin uso.
-- Panel para revisar y eliminar contenido descargado.
+- Panel para revisar y eliminar contenido descargado, con miniatura de cada video.
+- Pestañas por rol: estudiante (Hoy · Cursos · Agenda · Mensajes · Yo) y docente (Hoy · Cursos · Calificar · Mensajes · Yo).
+- Entregas de tareas con texto y adjuntos, también sin conexión: se envían solas al reconectar, una sola vez.
+- Miniaturas de video en el currículo, como carátula del reproductor y en descargas.
 
 ## Seguridad
 
-Nunca almacenes contraseñas ni tokens en el repositorio. La app exige HTTPS para descargar medios y usa sesiones móviles opacas y revocables emitidas por ATORA LMS.
+Nunca almacenes contraseñas ni tokens en el repositorio. La app exige HTTPS para descargar medios (salvo en desarrollo) y usa sesiones móviles opacas y revocables emitidas por ATORA LMS.
 
 ## Generar un APK (EAS Build)
 
@@ -97,4 +106,4 @@ Eso corre en la nube de EAS (no localmente) y al terminar da un link de descarga
 
 ## Versión
 
-- **0.2.0** — cierra el aislamiento de caché/colas/descargas offline por usuario (antes una cuenta podía heredar caché, cola de progreso o video descargado de la cuenta anterior en el mismo teléfono) y añade confirmación antes de borrar una descarga. Base: MVP nativo de estudiante (auth, cursos, programas, lecciones, quizzes, descargas offline) sobre Mobile API v1.
+Ver [CHANGELOG.md](CHANGELOG.md). Cada versión publicada lleva su etiqueta `vX.Y.Z`.
