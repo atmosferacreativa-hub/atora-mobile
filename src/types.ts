@@ -154,4 +154,3 @@ export type LoginResponse = {
   user: UserProfile;
 };
 
-export type AppSection = 'home' | 'courses' | 'grades' | 'profile';
