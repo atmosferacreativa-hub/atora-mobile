@@ -64,6 +64,9 @@ export type LessonSummary = {
   duration_min: number;
   section: string;
   completed: boolean;
+  /** 6.27.1+ */
+  has_video?: boolean;
+  video_thumbnail_url?: string;
 };
 
 export type LessonDetail = {
@@ -75,6 +78,8 @@ export type LessonDetail = {
   video_url: string;
   video_embed_url?: string;
   video_provider?: 'direct' | 'google_drive' | '';
+  /** 6.27.1+: manual, YouTube, Vimeo, destacada de la lección o portada del curso. */
+  video_thumbnail_url?: string;
   content_html: string;
   content_text: string;
   completed: boolean;

@@ -37,6 +37,9 @@ export type DownloadRecord = {
   size: number;
   downloadedAt: number;
   lastAccessedAt: number;
+  /** 0.3.0: para la lista de descargas. */
+  title?: string;
+  thumbnailUrl?: string;
 };
 
 export type StorageSummary = {
@@ -155,11 +158,21 @@ function safeExtension(sourceUrl: string): string {
   return match ? `.${match[1]!.toLowerCase()}` : '.mp4';
 }
 
+/**
+ * HTTP solo en desarrollo (Expo Go / dev client contra ATORA Lab local).
+ * Las compilaciones preview y production siempre exigen HTTPS.
+ */
+function isAllowedSource(sourceUrl: string): boolean {
+  if (sourceUrl.startsWith('https://')) return true;
+  return __DEV__ && sourceUrl.startsWith('http://');
+}
+
 export async function downloadLessonMedia(
   lessonId: number,
   sourceUrl: string,
+  meta: { title?: string; thumbnailUrl?: string } = {},
 ): Promise<DownloadRecord> {
-  if (!sourceUrl.startsWith('https://')) {
+  if (!isAllowedSource(sourceUrl)) {
     throw new Error('Solo se permiten descargas protegidas por HTTPS.');
   }
 
@@ -185,6 +198,8 @@ export async function downloadLessonMedia(
     size: info.exists && 'size' in info ? info.size : 0,
     downloadedAt: now,
     lastAccessedAt: now,
+    title: meta.title,
+    thumbnailUrl: meta.thumbnailUrl,
   };
   await writeManifest([...await readManifest(), record]);
   const maintained = await maintainDownloads(settings);
@@ -204,6 +219,12 @@ export async function clearAllDownloads(): Promise<void> {
   const records = await readManifest();
   await Promise.all(records.map(deleteRecordFile));
   await writeManifest([]);
+}
+
+/** Videos descargados, del más reciente al más antiguo. */
+export async function listDownloads(): Promise<DownloadRecord[]> {
+  const records = await maintainDownloads();
+  return [...records].sort((a, b) => b.downloadedAt - a.downloadedAt);
 }
 
 export async function getStorageSummary(): Promise<StorageSummary> {

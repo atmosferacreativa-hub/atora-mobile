@@ -11,11 +11,14 @@ import {
   View,
 } from 'react-native';
 import { AcademyEndpointModal } from '../components/AcademyEndpointModal';
+import { MediaImage } from '../components/MediaImage';
 import {
   clearAllDownloads,
   getDownloadSettings,
   getStorageSummary,
+  listDownloads,
   updateDownloadSettings,
+  type DownloadRecord,
   type DownloadSettings,
   type StorageSummary,
 } from '../offline/mediaDownloads';
@@ -44,6 +47,7 @@ const EVENT_LABELS: Record<string, string> = {
 export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode }: Props) {
   const [settings, setSettings] = useState<DownloadSettings | null>(null);
   const [summary, setSummary] = useState<StorageSummary | null>(null);
+  const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [setupOpen, setSetupOpen] = useState(false);
@@ -73,12 +77,14 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
   const siteBaseUrl = getSiteBaseUrlSync();
 
   const refresh = useCallback(async () => {
-    const [nextSettings, nextSummary] = await Promise.all([
+    const [nextSettings, nextSummary, nextDownloads] = await Promise.all([
       getDownloadSettings(),
       getStorageSummary(),
+      listDownloads(),
     ]);
     setSettings(nextSettings);
     setSummary(nextSummary);
+    setDownloads(nextDownloads);
   }, []);
 
   useEffect(() => {
@@ -204,6 +210,15 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
               {summary.count} archivos · {formatMegabytes(summary.usedBytes)} de {formatMegabytes(summary.maxBytes)}
             </Text>
             <Text style={styles.help}>Las descargas sin uso se eliminan después de {settings.retentionDays} días.</Text>
+            {downloads.map((record) => (
+              <View key={record.localUri} style={styles.downloadItem}>
+                <MediaImage play style={styles.downloadThumb} uri={record.thumbnailUrl} />
+                <View style={styles.rowText}>
+                  <Text numberOfLines={2} style={styles.label}>{record.title || `Lección ${record.lessonId}`}</Text>
+                  <Text style={styles.help}>{formatMegabytes(record.size)}</Text>
+                </View>
+              </View>
+            ))}
             {summary.count > 0 ? (
               <Pressable disabled={busy} onPress={() => void clearDownloads()} style={styles.clearButton}>
                 <Text style={styles.clearText}>Eliminar todas las descargas</Text>
@@ -230,6 +245,8 @@ const styles = StyleSheet.create({
   academyButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', padding: spacing.md },
   academyValue: { color: colors.navy, flex: 1, fontSize: 13, fontWeight: '800' },
   academyEdit: { color: colors.blue, fontWeight: '900', marginLeft: spacing.md },
+  downloadItem: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
+  downloadThumb: { borderRadius: 8, width: 96 },
   failedItem: { borderTopColor: colors.border, borderTopWidth: 1, gap: 4, paddingTop: spacing.sm },
   panelButton: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 12, minHeight: 46, justifyContent: 'center', padding: spacing.md },
   panelText: { color: colors.white, fontWeight: '900' },

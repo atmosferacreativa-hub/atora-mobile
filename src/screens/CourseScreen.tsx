@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
+import { MediaImage } from '../components/MediaImage';
+import { getLocalThumbnail } from '../offline/videoThumbnails';
 import { colors, spacing } from '../theme';
 import type { CourseDetail } from '../types';
 
@@ -14,11 +16,20 @@ type Props = {
 export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
   const [data, setData] = useState<CourseDetail | null>(null);
   const [error, setError] = useState('');
+  const [localThumbs, setLocalThumbs] = useState<Record<number, string>>({});
 
   useEffect(() => {
     let active = true;
     fetchCourse(courseId, token)
-      .then((value) => { if (active) setData(value); })
+      .then(async (value) => {
+        if (!active) return;
+        setData(value);
+        // Miniaturas generadas en el teléfono (MP4 propios ya vistos).
+        const entries = await Promise.all(
+          value.curriculum.filter((lesson) => lesson.has_video).map(async (lesson) => [lesson.id, await getLocalThumbnail(lesson.id)] as const),
+        );
+        if (active) setLocalThumbs(Object.fromEntries(entries.filter(([, uri]) => uri)) as Record<number, string>);
+      })
       .catch(() => { if (active) setError('No pudimos cargar este curso.'); });
     return () => { active = false; };
   }, [courseId, token]);
@@ -56,9 +67,21 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
                 <Text style={styles.sectionTitle}>{section}</Text>
                 {lessons.map((lesson, index) => (
                   <Pressable key={lesson.id} onPress={() => onOpenLesson(lesson.id)} style={styles.lesson}>
-                    <View style={[styles.number, lesson.completed && styles.done]}>
-                      <Text style={styles.numberText}>{lesson.completed ? '✓' : index + 1}</Text>
-                    </View>
+                    {lesson.has_video ? (
+                      <View style={styles.thumbWrap}>
+                        <MediaImage
+                          badge={lesson.duration_min ? `${lesson.duration_min} min` : undefined}
+                          play
+                          style={styles.thumb}
+                          uri={localThumbs[lesson.id] || lesson.video_thumbnail_url}
+                        />
+                        {lesson.completed ? <Text style={styles.thumbDone}>✓</Text> : null}
+                      </View>
+                    ) : (
+                      <View style={[styles.number, lesson.completed && styles.done]}>
+                        <Text style={styles.numberText}>{lesson.completed ? '✓' : index + 1}</Text>
+                      </View>
+                    )}
                     <View style={styles.lessonText}>
                       <Text style={styles.lessonTitle}>{lesson.title}</Text>
                       <Text style={styles.meta}>{lesson.type} · {lesson.duration_min} min</Text>
@@ -97,4 +120,7 @@ const styles = StyleSheet.create({
   lessonTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   meta: { color: colors.muted, fontSize: 12, marginTop: 3, textTransform: 'capitalize' },
   chevron: { color: colors.blue, fontSize: 28 },
+  thumbWrap: { width: 120 },
+  thumb: { borderRadius: 10 },
+  thumbDone: { backgroundColor: colors.success, borderRadius: 10, color: colors.white, fontSize: 11, fontWeight: '900', left: 6, overflow: 'hidden', paddingHorizontal: 5, position: 'absolute', top: 6 },
 });

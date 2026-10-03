@@ -5,6 +5,7 @@ import { ApiError, apiRequest, isRetriableError } from './client';
 import { purgeLocalDb } from '../offline/db';
 import { cacheGet, cacheSet } from '../offline/localCache';
 import { purgeOutboxFiles } from '../offline/outboxFiles';
+import { purgeLocalThumbnails } from '../offline/thumbnailFiles';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 
 const SESSION_KEY = 'atora.mobile.session.v1';
@@ -30,10 +31,13 @@ function withExpirations(session: MobileSession, userId: number): StoredSession 
 async function clearAppCaches(): Promise<void> {
   // Base local (cachés y cola): no queda nada del usuario anterior.
   await purgeLocalDb().catch(() => undefined);
-  try {
-    purgeOutboxFiles();
-  } catch {
-    // Sin adjuntos pendientes o sin permiso: no debe impedir el cierre de sesión.
+  // Archivos locales del usuario: un fallo en uno no debe impedir el resto ni el cierre de sesión.
+  for (const purge of [purgeOutboxFiles, purgeLocalThumbnails]) {
+    try {
+      purge();
+    } catch {
+      // Sin archivos o sin permiso.
+    }
   }
   const keys = await AsyncStorage.getAllKeys();
   if (!keys.length) return;

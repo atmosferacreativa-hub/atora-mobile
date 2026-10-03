@@ -4,6 +4,8 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 import { completeLesson, fetchLesson } from '../api/courses';
 import { getServerCapabilities } from '../api/discovery';
+import { MediaImage } from '../components/MediaImage';
+import { ensureLocalThumbnail, getLocalThumbnail, needsLocalThumbnail } from '../offline/videoThumbnails';
 import {
   downloadLessonMedia,
   findLessonDownload,
@@ -33,6 +35,7 @@ function LessonContent({
   onOpenQuiz,
   showAssignment,
   onOpenAssignment,
+  thumbnailUri,
 }: {
   lesson: LessonDetail;
   mediaUri: string;
@@ -45,8 +48,19 @@ function LessonContent({
   onOpenQuiz: () => void;
   showAssignment: boolean;
   onOpenAssignment: () => void;
+  thumbnailUri: string;
 }) {
   const player = useVideoPlayer(mediaUri || null);
+  // La miniatura es la carátula hasta que el estudiante pulsa reproducir.
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    if (started && mediaUri && !lesson.video_embed_url) player.play();
+  }, [started, mediaUri, lesson.video_embed_url, player]);
+  const cover = (
+    <Pressable accessibilityLabel="Reproducir video" accessibilityRole="button" onPress={() => setStarted(true)}>
+      <MediaImage play uri={thumbnailUri} badge={lesson.duration_min ? `${lesson.duration_min} min` : undefined} />
+    </Pressable>
+  );
   const [embedLoading, setEmbedLoading] = useState(false);
   const [embedFailed, setEmbedFailed] = useState(false);
   const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
@@ -65,7 +79,9 @@ function LessonContent({
     <>
       <Text style={styles.title}>{lesson.title}</Text>
       <Text style={styles.meta}>{lesson.duration_min} minutos · {lesson.type}</Text>
-      {lesson.video_embed_url ? (
+      {(lesson.video_embed_url || mediaUri) && !started ? (
+        cover
+      ) : lesson.video_embed_url ? (
         <>
           <View style={styles.video}>
             <WebView
@@ -195,6 +211,7 @@ function LessonContent({
 
 export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment }: Props) {
   const [assignmentsSupported, setAssignmentsSupported] = useState(false);
+  const [localThumb, setLocalThumb] = useState<string | null>(null);
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [mediaUri, setMediaUri] = useState('');
   const [downloaded, setDownloaded] = useState(false);
@@ -220,6 +237,14 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
         setLesson(value);
         setMediaUri(saved?.localUri || value.video_url);
         setDownloaded(Boolean(saved));
+        // MP4 propio sin miniatura en el servidor: se genera una del primer segundo y se guarda.
+        const existing = await getLocalThumbnail(value.id);
+        if (existing) {
+          if (active) setLocalThumb(existing);
+        } else if (await needsLocalThumbnail(value)) {
+          const generated = await ensureLocalThumbnail(value.id, saved?.localUri || value.video_url);
+          if (active && generated) setLocalThumb(generated);
+        }
       })
       .catch(() => { if (active) setNotice('No pudimos cargar la lección.'); });
     return () => { active = false; };
@@ -230,7 +255,10 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     setDownloadBusy(true);
     setNotice('');
     try {
-      const saved = await downloadLessonMedia(lesson.id, lesson.video_url);
+      const saved = await downloadLessonMedia(lesson.id, lesson.video_url, {
+        title: lesson.title,
+        thumbnailUrl: localThumb || lesson.video_thumbnail_url || undefined,
+      });
       setMediaUri(saved.localUri);
       setDownloaded(true);
       setNotice('Lección guardada y lista para usar sin conexión.');
@@ -302,6 +330,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
           onRemoveDownload={() => void deleteDownload()}
           onOpenQuiz={onOpenQuiz}
           showAssignment={assignmentsSupported && Boolean(lesson.assignment_available)}
+          thumbnailUri={localThumb || lesson.video_thumbnail_url || ''}
           onOpenAssignment={onOpenAssignment}
         />
       ) : null}

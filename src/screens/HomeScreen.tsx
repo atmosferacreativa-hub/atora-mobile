@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
 import { fetchPrograms } from '../api/programs';
+import { MediaImage } from '../components/MediaImage';
 import { colors, spacing } from '../theme';
 import type { StudentHome } from '../types';
-import { resolveMediaUrl } from '../utils/mediaUrl';
 
 type Props = {
   data: StudentHome | null;
@@ -81,7 +81,7 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
         <Text style={styles.empty}>Todavía no tienes cursos activos.</Text>
       ) : data.courses.map((course) => (
         <Pressable key={course.id} onPress={() => void continueCourse(course.id)} style={styles.card}>
-          {course.thumbnail_url ? <Image source={{ uri: resolveMediaUrl(course.thumbnail_url) }} style={styles.thumb} /> : null}
+          <MediaImage uri={course.thumbnail_url} />
           <Text style={styles.cardTitle}>{course.title}</Text>
           <Text style={styles.next}>{course.completed_lessons} de {course.total_lessons} lecciones</Text>
           <View style={styles.track}>
@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
   heading: { color: colors.navy, fontSize: 20, fontWeight: '800', marginTop: spacing.sm },
   empty: { color: colors.muted, fontSize: 15 },
   card: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: spacing.md, gap: spacing.sm },
-  thumb: { backgroundColor: colors.border, borderRadius: 12, height: 140, width: '100%' },
   cardTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   next: { color: colors.muted },
   track: { backgroundColor: colors.border, borderRadius: 4, height: 8, overflow: 'hidden' },
