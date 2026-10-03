@@ -2,10 +2,11 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { ApiError, apiRequest, isRetriableError } from './client';
+import { purgeLocalDb } from '../offline/db';
+import { cacheGet, cacheSet } from '../offline/localCache';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 
 const SESSION_KEY = 'atora.mobile.session.v1';
-const LEGACY_DASHBOARD_CACHE = 'atora.cache.dashboard.v1';
 const CACHE_PREFIX = 'atora.cache.';
 const QUEUE_PREFIX = 'atora.queue.';
 
@@ -26,6 +27,8 @@ function withExpirations(session: MobileSession, userId: number): StoredSession 
 }
 
 async function clearAppCaches(): Promise<void> {
+  // Base local (cachés y cola): no queda nada del usuario anterior.
+  await purgeLocalDb().catch(() => undefined);
   const keys = await AsyncStorage.getAllKeys();
   if (!keys.length) return;
   const toRemove = keys.filter((key) => key.startsWith(CACHE_PREFIX) || key.startsWith(QUEUE_PREFIX));
@@ -42,12 +45,6 @@ export async function getSessionUserId(): Promise<number | null> {
   } catch {
     return null;
   }
-}
-
-async function getDashboardCacheKey(): Promise<string> {
-  const userId = await getSessionUserId();
-  if (!userId) return LEGACY_DASHBOARD_CACHE;
-  return `atora.cache.u${userId}.dashboard.v1`;
 }
 
 async function persist(session: StoredSession): Promise<void> {
@@ -125,24 +122,27 @@ export async function restoreAccessToken(): Promise<string | null> {
 }
 
 export async function loadDashboard(token: string): Promise<StudentHome> {
-  const cacheKey = await getDashboardCacheKey();
+  const userId = await getSessionUserId();
+  const save = async (data: StudentHome) => {
+    if (userId) await cacheSet(userId, 'dashboard', 0, data).catch(() => undefined);
+  };
   try {
     const data = await apiRequest<StudentHome>('dashboard', { token });
-    await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+    await save(data);
     return data;
   } catch (reason) {
     if (reason instanceof ApiError && reason.status === 401) {
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         const data = await apiRequest<StudentHome>('dashboard', { token: refreshed });
-        await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+        await save(data);
         return data;
       }
     }
     if (reason instanceof ApiError && !isRetriableError(reason)) throw reason;
-    const cached = await AsyncStorage.getItem(cacheKey);
+    const cached = userId ? await cacheGet<StudentHome>(userId, 'dashboard', 0).catch(() => null) : null;
     if (!cached) throw reason;
-    return JSON.parse(cached) as StudentHome;
+    return cached;
   }
 }
 
