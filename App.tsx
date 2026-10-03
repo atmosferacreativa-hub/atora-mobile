@@ -132,7 +132,7 @@ function AppShell() {
     return (
       <View style={styles.starting}>
         <Text style={styles.startingBrand}>ATORA</Text>
-        <ActivityIndicator color={colors.mustard} />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -141,7 +141,7 @@ function AppShell() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.navy} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
       <AppNavigator
         session={{
           token,
@@ -168,7 +168,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  starting: { alignItems: 'center', backgroundColor: colors.navy, flex: 1, gap: spacing.lg, justifyContent: 'center' },
-  startingBrand: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: 3 },
-  safe: { backgroundColor: colors.navy, flex: 1 },
+  starting: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.lg, justifyContent: 'center' },
+  startingBrand: { color: colors.primary, fontSize: 34, fontWeight: '900', letterSpacing: 3 },
+  safe: { backgroundColor: colors.surface, flex: 1 },
 });

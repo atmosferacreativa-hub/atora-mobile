@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
   placeholder: { ...StyleSheet.absoluteFillObject, alignItems: 'center', backgroundColor: colors.navy, justifyContent: 'center' },
   brand: { color: colors.mustard, fontSize: 18, fontWeight: '900', letterSpacing: 3, opacity: 0.85 },
   playWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  play: { alignItems: 'center', backgroundColor: 'rgba(19, 35, 58, 0.72)', borderRadius: 999, height: 48, justifyContent: 'center', width: 48 },
+  play: { alignItems: 'center', backgroundColor: colors.overlay, borderRadius: 999, height: 48, justifyContent: 'center', width: 48 },
   playIcon: { marginLeft: 3 },
-  badge: { backgroundColor: 'rgba(19, 35, 58, 0.8)', borderRadius: 6, bottom: 8, paddingHorizontal: 6, paddingVertical: 2, position: 'absolute', right: 8 },
+  badge: { backgroundColor: colors.overlay, borderRadius: 6, bottom: 8, paddingHorizontal: 6, paddingVertical: 2, position: 'absolute', right: 8 },
   badgeText: { color: colors.white, fontSize: 11, fontWeight: '800' },
 });

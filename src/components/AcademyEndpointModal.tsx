@@ -127,7 +127,7 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { backgroundColor: 'rgba(0,0,0,0.45)', flex: 1, justifyContent: 'flex-end' },
+  backdrop: { backgroundColor: colors.backdrop, flex: 1, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.paper, borderTopLeftRadius: 22, borderTopRightRadius: 22, gap: spacing.md, padding: spacing.lg },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   title: { color: colors.navy, fontSize: 18, fontWeight: '900' },

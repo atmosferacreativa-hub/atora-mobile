@@ -235,7 +235,7 @@ export function AppNavigator({ session }: { session: AppSessionValue }) {
   const tabs = session.mode === 'teacher' ? TEACHER_TABS : STUDENT_TABS;
   return (
     <AppSessionContext.Provider value={session}>
-      <NavigationContainer theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.paper } }}>
+      <NavigationContainer theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } }}>
         <Tabs.Navigator
           // La clave fuerza un árbol nuevo al cambiar de modo: cada rol arranca en Hoy.
           key={session.mode}
@@ -266,11 +266,11 @@ export function AppNavigator({ session }: { session: AppSessionValue }) {
 }
 
 const styles = StyleSheet.create({
-  headerWrap: { backgroundColor: colors.navy },
+  headerWrap: { backgroundColor: colors.surface, borderBottomColor: colors.line, borderBottomWidth: 1 },
   header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  brand: { color: colors.white, fontSize: 22, fontWeight: '900', letterSpacing: 2 },
-  product: { color: colors.mustard, fontSize: 12, fontWeight: '700' },
-  dashboardError: { alignItems: 'center', backgroundColor: '#FFF1F0', borderBottomColor: colors.red, borderBottomWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  brand: { color: colors.primary, fontSize: 22, fontWeight: '900', letterSpacing: 2 },
+  product: { color: colors.accentText, fontSize: 12, fontWeight: '700' },
+  dashboardError: { alignItems: 'center', backgroundColor: colors.dangerSoft, borderBottomColor: colors.red, borderBottomWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   dashboardErrorText: { color: colors.red, flex: 1, fontSize: 14 },
   retryButton: { backgroundColor: colors.red, borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   retryButtonText: { color: colors.white, fontSize: 13, fontWeight: '800' },

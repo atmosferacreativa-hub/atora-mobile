@@ -62,7 +62,7 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
       {programId ? (
         <View style={styles.programCard}>
           <View style={styles.programCopy}>
-            <Text style={styles.programEyebrow}>PROGRAMA DE PRUEBA</Text>
+            <Text style={styles.programEyebrow}>PROGRAMA</Text>
             <Text style={styles.programTitle}>Diplomado en Comunicación</Text>
             <Text style={styles.programHelp}>Accede al programa completo desde el panel web mientras terminamos la vista nativa.</Text>
           </View>
@@ -100,7 +100,7 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
 const styles = StyleSheet.create({
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   content: { padding: spacing.lg, gap: spacing.md },
-  eyebrow: { color: colors.mustard, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
+  eyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   title: { color: colors.navy, fontSize: 30, fontWeight: '800' },
   subtitle: { color: colors.muted, fontSize: 16 },
   pending: { backgroundColor: colors.navy, borderRadius: 18, padding: spacing.lg },
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   pendingText: { color: colors.white, fontSize: 16 },
   programCard: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.md, padding: spacing.lg },
   programCopy: { gap: spacing.xs },
-  programEyebrow: { color: colors.mustard, fontSize: 12, fontWeight: '900', letterSpacing: 1.1 },
+  programEyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '900', letterSpacing: 1.1 },
   programTitle: { color: colors.navy, fontSize: 22, fontWeight: '900' },
   programHelp: { color: colors.muted, lineHeight: 20 },
   programButton: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 14, justifyContent: 'center', minHeight: 52, padding: spacing.md },
