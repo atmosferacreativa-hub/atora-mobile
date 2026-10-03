@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -18,6 +19,8 @@ import {
   type DownloadSettings,
   type StorageSummary,
 } from '../offline/mediaDownloads';
+import { dismissOutboxEvent, listOutbox, subscribeOutbox } from '../offline/outbox/runtime';
+import type { OutboxEvent } from '../offline/outbox/types';
 import { getApiBaseUrlSync, getSiteBaseUrlSync } from '../runtimeConfig';
 import type { AppMode } from '../navigation/roles';
 import { colors, spacing } from '../theme';
@@ -33,13 +36,40 @@ type Props = {
 
 const formatMegabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
+const EVENT_LABELS: Record<string, string> = {
+  lesson_completion: 'Lección completada',
+  assignment_submission: 'Entrega de tarea',
+};
+
 export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode }: Props) {
   const [settings, setSettings] = useState<DownloadSettings | null>(null);
   const [summary, setSummary] = useState<StorageSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [setupOpen, setSetupOpen] = useState(false);
+  const [outbox, setOutbox] = useState<{ pending: OutboxEvent[]; failed: OutboxEvent[] }>({ pending: [], failed: [] });
   const apiBaseUrl = getApiBaseUrlSync();
+
+  useEffect(() => {
+    const load = () => void listOutbox().then(setOutbox).catch(() => undefined);
+    load();
+    return subscribeOutbox(load);
+  }, []);
+
+  const confirmLogout = () => {
+    if (!outbox.pending.length) {
+      onLogout();
+      return;
+    }
+    Alert.alert(
+      'Tienes envíos pendientes',
+      `${outbox.pending.length} envío(s) todavía no llegaron a la academia. Si cierras sesión sin conexión, se perderán.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cerrar sesión', style: 'destructive', onPress: onLogout },
+      ],
+    );
+  };
   const siteBaseUrl = getSiteBaseUrlSync();
 
   const refresh = useCallback(async () => {
@@ -87,6 +117,26 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
       <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <Text style={styles.title}>{displayName || 'Perfil'}</Text>
       {email ? <Text style={styles.email}>{email}</Text> : null}
+
+      {outbox.pending.length || outbox.failed.length ? (
+        <View style={styles.card}>
+          <Text style={styles.heading}>Sincronización</Text>
+          {outbox.pending.length ? (
+            <Text style={styles.help}>
+              {outbox.pending.length} envío(s) guardado(s). Se enviarán solos cuando tengas conexión.
+            </Text>
+          ) : null}
+          {outbox.failed.map((event) => (
+            <View key={event.id} style={styles.failedItem}>
+              <Text style={styles.label}>{EVENT_LABELS[event.type] ?? 'Envío'}: no se pudo enviar</Text>
+              <Text style={styles.help}>{event.lastError}</Text>
+              <Pressable accessibilityRole="button" onPress={() => void dismissOutboxEvent(event.id)}>
+                <Text style={styles.academyEdit}>Descartar</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {onSwitchMode ? (
         <View style={styles.card}>
@@ -164,7 +214,7 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
         {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
       </View>
 
-      <Pressable accessibilityRole="button" onPress={onLogout} style={styles.logoutButton}>
+      <Pressable accessibilityRole="button" onPress={confirmLogout} style={styles.logoutButton}>
         <Text style={styles.logoutText}>Cerrar sesión</Text>
       </Pressable>
     </ScrollView>
@@ -180,6 +230,7 @@ const styles = StyleSheet.create({
   academyButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', padding: spacing.md },
   academyValue: { color: colors.navy, flex: 1, fontSize: 13, fontWeight: '800' },
   academyEdit: { color: colors.blue, fontWeight: '900', marginLeft: spacing.md },
+  failedItem: { borderTopColor: colors.border, borderTopWidth: 1, gap: 4, paddingTop: spacing.sm },
   panelButton: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 12, minHeight: 46, justifyContent: 'center', padding: spacing.md },
   panelText: { color: colors.white, fontWeight: '900' },
   row: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between' },

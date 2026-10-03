@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { flushPendingCompletions } from './src/api/courses';
+import './src/api/courses';
 import { ApiError, isRetriableError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { purgeCurrentUserDownloads } from './src/offline/mediaDownloads';
+import { migrateLegacyStorage } from './src/offline/legacyMigration';
+import { flushOutbox } from './src/offline/outbox/runtime';
 import { useNetworkState } from './src/hooks/useNetworkState';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/navigation/roles';
@@ -26,7 +28,7 @@ function AppShell() {
   const fetchDashboard = useCallback(async (accessToken: string) => {
     setLoading(true);
     try {
-      await flushPendingCompletions(accessToken);
+      await flushOutbox(accessToken).catch(() => null);
       const data = await loadDashboard(accessToken);
       setDashboard(data);
       setMode(await resolveMode(data));
@@ -47,6 +49,8 @@ function AppShell() {
     let active = true;
     (async () => {
       await initRuntimeConfig();
+      // Antes de restaurar la sesión: si el token ya no sirve, la restauración purga el almacenamiento.
+      await migrateLegacyStorage().catch(() => undefined);
       const restored = await restoreAccessToken();
       if (!active) return;
       setToken(restored);
@@ -72,7 +76,7 @@ function AppShell() {
     const isOffline = network.offline;
     prevOffline.current = isOffline;
     if (wasOffline && !isOffline) {
-      void flushPendingCompletions(token).catch(() => undefined);
+      void flushOutbox(token).catch(() => undefined);
     }
   }, [network.offline, token]);
 
@@ -92,6 +96,8 @@ function AppShell() {
     // activo para resolver el manifiesto correcto a borrar. Si esto fallara
     // (por ejemplo, sin espacio para reescribir el manifiesto vacío) no debe
     // impedir el logout en sí.
+    // Último intento de enviar lo pendiente: al cerrar sesión la base local se borra.
+    if (token) await flushOutbox(token).catch(() => null);
     await purgeCurrentUserDownloads().catch(() => undefined);
     if (token) await logout(token);
     setToken(null);
