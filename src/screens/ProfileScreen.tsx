@@ -19,17 +19,21 @@ import {
   type StorageSummary,
 } from '../offline/mediaDownloads';
 import { getApiBaseUrlSync, getSiteBaseUrlSync } from '../runtimeConfig';
+import type { AppMode } from '../navigation/roles';
 import { colors, spacing } from '../theme';
 
 type Props = {
   displayName: string;
   email?: string;
   onLogout: () => void;
+  mode?: AppMode;
+  /** Solo para docentes que también tienen matrículas como estudiante. */
+  onSwitchMode?: (mode: AppMode) => void;
 };
 
 const formatMegabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
-export function ProfileScreen({ displayName, email, onLogout }: Props) {
+export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode }: Props) {
   const [settings, setSettings] = useState<DownloadSettings | null>(null);
   const [summary, setSummary] = useState<StorageSummary | null>(null);
   const [busy, setBusy] = useState(false);
@@ -83,6 +87,22 @@ export function ProfileScreen({ displayName, email, onLogout }: Props) {
       <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <Text style={styles.title}>{displayName || 'Perfil'}</Text>
       {email ? <Text style={styles.email}>{email}</Text> : null}
+
+      {onSwitchMode ? (
+        <View style={styles.card}>
+          <Text style={styles.heading}>Modo</Text>
+          <Text style={styles.help}>
+            {mode === 'teacher' ? 'Estás viendo la app como docente.' : 'Estás viendo la app como estudiante.'}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onSwitchMode(mode === 'teacher' ? 'student' : 'teacher')}
+            style={styles.panelButton}
+          >
+            <Text style={styles.panelText}>{mode === 'teacher' ? 'Cambiar a modo estudiante' : 'Cambiar a modo docente'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <Text style={styles.heading}>Academia</Text>
