@@ -2,7 +2,7 @@
   "expo": {
     "name": "ATORA",
     "slug": "atora-mobile",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "updates": {
       "url": "https://u.expo.dev/a3b6c6d0-c58c-4508-ac3b-25c6ea11dd62"
     },
@@ -23,16 +23,17 @@
           "backgroundColor": "#13233A"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-font"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.atmosferacreativa.atora",
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "package": "com.atmosferacreativa.atora",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#13233A"
