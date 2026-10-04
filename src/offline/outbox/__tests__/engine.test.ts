@@ -47,6 +47,37 @@ describe('outbox', () => {
     expect(await pendingEvents(store, 1)).toHaveLength(1);
   });
 
+  it('evento reemplazable: por clave queda solo el último, con su propio id', async () => {
+    const store = new MemoryStore();
+    await enqueue(store, { ...input('pos-1', 'position:7'), payload: { s: 10 }, replace: true }, 1000);
+    await enqueue(store, { ...input('pos-2', 'position:7'), payload: { s: 20 }, replace: true }, 2000);
+    await enqueue(store, { ...input('pos-3', 'position:8'), payload: { s: 5 }, replace: true }, 3000);
+    const events = await store.list(1);
+    expect(events.map((e) => [e.id, e.payload])).toEqual([['pos-2', { s: 20 }], ['pos-3', { s: 5 }]]);
+  });
+
+  it('reemplazar no cambia el comportamiento de los demás eventos', async () => {
+    const store = new MemoryStore();
+    await enqueue(store, input('done-1', 'lesson:7'), 1000);
+    await enqueue(store, { ...input('pos-1', 'position:7'), replace: true }, 1500);
+    const again = await enqueue(store, input('done-2', 'lesson:7'), 2000);
+    expect(again.id).toBe('done-1');
+    expect((await store.list(1)).map((e) => e.id)).toEqual(['done-1', 'pos-1']);
+  });
+
+  it('si el envío del reemplazado termina después, no borra al nuevo', async () => {
+    const store = new MemoryStore();
+    await enqueue(store, { ...input('pos-1', 'position:7'), replace: true }, 0);
+    const result = await processQueue(store, 1, 0, {
+      test: async () => {
+        // Mientras se envía pos-1, el reproductor guarda una posición nueva.
+        await enqueue(store, { ...input('pos-2', 'position:7'), replace: true }, 1);
+      },
+    }, classify);
+    expect(result.done).toBe(1);
+    expect((await store.list(1)).map((e) => e.id)).toEqual(['pos-2']);
+  });
+
   it('un evento exitoso sale de la cola y el client_event_id llega intacto', async () => {
     const store = new MemoryStore();
     await enqueue(store, input('evt-ok'), 0);

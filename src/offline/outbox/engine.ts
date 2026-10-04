@@ -22,10 +22,17 @@ export function classifyStatus(status: number): ErrorClass {
   return 'retry';
 }
 
-/** Encola sin duplicar: si ya existe la misma clave, devuelve el evento existente. */
+/**
+ * Encola sin duplicar: si ya existe la misma clave, devuelve el evento existente.
+ * Con `replace`, el existente se quita y entra el nuevo.
+ */
 export async function enqueue<P>(store: OutboxStore, input: EnqueueInput<P>, now: number): Promise<OutboxEvent<P>> {
   const existing = await store.findByDedupe(input.userId, input.dedupeKey);
-  if (existing) return existing as OutboxEvent<P>;
+  if (existing && input.replace) {
+    await store.remove(existing.id);
+  } else if (existing) {
+    return existing as OutboxEvent<P>;
+  }
   const event: OutboxEvent<P> = {
     id: input.id,
     userId: input.userId,

@@ -14,6 +14,9 @@ import { LessonScreen } from '../screens/LessonScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ProgramScreen } from '../screens/ProgramScreen';
 import { QuizScreen } from '../screens/QuizScreen';
+import { DownloadsScreen } from '../screens/DownloadsScreen';
+import { ResourceViewerScreen } from '../screens/ResourceViewerScreen';
+import { openWithSystem } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import type { StudentHome } from '../types';
 import type { AppMode } from './roles';
@@ -46,6 +49,7 @@ export type LearningStackParams = {
   Lesson: { lessonId: number };
   Quiz: { lessonId: number };
   Assignment: { lessonId: number };
+  Resource: { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 };
 
 type LearningProps<T extends keyof LearningStackParams> = NativeStackScreenProps<LearningStackParams, T>;
@@ -85,6 +89,7 @@ function LessonRoute({ route, navigation }: LearningProps<'Lesson'>) {
       onCompleted={refresh}
       onOpenQuiz={() => navigation.push('Quiz', { lessonId: route.params.lessonId })}
       onOpenAssignment={() => navigation.push('Assignment', { lessonId: route.params.lessonId })}
+      onOpenResource={(params) => navigation.push('Resource', params)}
     />
   );
 }
@@ -97,6 +102,19 @@ function QuizRoute({ route, navigation }: LearningProps<'Quiz'>) {
 function AssignmentRoute({ route, navigation }: LearningProps<'Assignment'>) {
   const { token } = useAppSession();
   return <AssignmentScreen lessonId={route.params.lessonId} token={token} onBack={() => navigation.goBack()} />;
+}
+
+function ResourceRoute({ route, navigation }: LearningProps<'Resource'>) {
+  const { title, localUri, kind, mime } = route.params;
+  return (
+    <ResourceViewerScreen
+      title={title}
+      localUri={localUri}
+      kind={kind}
+      onBack={() => navigation.goBack()}
+      onOpenWithSystem={() => void openWithSystem(localUri, mime).catch(() => undefined)}
+    />
+  );
 }
 
 function TodayRoot({ navigation }: LearningProps<'Root'>) {
@@ -129,7 +147,9 @@ function CoursesRoot({ navigation }: LearningProps<'Root'>) {
   );
 }
 
-function ProfileRoot() {
+type ProfileStackParams = { Root: undefined; Downloads: undefined };
+
+function ProfileRoot({ navigation }: NativeStackScreenProps<ProfileStackParams, 'Root'>) {
   const { dashboard, logout, mode, canSwitchMode, switchMode } = useAppSession();
   return (
     <ProfileScreen
@@ -138,7 +158,23 @@ function ProfileRoot() {
       onLogout={logout}
       mode={mode}
       onSwitchMode={canSwitchMode ? switchMode : undefined}
+      onOpenDownloads={() => navigation.push('Downloads')}
     />
+  );
+}
+
+function DownloadsRoute({ navigation }: NativeStackScreenProps<ProfileStackParams, 'Downloads'>) {
+  const { dashboard } = useAppSession();
+  return <DownloadsScreen courses={dashboard?.courses ?? []} onBack={() => navigation.goBack()} />;
+}
+
+const ProfileNav = createNativeStackNavigator<ProfileStackParams>();
+function ProfileStack() {
+  return (
+    <ProfileNav.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper } }}>
+      <ProfileNav.Screen name="Root" component={ProfileRoot} />
+      <ProfileNav.Screen name="Downloads" component={DownloadsRoute} />
+    </ProfileNav.Navigator>
   );
 }
 
@@ -154,6 +190,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Lesson" component={LessonRoute} />
         <Stack.Screen name="Quiz" component={QuizRoute} />
         <Stack.Screen name="Assignment" component={AssignmentRoute} />
+        <Stack.Screen name="Resource" component={ResourceRoute} />
       </Stack.Navigator>
     );
   };
@@ -182,7 +219,6 @@ const MessagesStack = singleStack(() => (
 const GradingStack = singleStack(() => (
   <ComingSoonScreen title="Calificar" description="La revisión de entregas desde el teléfono llegará en una próxima versión. Por ahora, califica desde la web." />
 ));
-const ProfileStack = singleStack(ProfileRoot);
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type TabSpec = { name: string; label: string; icon: IconName; component: () => ReactElement };
@@ -207,7 +243,8 @@ const Tabs = createBottomTabNavigator();
 
 /** Rutas a pantalla completa: sin cabecera de marca ni barra inferior. */
 function isImmersive(route: RouteProp<Record<string, object | undefined>, string>): boolean {
-  return getFocusedRouteNameFromRoute(route) === 'Quiz';
+  const focused = getFocusedRouteNameFromRoute(route);
+  return focused === 'Quiz' || focused === 'Resource';
 }
 
 function BrandHeader() {

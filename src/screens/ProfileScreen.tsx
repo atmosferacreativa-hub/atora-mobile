@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { AcademyEndpointModal } from '../components/AcademyEndpointModal';
 import { MediaImage } from '../components/MediaImage';
 import { Button, Card } from '../components/ui';
@@ -36,6 +37,8 @@ type Props = {
   mode?: AppMode;
   /** Solo para docentes que también tienen matrículas como estudiante. */
   onSwitchMode?: (mode: AppMode) => void;
+  /** 0.4.0: pantalla de descargas agrupada por curso. */
+  onOpenDownloads?: () => void;
 };
 
 const formatMegabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -43,9 +46,10 @@ const formatMegabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)
 const EVENT_LABELS: Record<string, string> = {
   lesson_completion: 'Lección completada',
   assignment_submission: 'Entrega de tarea',
+  playback_position: 'Posición del video',
 };
 
-export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode }: Props) {
+export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode, onOpenDownloads }: Props) {
   const [settings, setSettings] = useState<DownloadSettings | null>(null);
   const [summary, setSummary] = useState<StorageSummary | null>(null);
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
@@ -88,9 +92,10 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
     setDownloads(nextDownloads);
   }, []);
 
-  useEffect(() => {
+  // Al volver de la pantalla de descargas, el uso de almacenamiento cambió.
+  useFocusEffect(useCallback(() => {
     void refresh();
-  }, [refresh]);
+  }, [refresh]));
 
   const changeSetting = async (values: Partial<DownloadSettings>) => {
     setBusy(true);
@@ -211,7 +216,11 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
               {summary.count} archivos · {formatMegabytes(summary.usedBytes)} de {formatMegabytes(summary.maxBytes)}
             </Text>
             <Text style={styles.help}>Las descargas sin uso se eliminan después de {settings.retentionDays} días.</Text>
-            {downloads.map((record) => (
+            {onOpenDownloads ? (
+              <Pressable accessibilityRole="button" onPress={onOpenDownloads} style={styles.panelButton}>
+                <Text style={styles.panelText}>Ver descargas por curso</Text>
+              </Pressable>
+            ) : downloads.map((record) => (
               <View key={record.localUri} style={styles.downloadItem}>
                 <MediaImage play style={styles.downloadThumb} uri={record.thumbnailUrl} />
                 <View style={styles.rowText}>

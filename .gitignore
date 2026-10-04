@@ -7,3 +7,6 @@ web-build/
 .env.*
 !.env.example
 .DS_Store
+
+# Generado en postinstall (scripts/vendor-pdfjs.js)
+src/viewer/pdfjs.generated.ts

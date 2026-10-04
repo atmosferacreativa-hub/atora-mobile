@@ -24,3 +24,8 @@ export async function cacheSet(userId: number, kind: CacheKind, entityId: number
     userId, kind, entityId, JSON.stringify(value), Date.now(),
   );
 }
+
+export async function cacheDelete(userId: number, kind: CacheKind, entityId: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM cache WHERE user_id = ? AND kind = ? AND entity_id = ?', userId, kind, entityId);
+}
