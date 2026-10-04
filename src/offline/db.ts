@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
  */
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 async function open(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync('atora.db');
@@ -36,6 +36,25 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
         UNIQUE (user_id, dedupe_key)
       );
       CREATE INDEX IF NOT EXISTS outbox_user_created ON outbox (user_id, created_at);
+      PRAGMA user_version = 1;
+    `);
+  }
+  if ((row?.user_version ?? 0) < 2) {
+    // 0.4.0: sincronización incremental (cursor y revisión local de cada curso y lección).
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS sync_state (
+        user_id   INTEGER PRIMARY KEY,
+        cursor    TEXT    NOT NULL DEFAULT '',
+        synced_at INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS sync_index (
+        user_id   INTEGER NOT NULL,
+        kind      TEXT    NOT NULL,
+        entity_id INTEGER NOT NULL,
+        course_id INTEGER NOT NULL DEFAULT 0,
+        revision  INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, kind, entity_id)
+      );
       PRAGMA user_version = ${SCHEMA_VERSION};
     `);
   }
@@ -54,5 +73,5 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 
 export async function purgeLocalDb(): Promise<void> {
   const db = await getDb();
-  await db.execAsync('DELETE FROM cache; DELETE FROM outbox;');
+  await db.execAsync('DELETE FROM cache; DELETE FROM outbox; DELETE FROM sync_state; DELETE FROM sync_index;');
 }

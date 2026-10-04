@@ -2,6 +2,18 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.4.0 (2026-10-04)
+
+Fase 1 — Aprender. Requiere **ATORA LMS 6.28.0** o superior; con servidores anteriores la app oculta lo que el servidor no declara (`sync_changes`, `playback_position`, `resource_downloads`).
+
+- **Sincronización incremental**: al abrir la app y al recuperar conexión pide `/sync/changes` desde el último cursor (guardado por usuario) y trae solo lo que cambió. Baja automáticamente solo lo liviano (texto de la lección, consignas, lista de recursos) de todos los cursos matriculados; nunca archivos ni video. Lección eliminada o matrícula terminada: se borran su contenido y sus descargas. El cursor avanza solo si todo se aplicó.
+- **Material de apoyo**: cada recurso muestra tipo, tamaño y estado (disponible sin conexión, se puede descargar, solo con conexión, actualización disponible). "Descargar material del curso" muestra el total antes de confirmar y no incluye videos. Un recurso descargado que cambia se actualiza solo si pesa menos de 5 MB y hay Wi-Fi (o la preferencia lo permite).
+- **Visor dentro de la app**: PDF con pdf.js empaquetado en un WebView desde el archivo local (sin conexión y en Expo Go); imágenes con zoom; otros formatos con la app del sistema (`expo-intent-launcher`, `expo-sharing`).
+- **Video**: la posición se guarda cada 10 s, al pausar y al salir, como evento de la cola que se **reemplaza** (por lección solo viaja la última). Al volver: "Continuar desde 12:34" o "Empezar de nuevo" (no se ofrece si quedó al final). Video no descargable: "Solo con conexión", sin botón de descarga.
+- **Descargas**: videos y material comparten cuota, caducidad y "solo Wi-Fi". Pantalla nueva desde Yo, agrupada por curso, con tamaño por lección, total contra la cuota y borrado por recurso, lección o curso.
+- **Fix**: las capacidades del servidor quedaban vacías hasta reiniciar si la primera consulta fallaba (p. ej. academia aún sin configurar), lo que ocultaba funciones; ahora van atadas a la URL de la academia y se recargan al iniciar sesión.
+- **Base local**: esquema 2 (`sync_state`, `sync_index`). Jest: planificador de sincronización (alta, cambio, baja, matrículas, reset), eventos reemplazables y cuota con video y material juntos.
+
 ## 0.3.1 (2026-10-03)
 
 - **Fix — la APK 0.3.0 se cerraba al abrir**: `@expo/vector-icons` necesita `expo-font` instalada en el proyecto; faltaba y quedó una `expo-font@57` duplicada junto a la 14.0.12 del SDK 54 (dos versiones de un módulo nativo en el build). Se instala `expo-font ~14.0.12`; `expo-doctor` pasa los 18 controles.

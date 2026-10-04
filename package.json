@@ -1,6 +1,6 @@
 {
   "name": "atora-mobile",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -12,7 +12,8 @@
     "doctor": "npx --yes expo-doctor",
     "build:apk": "eas build --platform android --profile preview",
     "build:android": "eas build --platform android --profile production",
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "node scripts/vendor-pdfjs.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -26,14 +27,17 @@
     "expo-file-system": "~19.0.17",
     "expo-font": "~14.0.12",
     "expo-image": "~3.0.11",
+    "expo-intent-launcher": "~13.0.8",
     "expo-network": "~8.0.7",
     "expo-secure-store": "~15.0.7",
+    "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.8",
     "expo-updates": "~29.0.20",
     "expo-video": "~3.0.11",
     "expo-video-thumbnails": "~10.0.8",
+    "pdfjs-dist": "3.11.174",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-safe-area-context": "5.6.0",

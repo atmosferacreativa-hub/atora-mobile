@@ -1,18 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 import { completeLesson, fetchLesson } from '../api/courses';
 import { getServerCapabilities } from '../api/discovery';
+import { formatClock, resumePosition, savePosition } from '../api/positions';
 import { MediaImage } from '../components/MediaImage';
 import { ensureLocalThumbnail, getLocalThumbnail, needsLocalThumbnail } from '../offline/videoThumbnails';
 import {
   downloadLessonMedia,
+  downloadResource,
   findLessonDownload,
+  listResourceDownloads,
+  reconcileLessonResources,
+  removeDownloadFile,
   removeLessonDownload,
+  type DownloadRecord,
 } from '../offline/mediaDownloads';
+import { formatBytes, resourceKey } from '../offline/downloadsMath';
+import { flushOutbox } from '../offline/outbox/runtime';
+import { openWithSystem, viewerKind } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
+
+export type OpenResourceParams = { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 
 type Props = {
   lessonId: number;
@@ -21,6 +33,16 @@ type Props = {
   onCompleted: () => void;
   onOpenQuiz: () => void;
   onOpenAssignment: () => void;
+  onOpenResource: (params: OpenResourceParams) => void;
+};
+
+/** Menos de esto no vale la pena ofrecer "Continuar desde". */
+const MIN_RESUME_SECONDS = 5;
+const POSITION_SAVE_MS = 10_000;
+const NEAR_END_SECONDS = 5;
+
+const RESOURCE_LABELS: Record<string, string> = {
+  pdf: 'PDF', guia: 'Guía', presentacion: 'Presentación', audio: 'Audio', video: 'Video', link: 'Enlace', archivo: 'Archivo', file: 'Archivo',
 };
 
 function LessonContent({
@@ -36,7 +58,21 @@ function LessonContent({
   showAssignment,
   onOpenAssignment,
   thumbnailUri,
+  resumeAt,
+  onPosition,
+  savedResources,
+  resourceBusy,
+  onResourcePress,
+  onResourceDownload,
+  onResourceRemove,
 }: {
+  resumeAt: number;
+  onPosition: (seconds: number, duration: number, final: boolean) => void;
+  savedResources: Record<string, DownloadRecord>;
+  resourceBusy: string;
+  onResourcePress: (resource: LessonResource) => void;
+  onResourceDownload: (resource: LessonResource) => void;
+  onResourceRemove: (record: DownloadRecord) => void;
   lesson: LessonDetail;
   mediaUri: string;
   downloaded: boolean;
@@ -50,30 +86,70 @@ function LessonContent({
   onOpenAssignment: () => void;
   thumbnailUri: string;
 }) {
-  const player = useVideoPlayer(mediaUri || null);
+  const player = useVideoPlayer(mediaUri || null, (instance) => {
+    // El tiempo se sigue cada segundo para que pausar o salir guarde la posición exacta.
+    instance.timeUpdateEventInterval = 1;
+  });
   // La miniatura es la carátula hasta que el estudiante pulsa reproducir.
   const [started, setStarted] = useState(false);
+  const [startAt, setStartAt] = useState(0);
+  const tracks = Boolean(mediaUri) && !lesson.video_embed_url;
+  const lastTime = useRef({ seconds: 0, duration: 0 });
+  const lastSavedAt = useRef(0);
   useEffect(() => {
-    if (started && mediaUri && !lesson.video_embed_url) player.play();
-  }, [started, mediaUri, lesson.video_embed_url, player]);
+    if (!started || !mediaUri || lesson.video_embed_url) return;
+    if (startAt > 0) player.currentTime = startAt;
+    player.play();
+  }, [started, startAt, mediaUri, lesson.video_embed_url, player]);
+  useEventListener(player, 'timeUpdate', ({ currentTime }) => {
+    if (!tracks || !started || currentTime <= 0) return;
+    lastTime.current = { seconds: currentTime, duration: player.duration };
+    // 0.4.0: a la cola, una marca cada 10 s (reemplaza la anterior); además al pausar y al salir.
+    if (Date.now() - lastSavedAt.current >= POSITION_SAVE_MS) {
+      lastSavedAt.current = Date.now();
+      onPosition(currentTime, player.duration, false);
+    }
+  });
+  useEventListener(player, 'playingChange', ({ isPlaying }) => {
+    if (!tracks || !started || isPlaying || lastTime.current.seconds <= 0) return;
+    onPosition(lastTime.current.seconds, lastTime.current.duration, true);
+  });
+  useEffect(() => () => {
+    // Al salir de la lección: última posición conocida.
+    if (lastTime.current.seconds > 0) onPosition(lastTime.current.seconds, lastTime.current.duration, true);
+  }, [onPosition]);
+  // La duración llega al cargar el video, antes de reproducir.
+  const [videoDuration, setVideoDuration] = useState(0);
+  useEventListener(player, 'sourceLoad', ({ duration }) => setVideoDuration(duration));
+  const nearEnd = (seconds: number) => videoDuration > 0 && seconds >= videoDuration - NEAR_END_SECONDS;
+  const offerResume = tracks && resumeAt >= MIN_RESUME_SECONDS && !nearEnd(resumeAt);
+  const play = (from: number) => {
+    // Visto hasta el final (o casi): se empieza de nuevo.
+    setStartAt(nearEnd(from) ? 0 : from);
+    setStarted(true);
+  };
   const cover = (
-    <Pressable accessibilityLabel="Reproducir video" accessibilityRole="button" onPress={() => setStarted(true)}>
-      <MediaImage play uri={thumbnailUri} badge={lesson.duration_min ? `${lesson.duration_min} min` : undefined} />
-    </Pressable>
+    <>
+      <Pressable accessibilityLabel="Reproducir video" accessibilityRole="button" onPress={() => play(offerResume ? resumeAt : 0)}>
+        <MediaImage play uri={thumbnailUri} badge={lesson.duration_min ? `${lesson.duration_min} min` : undefined} />
+      </Pressable>
+      {offerResume ? (
+        <View style={styles.resumeRow}>
+          <Pressable accessibilityRole="button" onPress={() => play(resumeAt)} style={[styles.resumeButton, styles.resumePrimary]}>
+            <Text style={styles.resumePrimaryText}>Continuar desde {formatClock(resumeAt)}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => play(0)} style={styles.resumeButton}>
+            <Text style={styles.resumeText}>Empezar de nuevo</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </>
   );
   const [embedLoading, setEmbedLoading] = useState(false);
   const [embedFailed, setEmbedFailed] = useState(false);
   const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
-
-  const openResource = async (resource: LessonResource) => {
-    const target = resource.download_url || resource.url;
-    if (!target) return;
-    try {
-      await Linking.openURL(target);
-    } catch {
-      // no-op: Linking puede fallar si no hay handler; el usuario verá que no abre.
-    }
-  };
+  // Servidores anteriores a 6.28.0 no informan si el video se puede descargar: se mantiene el botón.
+  const videoOnlineOnly = lesson.video_downloadable === false && !downloaded;
 
   return (
     <>
@@ -105,7 +181,7 @@ function LessonContent({
               </View>
             ) : null}
           </View>
-          <Text style={styles.source}>Video protegido · Google Drive</Text>
+          <Text style={styles.onlineOnly}>Solo con conexión · Google Drive</Text>
           <View style={styles.embedActions}>
             <Pressable
               accessibilityRole="button"
@@ -128,18 +204,26 @@ function LessonContent({
             player={player}
             style={styles.video}
           />
-          <Text style={styles.source}>{downloaded ? 'Disponible sin conexión' : 'Reproducción en línea'}</Text>
-          <Pressable
-            disabled={downloadBusy}
-            onPress={downloaded ? onRemoveDownload : onDownload}
-            style={styles.downloadButton}
-          >
-            {downloadBusy ? <ActivityIndicator color={colors.blue} /> : (
-              <Text style={styles.downloadText}>
-                {downloaded ? 'Eliminar descarga' : 'Guardar para usar sin conexión'}
+          {videoOnlineOnly ? (
+            <Text style={styles.onlineOnly}>Solo con conexión</Text>
+          ) : (
+            <>
+              <Text style={styles.source}>
+                {downloaded ? 'Disponible sin conexión' : `Reproducción en línea${lesson.video_bytes ? ` · ${formatBytes(lesson.video_bytes)}` : ''}`}
               </Text>
-            )}
-          </Pressable>
+              <Pressable
+                disabled={downloadBusy}
+                onPress={downloaded ? onRemoveDownload : onDownload}
+                style={styles.downloadButton}
+              >
+                {downloadBusy ? <ActivityIndicator color={colors.blue} /> : (
+                  <Text style={styles.downloadText}>
+                    {downloaded ? 'Eliminar descarga' : 'Guardar para usar sin conexión'}
+                  </Text>
+                )}
+              </Pressable>
+            </>
+          )}
         </>
       ) : (
         <View style={styles.mediaUnavailable}>
@@ -150,25 +234,53 @@ function LessonContent({
       {resources.length ? (
         <View style={styles.resources}>
           <Text style={styles.sectionTitle}>Materiales</Text>
-          <Text style={styles.sectionHint}>Guías, enlaces y archivos disponibles para descargar o abrir.</Text>
+          <Text style={styles.sectionHint}>Guías, enlaces y archivos. Lo descargado se abre sin conexión.</Text>
           <View style={styles.resourceList}>
-            {resources.map((resource, index) => (
-              <Pressable
-                key={`${resource.url}-${index}`}
-                accessibilityRole="button"
-                onPress={() => void openResource(resource)}
-                style={styles.resourceCard}
-              >
-                <View style={styles.resourceMeta}>
-                  <Text style={styles.resourceType}>{(resource.type || 'recurso').toUpperCase()}</Text>
-                  <Text style={styles.resourceTitle} numberOfLines={2}>{resource.title}</Text>
-                  {resource.description ? (
-                    <Text style={styles.resourceDescription} numberOfLines={2}>{resource.description}</Text>
-                  ) : null}
+            {resources.map((resource, index) => {
+              const key = resourceKey(lesson.id, resource);
+              const saved = savedResources[key];
+              const busyHere = resourceBusy === key;
+              const size = formatBytes(saved?.size ?? resource.bytes);
+              const status = saved
+                ? saved.updateAvailable ? 'Actualización disponible' : 'Disponible sin conexión'
+                : resource.downloadable ? 'Se puede descargar' : 'Solo con conexión';
+              return (
+                <View key={`${resource.url}-${index}`} style={styles.resourceCard}>
+                  <Pressable accessibilityRole="button" onPress={() => onResourcePress(resource)} style={styles.resourceMeta}>
+                    <Text style={styles.resourceType}>
+                      {(RESOURCE_LABELS[resource.type] ?? resource.type ?? 'Recurso').toUpperCase()}{size ? ` · ${size}` : ''}
+                    </Text>
+                    <Text style={styles.resourceTitle} numberOfLines={2}>{resource.title}</Text>
+                    {resource.description ? (
+                      <Text style={styles.resourceDescription} numberOfLines={2}>{resource.description}</Text>
+                    ) : null}
+                    <Text style={[styles.resourceStatus, saved && !saved.updateAvailable ? styles.resourceStatusOk : null]}>{status}</Text>
+                  </Pressable>
+                  <View style={styles.resourceActions}>
+                    {busyHere ? <ActivityIndicator color={colors.blue} /> : saved ? (
+                      <>
+                        {saved.updateAvailable ? (
+                          <Pressable accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
+                            <Text style={styles.resourceAction}>Actualizar</Text>
+                          </Pressable>
+                        ) : null}
+                        <Pressable accessibilityRole="button" onPress={() => onResourceRemove(saved)}>
+                          <Text style={styles.resourceRemove}>Eliminar</Text>
+                        </Pressable>
+                      </>
+                    ) : resource.downloadable ? (
+                      <Pressable accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
+                        <Text style={styles.resourceAction}>Descargar</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable accessibilityRole="button" onPress={() => onResourcePress(resource)}>
+                        <Text style={styles.resourceAction}>Abrir</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
-                <Text style={styles.resourceAction}>Abrir</Text>
-              </Pressable>
-            ))}
+              );
+            })}
           </View>
         </View>
       ) : null}
@@ -209,8 +321,22 @@ function LessonContent({
   );
 }
 
-export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment }: Props) {
+export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource }: Props) {
   const [assignmentsSupported, setAssignmentsSupported] = useState(false);
+  const [resumeAt, setResumeAt] = useState(0);
+  const [savedResources, setSavedResources] = useState<Record<string, DownloadRecord>>({});
+  const [resourceBusy, setResourceBusy] = useState('');
+
+  const loadSavedResources = useCallback(async (id: number) => {
+    const records = await listResourceDownloads(id).catch(() => []);
+    setSavedResources(Object.fromEntries(records.filter((r) => r.resourceKey).map((r) => [r.resourceKey as string, r])));
+  }, []);
+
+  const onPosition = useCallback((seconds: number, duration: number, final: boolean) => {
+    void savePosition(lessonId, seconds, duration)
+      .then(() => (final ? flushOutbox(token) : null))
+      .catch(() => undefined);
+  }, [lessonId, token]);
   const [localThumb, setLocalThumb] = useState<string | null>(null);
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [mediaUri, setMediaUri] = useState('');
@@ -233,10 +359,13 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
         const saved = value.video_url
           ? await findLessonDownload(value.id, value.video_url)
           : null;
+        const resume = await resumePosition(value.id, value.resume_position_seconds);
         if (!active) return;
         setLesson(value);
+        setResumeAt(resume);
         setMediaUri(saved?.localUri || value.video_url);
         setDownloaded(Boolean(saved));
+        void reconcileLessonResources(value).catch(() => undefined).then(() => (active ? loadSavedResources(value.id) : undefined));
         // MP4 propio sin miniatura en el servidor: se genera una del primer segundo y se guarda.
         const existing = await getLocalThumbnail(value.id);
         if (existing) {
@@ -248,7 +377,54 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       })
       .catch(() => { if (active) setNotice('No pudimos cargar la lección.'); });
     return () => { active = false; };
-  }, [lessonId, token]);
+  }, [lessonId, token, loadSavedResources]);
+
+  const openLocal = async (record: DownloadRecord, title: string) => {
+    const kind = viewerKind(record.mime, record.localUri);
+    if (kind === 'system') {
+      await openWithSystem(record.localUri, record.mime).catch(() => setNotice('No hay una app en el teléfono para abrir este archivo.'));
+      return;
+    }
+    onOpenResource({ title, localUri: record.localUri, kind, mime: record.mime });
+  };
+
+  const pressResource = async (resource: LessonResource) => {
+    if (!lesson) return;
+    const saved = savedResources[resourceKey(lesson.id, resource)];
+    if (saved) {
+      await openLocal(saved, resource.title);
+      return;
+    }
+    const target = resource.download_url || resource.url;
+    if (!target) return;
+    try {
+      await Linking.openURL(target);
+    } catch {
+      setNotice('No se pudo abrir el enlace.');
+    }
+  };
+
+  const downloadOne = async (resource: LessonResource) => {
+    if (!lesson) return;
+    const key = resourceKey(lesson.id, resource);
+    setResourceBusy(key);
+    setNotice('');
+    try {
+      await downloadResource(lesson, resource);
+      await loadSavedResources(lesson.id);
+      setNotice('Material guardado: se abre sin conexión.');
+    } catch (reason) {
+      setNotice(reason instanceof Error ? reason.message : 'No fue posible descargar el material.');
+    } finally {
+      setResourceBusy('');
+    }
+  };
+
+  const removeOne = async (record: DownloadRecord) => {
+    if (!lesson) return;
+    await removeDownloadFile(record.localUri).catch(() => undefined);
+    await loadSavedResources(lesson.id);
+  };
 
   const saveDownload = async () => {
     if (!lesson?.video_url) return;
@@ -256,6 +432,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     setNotice('');
     try {
       const saved = await downloadLessonMedia(lesson.id, lesson.video_url, {
+        courseId: lesson.course_id,
         title: lesson.title,
         thumbnailUrl: localThumb || lesson.video_thumbnail_url || undefined,
       });
@@ -332,6 +509,13 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
           showAssignment={assignmentsSupported && Boolean(lesson.assignment_available)}
           thumbnailUri={localThumb || lesson.video_thumbnail_url || ''}
           onOpenAssignment={onOpenAssignment}
+          resumeAt={resumeAt}
+          onPosition={onPosition}
+          savedResources={savedResources}
+          resourceBusy={resourceBusy}
+          onResourcePress={(resource) => void pressResource(resource)}
+          onResourceDownload={(resource) => void downloadOne(resource)}
+          onResourceRemove={(record) => void removeOne(record)}
         />
       ) : null}
       {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
@@ -368,6 +552,16 @@ const styles = StyleSheet.create({
   resourceTitle: { color: colors.navy, fontSize: 16, fontWeight: '900' },
   resourceDescription: { color: colors.ink, lineHeight: 19, opacity: 0.85 },
   resourceAction: { color: colors.blue, fontWeight: '900' },
+  resourceActions: { alignItems: 'flex-end', gap: spacing.sm, minWidth: 72 },
+  resourceRemove: { color: colors.red, fontWeight: '800' },
+  resourceStatus: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  resourceStatusOk: { color: colors.success },
+  onlineOnly: { color: colors.muted, fontSize: 12, fontWeight: '800', textAlign: 'center' },
+  resumeRow: { flexDirection: 'row', gap: spacing.sm },
+  resumeButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: 46, padding: spacing.sm },
+  resumePrimary: { backgroundColor: colors.blue },
+  resumePrimaryText: { color: colors.white, fontWeight: '900' },
+  resumeText: { color: colors.blue, fontWeight: '800' },
   quizCard: { backgroundColor: colors.navy, borderRadius: 18, gap: spacing.md, padding: spacing.lg },
   quizCopy: { gap: spacing.xs },
   quizEyebrow: { color: colors.mustard, fontSize: 12, fontWeight: '900', letterSpacing: 1.2 },

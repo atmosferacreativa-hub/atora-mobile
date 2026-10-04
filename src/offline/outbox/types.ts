@@ -27,6 +27,12 @@ export type EnqueueInput<P = unknown> = {
   dedupeKey: string;
   payload: P;
   createdAt?: number;
+  /**
+   * 0.4.0: evento que se reemplaza (p. ej. posición de un video). Si ya hay uno
+   * con la misma clave, sale de la cola y entra este, con su propio id: por
+   * clave solo se envía el último, nunca una lista.
+   */
+  replace?: boolean;
 };
 
 export interface OutboxStore {

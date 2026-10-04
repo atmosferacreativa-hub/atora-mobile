@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
+import { getServerCapabilities } from '../api/discovery';
+import { downloadCourseMaterial, planCourseMaterial } from '../offline/courseMaterial';
+import { formatBytes } from '../offline/downloadsMath';
 import { MediaImage } from '../components/MediaImage';
 import { ListRow } from '../components/ui';
 import { getLocalThumbnail } from '../offline/videoThumbnails';
@@ -18,6 +21,42 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
   const [data, setData] = useState<CourseDetail | null>(null);
   const [error, setError] = useState('');
   const [localThumbs, setLocalThumbs] = useState<Record<number, string>>({});
+  const [materialSupported, setMaterialSupported] = useState(false);
+  const [material, setMaterial] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    void getServerCapabilities().then((caps) => { if (active) setMaterialSupported(Boolean(caps.resource_downloads)); });
+    return () => { active = false; };
+  }, []);
+
+  const downloadMaterial = async () => {
+    if (!data || material) return;
+    setMaterial('Calculando…');
+    const plan = await planCourseMaterial(data.curriculum.map((lesson) => lesson.id), token).catch(() => null);
+    setMaterial('');
+    if (!plan || !plan.items.length) {
+      Alert.alert('Material del curso', plan ? 'Todo el material descargable ya está en el teléfono.' : 'No se pudo revisar el material.');
+      return;
+    }
+    const size = plan.totalBytes ? formatBytes(plan.totalBytes) : '';
+    const extra = plan.unknownSize ? ` (${plan.unknownSize} sin tamaño conocido)` : '';
+    Alert.alert(
+      'Descargar material del curso',
+      `${plan.items.length} archivo(s)${size ? ` · ${size}` : ''}${extra}. No incluye videos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Descargar',
+          onPress: () => void (async () => {
+            const result = await downloadCourseMaterial(plan, (done, total) => setMaterial(`Descargando ${Math.min(done + 1, total)} de ${total}…`));
+            setMaterial('');
+            Alert.alert('Material del curso', result.error ? `${result.saved} guardado(s). ${result.error}` : `${result.saved} archivo(s) guardado(s) para usar sin conexión.`);
+          })(),
+        },
+      ],
+    );
+  };
 
   useEffect(() => {
     let active = true;
@@ -59,6 +98,15 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
               {data.progress.completed_lessons} de {data.progress.total_lessons} lecciones
             </Text>
           </View>
+          {materialSupported && data.curriculum.length ? (
+            <Pressable accessibilityRole="button" disabled={Boolean(material)} onPress={() => void downloadMaterial()} style={styles.materialButton}>
+              {material ? (
+                <View style={styles.materialBusy}><ActivityIndicator color={colors.blue} /><Text style={styles.materialText}>{material}</Text></View>
+              ) : (
+                <Text style={styles.materialText}>Descargar material del curso</Text>
+              )}
+            </Pressable>
+          ) : null}
           <Text style={styles.heading}>Contenido</Text>
           {!data.curriculum.length ? (
             <Text style={styles.empty}>Este curso todavía no tiene lecciones publicadas.</Text>
@@ -99,6 +147,9 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
 }
 
 const styles = StyleSheet.create({
+  materialButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 46, padding: spacing.sm },
+  materialBusy: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
+  materialText: { color: colors.blue, fontWeight: '800' },
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   content: { gap: spacing.md, padding: spacing.lg },
   back: { color: colors.blue, fontWeight: '800' },

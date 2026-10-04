@@ -3,12 +3,14 @@ import { ActivityIndicator, StatusBar, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import './src/api/courses';
 import './src/api/assignments';
+import './src/api/positions';
 import { loadServerCapabilities } from './src/api/discovery';
 import { ApiError, isRetriableError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { purgeCurrentUserDownloads } from './src/offline/mediaDownloads';
 import { migrateLegacyStorage } from './src/offline/legacyMigration';
 import { flushOutbox } from './src/offline/outbox/runtime';
+import { runSync } from './src/offline/sync/runtime';
 import { useNetworkState } from './src/hooks/useNetworkState';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/navigation/roles';
@@ -35,6 +37,8 @@ function AppShell() {
       setDashboard(data);
       setMode(await resolveMode(data));
       setDashboardError('');
+      // 0.4.0: al abrir (y al refrescar), traer solo lo que cambió desde la última vez.
+      void runSync(accessToken).catch(() => undefined);
     } catch (reason) {
       setDashboardError(
         reason instanceof ApiError
@@ -79,7 +83,7 @@ function AppShell() {
     const isOffline = network.offline;
     prevOffline.current = isOffline;
     if (wasOffline && !isOffline) {
-      void flushOutbox(token).catch(() => undefined);
+      void flushOutbox(token).catch(() => undefined).then(() => runSync(token)).catch(() => undefined);
     }
   }, [network.offline, token]);
 
@@ -100,6 +104,8 @@ function AppShell() {
 
   const handleLogin = async (loginValue: string, password: string) => {
     const response = await login(loginValue, password);
+    // La academia pudo cambiar en la pantalla de inicio: capacidades de la nueva.
+    await loadServerCapabilities().catch(() => undefined);
     setToken(response.session.access_token);
     try {
       await fetchDashboard(response.session.access_token);

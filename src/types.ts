@@ -86,6 +86,11 @@ export type LessonDetail = {
   quiz_available?: boolean;
   assignment_available?: boolean;
   resources?: LessonResource[];
+  /** 6.28.0+ */
+  revision?: number;
+  video_downloadable?: boolean;
+  video_bytes?: number | null;
+  resume_position_seconds?: number;
 };
 
 export type LessonResource = {
@@ -97,6 +102,10 @@ export type LessonResource = {
   file_id?: number;
   mime?: string;
   thumb_url?: string;
+  /** 6.28.0+: solo material de la propia academia. */
+  downloadable?: boolean;
+  bytes?: number | null;
+  updated_at?: string | null;
 };
 
 export type QuizAnswer = string | string[];
@@ -129,7 +138,7 @@ export type QuizResult = {
 };
 
 export type CourseDetail = {
-  course: Pick<CourseSummary, 'id' | 'title' | 'excerpt' | 'thumbnail_url' | 'duration_hours' | 'level' | 'language'>;
+  course: Pick<CourseSummary, 'id' | 'title' | 'excerpt' | 'thumbnail_url' | 'duration_hours' | 'level' | 'language'> & { revision?: number };
   progress: {
     total_lessons: number;
     completed_lessons: number;
@@ -161,7 +170,13 @@ export type LoginResponse = {
 };
 
 
-export type ServerCapabilities = { assignments?: boolean };
+export type ServerCapabilities = {
+  assignments?: boolean;
+  /** 6.28.0+ */
+  sync_changes?: boolean;
+  playback_position?: boolean;
+  resource_downloads?: boolean;
+};
 
 export type AssignmentInfo = {
   lesson_id: number;
