@@ -137,7 +137,14 @@ function AppShell() {
     );
   }
 
-  if (!token) return <LoginScreen onLogin={handleLogin} />;
+  if (!token) {
+    return (
+      <SafeAreaView edges={['top']} style={styles.loginSafe}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <LoginScreen onLogin={handleLogin} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -171,4 +178,5 @@ const styles = StyleSheet.create({
   starting: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.lg, justifyContent: 'center' },
   startingBrand: { color: colors.primary, fontSize: 34, fontWeight: '900', letterSpacing: 3 },
   safe: { backgroundColor: colors.surface, flex: 1 },
+  loginSafe: { backgroundColor: colors.background, flex: 1 },
 });

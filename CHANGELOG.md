@@ -2,6 +2,11 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.3.1 (2026-10-03)
+
+- **Fix — la APK 0.3.0 se cerraba al abrir**: `@expo/vector-icons` necesita `expo-font` instalada en el proyecto; faltaba y quedó una `expo-font@57` duplicada junto a la 14.0.12 del SDK 54 (dos versiones de un módulo nativo en el build). Se instala `expo-font ~14.0.12`; `expo-doctor` pasa los 18 controles.
+- **Fix**: la pantalla de inicio de sesión respeta el área segura superior (el logo quedaba bajo la hora).
+
 ## 0.3.0 (2026-10-03)
 
 Requiere **ATORA LMS 6.27.1** o superior para entregas y miniaturas; con servidores anteriores la app oculta las entregas (no declaran `capabilities.assignments`).
