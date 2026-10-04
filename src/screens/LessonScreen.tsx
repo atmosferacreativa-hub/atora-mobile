@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -12,6 +12,8 @@ import {
   downloadLessonMedia,
   downloadResource,
   findLessonDownload,
+  findVideoDownload,
+  removeVideoDownload,
   listResourceDownloads,
   reconcileLessonResources,
   removeDownloadFile,
@@ -45,47 +47,44 @@ const RESOURCE_LABELS: Record<string, string> = {
   pdf: 'PDF', guia: 'Guía', presentacion: 'Presentación', audio: 'Audio', video: 'Video', link: 'Enlace', archivo: 'Archivo', file: 'Archivo',
 };
 
-function LessonContent({
-  lesson,
+/** Un video de la lección: el que el estudiante eligió (0.4.1) o el único (servidores anteriores). */
+export type PlayableVideo = {
+  /** `videos[].key`; ausente con servidores sin multi_video. */
+  key?: string;
+  index: number;
+  title: string;
+  url: string;
+  embedUrl: string;
+  provider: 'google_drive' | 'youtube' | 'vimeo' | 'direct' | '';
+  thumbnail: string;
+  /** undefined: el servidor no lo informa (anterior a 6.28.0). */
+  downloadable?: boolean;
+  bytes?: number | null;
+};
+
+function VideoBlock({
+  video,
   mediaUri,
   downloaded,
-  busy,
   downloadBusy,
-  onComplete,
   onDownload,
   onRemoveDownload,
-  onOpenQuiz,
-  showAssignment,
-  onOpenAssignment,
-  thumbnailUri,
   resumeAt,
   onPosition,
-  savedResources,
-  resourceBusy,
-  onResourcePress,
-  onResourceDownload,
-  onResourceRemove,
+  durationBadge,
 }: {
-  resumeAt: number;
-  onPosition: (seconds: number, duration: number, final: boolean) => void;
-  savedResources: Record<string, DownloadRecord>;
-  resourceBusy: string;
-  onResourcePress: (resource: LessonResource) => void;
-  onResourceDownload: (resource: LessonResource) => void;
-  onResourceRemove: (record: DownloadRecord) => void;
-  lesson: LessonDetail;
+  video: PlayableVideo;
   mediaUri: string;
   downloaded: boolean;
-  busy: boolean;
   downloadBusy: boolean;
-  onComplete: () => void;
   onDownload: () => void;
   onRemoveDownload: () => void;
-  onOpenQuiz: () => void;
-  showAssignment: boolean;
-  onOpenAssignment: () => void;
-  thumbnailUri: string;
+  resumeAt: number;
+  onPosition: (seconds: number, duration: number, final: boolean) => void;
+  durationBadge?: string;
 }) {
+  // YouTube y Vimeo no se reproducen dentro de la app: se abren aparte (solo con conexión).
+  const external = video.provider === 'youtube' || video.provider === 'vimeo';
   const player = useVideoPlayer(mediaUri || null, (instance) => {
     // El tiempo se sigue cada segundo para que pausar o salir guarde la posición exacta.
     instance.timeUpdateEventInterval = 1;
@@ -93,14 +92,14 @@ function LessonContent({
   // La miniatura es la carátula hasta que el estudiante pulsa reproducir.
   const [started, setStarted] = useState(false);
   const [startAt, setStartAt] = useState(0);
-  const tracks = Boolean(mediaUri) && !lesson.video_embed_url;
+  const tracks = Boolean(mediaUri) && !video.embedUrl;
   const lastTime = useRef({ seconds: 0, duration: 0 });
   const lastSavedAt = useRef(0);
   useEffect(() => {
-    if (!started || !mediaUri || lesson.video_embed_url) return;
+    if (!started || !mediaUri || video.embedUrl) return;
     if (startAt > 0) player.currentTime = startAt;
     player.play();
-  }, [started, startAt, mediaUri, lesson.video_embed_url, player]);
+  }, [started, startAt, mediaUri, video.embedUrl, player]);
   useEventListener(player, 'timeUpdate', ({ currentTime }) => {
     if (!tracks || !started || currentTime <= 0) return;
     lastTime.current = { seconds: currentTime, duration: player.duration };
@@ -130,8 +129,8 @@ function LessonContent({
   };
   const cover = (
     <>
-      <Pressable accessibilityLabel="Reproducir video" accessibilityRole="button" onPress={() => play(offerResume ? resumeAt : 0)}>
-        <MediaImage play uri={thumbnailUri} badge={lesson.duration_min ? `${lesson.duration_min} min` : undefined} />
+      <Pressable accessibilityLabel="Reproducir video" accessibilityRole="button" onPress={() => (external ? void Linking.openURL(video.url) : play(offerResume ? resumeAt : 0))}>
+        <MediaImage play uri={video.thumbnail} badge={durationBadge} />
       </Pressable>
       {offerResume ? (
         <View style={styles.resumeRow}>
@@ -147,17 +146,22 @@ function LessonContent({
   );
   const [embedLoading, setEmbedLoading] = useState(false);
   const [embedFailed, setEmbedFailed] = useState(false);
-  const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
   // Servidores anteriores a 6.28.0 no informan si el video se puede descargar: se mantiene el botón.
-  const videoOnlineOnly = lesson.video_downloadable === false && !downloaded;
+  const videoOnlineOnly = video.downloadable === false && !downloaded;
 
   return (
     <>
-      <Text style={styles.title}>{lesson.title}</Text>
-      <Text style={styles.meta}>{lesson.duration_min} minutos · {lesson.type}</Text>
-      {(lesson.video_embed_url || mediaUri) && !started ? (
+      {external ? (
+        <>
+          {cover}
+          <Text style={styles.onlineOnly}>Solo con conexión · {video.provider === 'vimeo' ? 'Vimeo' : 'YouTube'}</Text>
+          <Pressable accessibilityRole="button" onPress={() => void Linking.openURL(video.url)} style={styles.embedButton}>
+            <Text style={styles.embedButtonText}>Abrir video</Text>
+          </Pressable>
+        </>
+      ) : (video.embedUrl || mediaUri) && !started ? (
         cover
-      ) : lesson.video_embed_url ? (
+      ) : video.embedUrl ? (
         <>
           <View style={styles.video}>
             <WebView
@@ -172,7 +176,7 @@ function LessonContent({
                 || /^https:\/\/([a-z0-9-]+\.)*(google\.com|googleusercontent\.com|gstatic\.com|googlevideo\.com)\//i.test(url)
               }
               originWhitelist={['https://*']}
-              source={{ uri: lesson.video_embed_url }}
+              source={{ uri: video.embedUrl }}
               style={styles.embed}
             />
             {embedLoading ? (
@@ -185,7 +189,7 @@ function LessonContent({
           <View style={styles.embedActions}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => void Linking.openURL(lesson.video_embed_url as string)}
+              onPress={() => void Linking.openURL(video.embedUrl)}
               style={styles.embedButton}
             >
               <Text style={styles.embedButtonText}>Abrir video en el navegador</Text>
@@ -209,7 +213,7 @@ function LessonContent({
           ) : (
             <>
               <Text style={styles.source}>
-                {downloaded ? 'Disponible sin conexión' : `Reproducción en línea${lesson.video_bytes ? ` · ${formatBytes(lesson.video_bytes)}` : ''}`}
+                {downloaded ? 'Disponible sin conexión' : `Reproducción en línea${video.bytes ? ` · ${formatBytes(video.bytes)}` : ''}`}
               </Text>
               <Pressable
                 disabled={downloadBusy}
@@ -230,6 +234,44 @@ function LessonContent({
           <Text style={styles.mediaUnavailableText}>Esta lección no tiene un video compatible configurado.</Text>
         </View>
       )}
+    </>
+  );
+}
+
+function LessonContent({
+  lesson,
+  videoArea,
+  busy,
+  onComplete,
+  onOpenQuiz,
+  showAssignment,
+  onOpenAssignment,
+  savedResources,
+  resourceBusy,
+  onResourcePress,
+  onResourceDownload,
+  onResourceRemove,
+}: {
+  lesson: LessonDetail;
+  videoArea: ReactNode;
+  busy: boolean;
+  onComplete: () => void;
+  onOpenQuiz: () => void;
+  showAssignment: boolean;
+  onOpenAssignment: () => void;
+  savedResources: Record<string, DownloadRecord>;
+  resourceBusy: string;
+  onResourcePress: (resource: LessonResource) => void;
+  onResourceDownload: (resource: LessonResource) => void;
+  onResourceRemove: (record: DownloadRecord) => void;
+}) {
+  const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
+
+  return (
+    <>
+      <Text style={styles.title}>{lesson.title}</Text>
+      <Text style={styles.meta}>{lesson.duration_min} minutos · {lesson.type}</Text>
+      {videoArea}
       <Text style={styles.body}>{lesson.content_text || 'Esta lección no contiene texto adicional.'}</Text>
       {resources.length ? (
         <View style={styles.resources}>
@@ -321,57 +363,111 @@ function LessonContent({
   );
 }
 
+function toPlayable(lesson: LessonDetail, multi: boolean): PlayableVideo[] {
+  if (multi && Array.isArray(lesson.videos) && lesson.videos.length) {
+    return lesson.videos.map((video, index) => ({
+      key: video.key,
+      index,
+      title: video.title || `Video ${index + 1}`,
+      url: video.url,
+      embedUrl: video.embed_url || '',
+      provider: video.provider,
+      thumbnail: video.thumbnail_url,
+      downloadable: video.downloadable,
+      bytes: video.bytes,
+    }));
+  }
+  // Servidor sin multi_video (o APK de este tipo contra servidores anteriores): un solo video, como en 0.4.0.
+  if (!lesson.video_url && !lesson.video_embed_url) return [];
+  return [{
+    index: 0,
+    title: lesson.title,
+    url: lesson.video_url,
+    embedUrl: lesson.video_embed_url || '',
+    provider: lesson.video_embed_url ? 'google_drive' : '',
+    thumbnail: lesson.video_thumbnail_url || '',
+    downloadable: lesson.video_downloadable,
+    bytes: lesson.video_bytes,
+  }];
+}
+
+const slot = (video: PlayableVideo) => video.key ?? `#${video.index}`;
+
 export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource }: Props) {
   const [assignmentsSupported, setAssignmentsSupported] = useState(false);
-  const [resumeAt, setResumeAt] = useState(0);
+  const [multiVideo, setMultiVideo] = useState(false);
   const [savedResources, setSavedResources] = useState<Record<string, DownloadRecord>>({});
   const [resourceBusy, setResourceBusy] = useState('');
+  const [localThumb, setLocalThumb] = useState<string | null>(null);
+  const [lesson, setLesson] = useState<LessonDetail | null>(null);
+  const [selected, setSelected] = useState(0);
+  /** Descarga y posición de cada video, por `key` (o por posición con servidores anteriores). */
+  const [videoDownloads, setVideoDownloads] = useState<Record<string, DownloadRecord | null>>({});
+  const [resumes, setResumes] = useState<Record<string, number>>({});
+  const [watched, setWatched] = useState<Record<string, boolean>>({});
+  const [busy, setBusy] = useState(false);
+  const [downloadBusy, setDownloadBusy] = useState(false);
+  const [notice, setNotice] = useState('');
+
+  const videos = useMemo(() => (lesson ? toPlayable(lesson, multiVideo) : []), [lesson, multiVideo]);
+  const current = videos[selected] ?? videos[0];
+  const currentSlot = current ? slot(current) : '';
+  const currentDownload = current ? videoDownloads[currentSlot] ?? null : null;
+  const playableUrl = current && (current.provider === 'direct' || current.provider === '') ? current.url : '';
+  const mediaUri = currentDownload?.localUri || playableUrl;
 
   const loadSavedResources = useCallback(async (id: number) => {
     const records = await listResourceDownloads(id).catch(() => []);
     setSavedResources(Object.fromEntries(records.filter((r) => r.resourceKey).map((r) => [r.resourceKey as string, r])));
   }, []);
 
+  const currentKey = current?.key;
   const onPosition = useCallback((seconds: number, duration: number, final: boolean) => {
-    void savePosition(lessonId, seconds, duration)
+    setWatched((prev) => (prev[currentSlot] ? prev : { ...prev, [currentSlot]: true }));
+    setResumes((prev) => ({ ...prev, [currentSlot]: Math.floor(seconds) }));
+    void savePosition(lessonId, seconds, duration, currentKey)
       .then(() => (final ? flushOutbox(token) : null))
       .catch(() => undefined);
-  }, [lessonId, token]);
-  const [localThumb, setLocalThumb] = useState<string | null>(null);
-  const [lesson, setLesson] = useState<LessonDetail | null>(null);
-  const [mediaUri, setMediaUri] = useState('');
-  const [downloaded, setDownloaded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [downloadBusy, setDownloadBusy] = useState(false);
-  const [notice, setNotice] = useState('');
+  }, [lessonId, token, currentKey, currentSlot]);
 
   useEffect(() => {
     let active = true;
-    // Servidores anteriores a 6.27.0 no declaran la capacidad: la función se oculta.
-    void getServerCapabilities().then((caps) => { if (active) setAssignmentsSupported(Boolean(caps.assignments)); });
+    // Servidores anteriores a 6.27.0 / 6.28.2 no declaran la capacidad: la función se oculta.
+    void getServerCapabilities().then((caps) => {
+      if (!active) return;
+      setAssignmentsSupported(Boolean(caps.assignments));
+      setMultiVideo(Boolean(caps.multi_video));
+    });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
     let active = true;
-    fetchLesson(lessonId, token)
-      .then(async (value) => {
-        const saved = value.video_url
-          ? await findLessonDownload(value.id, value.video_url)
-          : null;
-        const resume = await resumePosition(value.id, value.resume_position_seconds);
+    Promise.all([fetchLesson(lessonId, token), getServerCapabilities()])
+      .then(async ([value, caps]) => {
+        const list = toPlayable(value, Boolean(caps.multi_video));
+        const downloads: Record<string, DownloadRecord | null> = {};
+        const positions: Record<string, number> = {};
+        for (const video of list) {
+          const isFirst = video.index === 0;
+          downloads[slot(video)] = video.key
+            ? await findVideoDownload(value.id, video.key, isFirst, video.url)
+            : video.url ? await findLessonDownload(value.id, video.url) : null;
+          const server = video.key ? value.videos?.[video.index]?.resume_position_seconds : value.resume_position_seconds;
+          positions[slot(video)] = await resumePosition(value.id, server, video.key, isFirst);
+        }
         if (!active) return;
         setLesson(value);
-        setResumeAt(resume);
-        setMediaUri(saved?.localUri || value.video_url);
-        setDownloaded(Boolean(saved));
+        setVideoDownloads(downloads);
+        setResumes(positions);
         void reconcileLessonResources(value).catch(() => undefined).then(() => (active ? loadSavedResources(value.id) : undefined));
         // MP4 propio sin miniatura en el servidor: se genera una del primer segundo y se guarda.
         const existing = await getLocalThumbnail(value.id);
         if (existing) {
           if (active) setLocalThumb(existing);
         } else if (await needsLocalThumbnail(value)) {
-          const generated = await ensureLocalThumbnail(value.id, saved?.localUri || value.video_url);
+          const first = list[0];
+          const generated = await ensureLocalThumbnail(value.id, (first && downloads[slot(first)]?.localUri) || value.video_url);
           if (active && generated) setLocalThumb(generated);
         }
       })
@@ -426,21 +522,24 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     await loadSavedResources(lesson.id);
   };
 
+  const thumbnailFor = (video: PlayableVideo) => (video.index === 0 && localThumb && (!video.thumbnail || video.provider === 'direct' || video.provider === '') ? localThumb : video.thumbnail);
+
   const saveDownload = async () => {
-    if (!lesson?.video_url) return;
+    if (!lesson || !current?.url) return;
     setDownloadBusy(true);
     setNotice('');
     try {
-      const saved = await downloadLessonMedia(lesson.id, lesson.video_url, {
+      const saved = await downloadLessonMedia(lesson.id, current.url, {
         courseId: lesson.course_id,
-        title: lesson.title,
-        thumbnailUrl: localThumb || lesson.video_thumbnail_url || undefined,
+        title: videos.length > 1 ? `${lesson.title} · ${current.title}` : lesson.title,
+        thumbnailUrl: thumbnailFor(current) || undefined,
+        videoKey: current.key,
+        isFirstVideo: current.index === 0,
       });
-      setMediaUri(saved.localUri);
-      setDownloaded(true);
-      setNotice('Lección guardada y lista para usar sin conexión.');
+      setVideoDownloads((prev) => ({ ...prev, [currentSlot]: saved }));
+      setNotice('Video guardado y listo para usar sin conexión.');
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : 'No fue posible descargar la lección.');
+      setNotice(reason instanceof Error ? reason.message : 'No fue posible descargar el video.');
     } finally {
       setDownloadBusy(false);
     }
@@ -459,13 +558,13 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
   };
 
   const confirmDeleteDownload = async () => {
-    if (!lesson) return;
+    if (!lesson || !current) return;
     setDownloadBusy(true);
     try {
-      await removeLessonDownload(lesson.id);
-      setMediaUri(lesson.video_url);
-      setDownloaded(false);
-      setNotice('Descarga eliminada. La lección seguirá disponible en línea.');
+      if (current.key) await removeVideoDownload(lesson.id, current.key, current.index === 0);
+      else await removeLessonDownload(lesson.id);
+      setVideoDownloads((prev) => ({ ...prev, [currentSlot]: null }));
+      setNotice('Descarga eliminada. El video seguirá disponible en línea.');
     } catch {
       setNotice('No fue posible eliminar la descarga.');
     } finally {
@@ -491,26 +590,70 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 
   if (!lesson && !notice) return <View style={styles.center}><ActivityIndicator color={colors.blue} /></View>;
 
+  const videoArea = current ? (
+    <>
+      <VideoBlock
+        key={`${currentSlot}-${mediaUri}`}
+        video={{ ...current, thumbnail: thumbnailFor(current) }}
+        mediaUri={mediaUri}
+        downloaded={Boolean(currentDownload)}
+        downloadBusy={downloadBusy}
+        onDownload={() => void saveDownload()}
+        onRemoveDownload={() => void deleteDownload()}
+        resumeAt={resumes[currentSlot] ?? 0}
+        onPosition={onPosition}
+        durationBadge={videos.length === 1 && lesson?.duration_min ? `${lesson.duration_min} min` : undefined}
+      />
+      {videos.length > 1 ? (
+        <View style={styles.videoList}>
+          <Text style={styles.sectionTitle}>Videos de la lección</Text>
+          {videos.map((video) => {
+            const id = slot(video);
+            const isCurrent = id === currentSlot;
+            const saved = Boolean(videoDownloads[id]);
+            const seen = resumes[id] ?? 0;
+            const status = saved
+              ? 'Descargado'
+              : video.downloadable ? `Se puede descargar${video.bytes ? ` · ${formatBytes(video.bytes)}` : ''}` : 'Solo con conexión';
+            return (
+              <Pressable
+                key={id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isCurrent }}
+                onPress={() => setSelected(video.index)}
+                style={[styles.videoRow, isCurrent && styles.videoRowCurrent]}
+              >
+                <MediaImage play uri={thumbnailFor(video)} style={styles.videoThumb} />
+                <View style={styles.videoMeta}>
+                  <Text numberOfLines={2} style={styles.videoTitle}>{video.title}</Text>
+                  <Text style={[styles.resourceStatus, saved && styles.resourceStatusOk]}>{status}</Text>
+                  {isCurrent ? <Text style={styles.videoBadge}>En el reproductor</Text>
+                    : seen > 0 || watched[id] ? <Text style={styles.videoSeen}>Visto{seen > 0 ? ` hasta ${formatClock(seen)}` : ''}</Text> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+    </>
+  ) : (
+    <View style={styles.mediaUnavailable}>
+      <Text style={styles.mediaUnavailableText}>Esta lección no tiene un video compatible configurado.</Text>
+    </View>
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Pressable onPress={onBack}><Text style={styles.back}>← Volver al curso</Text></Pressable>
       {lesson ? (
         <LessonContent
-          key={mediaUri}
           lesson={lesson}
-          mediaUri={mediaUri}
-          downloaded={downloaded}
+          videoArea={videoArea}
           busy={busy}
-          downloadBusy={downloadBusy}
           onComplete={markComplete}
-          onDownload={() => void saveDownload()}
-          onRemoveDownload={() => void deleteDownload()}
           onOpenQuiz={onOpenQuiz}
           showAssignment={assignmentsSupported && Boolean(lesson.assignment_available)}
-          thumbnailUri={localThumb || lesson.video_thumbnail_url || ''}
           onOpenAssignment={onOpenAssignment}
-          resumeAt={resumeAt}
-          onPosition={onPosition}
           savedResources={savedResources}
           resourceBusy={resourceBusy}
           onResourcePress={(resource) => void pressResource(resource)}
@@ -524,6 +667,14 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 }
 
 const styles = StyleSheet.create({
+  videoList: { gap: spacing.sm },
+  videoRow: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: 'transparent', borderRadius: 14, borderWidth: 2, flexDirection: 'row', gap: spacing.md, padding: spacing.sm },
+  videoRowCurrent: { borderColor: colors.blue },
+  videoThumb: { borderRadius: 8, width: 112 },
+  videoMeta: { flex: 1, gap: 2 },
+  videoTitle: { color: colors.navy, fontWeight: '800' },
+  videoBadge: { color: colors.blue, fontSize: 12, fontWeight: '900' },
+  videoSeen: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   content: { gap: spacing.md, padding: spacing.lg },
   back: { color: colors.blue, fontWeight: '800' },

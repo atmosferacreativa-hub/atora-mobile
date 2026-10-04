@@ -67,6 +67,23 @@ export type LessonSummary = {
   /** 6.27.1+ */
   has_video?: boolean;
   video_thumbnail_url?: string;
+  /** 6.28.2+ */
+  video_count?: number;
+};
+
+/** 6.28.2+: un video de la lección (`GET /lessons/{id}` → `videos[]`). */
+export type LessonVideo = {
+  key: string;
+  title: string;
+  description: string;
+  source: string;
+  url: string;
+  embed_url: string;
+  provider: 'google_drive' | 'youtube' | 'vimeo' | 'direct';
+  thumbnail_url: string;
+  downloadable: boolean;
+  bytes: number | null;
+  resume_position_seconds: number;
 };
 
 export type LessonDetail = {
@@ -91,6 +108,8 @@ export type LessonDetail = {
   video_downloadable?: boolean;
   video_bytes?: number | null;
   resume_position_seconds?: number;
+  /** 6.28.2+: todos los videos, en el orden del editor. */
+  videos?: LessonVideo[];
 };
 
 export type LessonResource = {
@@ -176,6 +195,8 @@ export type ServerCapabilities = {
   sync_changes?: boolean;
   playback_position?: boolean;
   resource_downloads?: boolean;
+  /** 6.28.2+ */
+  multi_video?: boolean;
 };
 
 export type AssignmentInfo = {

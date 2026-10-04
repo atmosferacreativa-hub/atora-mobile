@@ -121,12 +121,16 @@ function AppShell() {
     // (por ejemplo, sin espacio para reescribir el manifiesto vacío) no debe
     // impedir el logout en sí.
     // Último intento de enviar lo pendiente: al cerrar sesión la base local se borra.
-    if (token) await flushOutbox(token).catch(() => null);
-    await purgeCurrentUserDownloads().catch(() => undefined);
-    if (token) await logout(token);
-    setToken(null);
-    setDashboard(null);
-    setMode('student');
+    try {
+      if (token) await flushOutbox(token).catch(() => null);
+      await purgeCurrentUserDownloads().catch(() => undefined);
+      if (token) await logout(token);
+    } finally {
+      // 0.4.1: la pantalla vuelve al inicio de sesión pase lo que pase (por ejemplo, sin red).
+      setToken(null);
+      setDashboard(null);
+      setMode('student');
+    }
   };
 
   const switchMode = (next: AppMode) => {

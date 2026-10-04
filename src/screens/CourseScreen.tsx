@@ -123,7 +123,7 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
                     leading={lesson.has_video ? (
                       <View style={styles.thumbWrap}>
                         <MediaImage
-                          badge={lesson.duration_min ? `${lesson.duration_min} min` : undefined}
+                          badge={(lesson.video_count ?? 0) > 1 ? `${lesson.video_count} videos` : lesson.duration_min ? `${lesson.duration_min} min` : undefined}
                           play
                           style={styles.thumb}
                           uri={localThumbs[lesson.id] || lesson.video_thumbnail_url}

@@ -2,6 +2,19 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.4.1 (2026-10-04)
+
+Correcciones de la auditoría y varios videos por lección. Requiere **ATORA LMS 6.28.2** para varios videos (`capabilities.multi_video`); con servidores anteriores, un solo video como en 0.4.0.
+
+- **Fix — la sincronización guardaba el cursor aunque fallara una consigna o la lista de recursos** (alta): la aplicación del plan pasa a `src/offline/sync/apply.ts` (puro, con Jest). Una lección o un curso que falla en cualquier paso conserva su revisión anterior (o 0 si era nuevo) y se vuelve a pedir la próxima vez aunque el cursor avance. Si fallan todos los pedidos, no se guarda nada. La consigna se pide sin caer a la caché.
+- **Fix — el límite de 50 páginas podía borrar contenido** (alta): la poda por estado completo y por `enrolled_course_ids` solo se aplica con la última página (`has_more: false`). Si el límite corta un estado completo, se guarda el cursor de continuación del servidor junto con lo ya visto (`sync_state.full_seen`, esquema local 3) y la ejecución siguiente continúa el listado; al terminarlo se poda solo lo que de verdad no está.
+- **Fix — cerrar sesión sin red dejaba el panel a la vista** (media): `logout()` ya no lanza; la revocación es "mejor esfuerzo" y el token se revoca en el próximo inicio de sesión con conexión. `App.tsx` limpia la pantalla en `finally`.
+- **NEW — varios videos por lección**: lista con miniatura, título, estado (descargado, se puede descargar, solo con conexión), cuál está en el reproductor y hasta dónde se vio. Un solo reproductor carga el video elegido; "Continuar desde…" es por video. YouTube y Vimeo se abren aparte ("Solo con conexión").
+- **Posición y descargas por video**: el evento reemplazable de la cola se identifica por lección + video (`video_key`); descargar un video ya no borra los otros de la misma lección. Lo guardado por 0.4.0 (descargas y posiciones pendientes sin clave) queda en el primer video. La pantalla de descargas muestra cada video; "Borrar" en una lección borra todos.
+- **Currículo**: la miniatura indica "3 videos" cuando la lección tiene más de uno.
+- **Cola**: un envío pedido durante otro (p. ej. la posición final al cambiar de video) dispara una pasada más al terminar, en lugar de esperar al ciclo siguiente.
+- **TESTS** (Jest): fallo de la consigna deja la lección pendiente y se vuelve a pedir; todo falla → no se guarda; estado completo cortado no borra nada y al completarse borra solo lo que falta; cierre de sesión sin red; descargar el video 2 no borra el 1; la posición del video 2 no reemplaza la del 1; migración al primer video. Fallan con el código de 0.4.0.
+
 ## 0.4.0 (2026-10-04)
 
 Fase 1 — Aprender. Requiere **ATORA LMS 6.28.0** o superior; con servidores anteriores la app oculta lo que el servidor no declara (`sync_changes`, `playback_position`, `resource_downloads`).

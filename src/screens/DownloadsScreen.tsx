@@ -87,7 +87,7 @@ export function DownloadsScreen({ courses, onBack }: Props) {
                     ? <MediaImage play style={styles.thumb} uri={item.thumbnailUrl} />
                     : <View style={styles.fileIcon}><Text style={styles.fileIconText}>{fileLabel(item)}</Text></View>}
                   <View style={styles.flex}>
-                    <Text numberOfLines={2} style={styles.itemTitle}>{kindOf(item) === 'video' ? 'Video' : item.title || 'Material'}</Text>
+                    <Text numberOfLines={2} style={styles.itemTitle}>{kindOf(item) === 'video' ? (item.videoKey && item.title ? item.title : 'Video') : item.title || 'Material'}</Text>
                     <Text style={styles.meta}>{formatBytes(item.size)}{item.updateAvailable ? ' · Actualización disponible' : ''}</Text>
                   </View>
                   <Pressable accessibilityRole="button" onPress={() => void removeDownloadFile(item.localUri).then(load)}>

@@ -34,6 +34,13 @@ export type LocalIndex = {
   lessons: Record<number, { courseId: number; revision: number }>;
 };
 
+/**
+ * Estado completo que quedó a medias (0.4.1): lo visto en ejecuciones
+ * anteriores. La poda espera a la última página; mientras tanto se guarda esto
+ * junto con el cursor de continuación que dio el servidor.
+ */
+export type FullCarry = { courses: number[]; lessons: number[] };
+
 export type SyncPlan = {
   /** Cursos a pedir (detalle y currículo). */
   fetchCourses: number[];
@@ -44,11 +51,13 @@ export type SyncPlan = {
   removeLessons: number[];
   /** Índice resultante si todo lo anterior se aplica. */
   index: LocalIndex;
+  /** Estado completo sin terminar: guardar y continuar en la próxima ejecución. null si terminó o no era completo. */
+  fullCarry: FullCarry | null;
 };
 
 export const emptyIndex = (): LocalIndex => ({ courses: {}, lessons: {} });
 
-export function planSync(current: LocalIndex, pages: SyncPage[]): SyncPlan {
+export function planSync(current: LocalIndex, pages: SyncPage[], carry: FullCarry | null = null): SyncPlan {
   const index: LocalIndex = { courses: { ...current.courses }, lessons: { ...current.lessons } };
   const fetchCourses = new Set<number>();
   const newCourses = new Set<number>();
@@ -77,9 +86,10 @@ export function planSync(current: LocalIndex, pages: SyncPage[]): SyncPlan {
     }
   };
 
-  const full = pages[0]?.full ?? false;
-  const seenCourses = new Set<number>();
-  const seenLessons = new Set<number>();
+  // Un estado completo puede venir de esta ejecución o continuar uno anterior.
+  const full = carry !== null || (pages[0]?.full ?? false);
+  const seenCourses = new Set<number>(carry?.courses ?? []);
+  const seenLessons = new Set<number>(carry?.lessons ?? []);
 
   for (const page of pages) {
     for (const item of page.items) {
@@ -109,8 +119,13 @@ export function planSync(current: LocalIndex, pages: SyncPage[]): SyncPlan {
     }
   }
 
+  // 0.4.1: solo con la última página se sabe qué falta. Si el límite de páginas
+  // cortó el listado, no se poda nada (ni por estado completo ni por matrículas).
+  const last = pages[pages.length - 1];
+  const finished = Boolean(last) && !last!.has_more;
+
   // Estado completo: lo que la app tiene y el servidor ya no lista, se borra.
-  if (full) {
+  if (full && finished) {
     for (const id of Object.keys(index.courses).map(Number)) {
       if (!seenCourses.has(id)) dropCourse(id);
     }
@@ -120,8 +135,7 @@ export function planSync(current: LocalIndex, pages: SyncPage[]): SyncPlan {
   }
 
   // Matrículas vigentes: cubre caducidades y matrículas que no generan evento.
-  const last = pages[pages.length - 1];
-  if (last) {
+  if (last && finished) {
     const enrolled = new Set(last.enrolled_course_ids);
     for (const id of Object.keys(index.courses).map(Number)) {
       if (!enrolled.has(id)) dropCourse(id);
@@ -141,5 +155,6 @@ export function planSync(current: LocalIndex, pages: SyncPage[]): SyncPlan {
     removeCourses: [...removeCourses],
     removeLessons: [...removeLessons],
     index,
+    fullCarry: full && !finished ? { courses: [...seenCourses], lessons: [...seenLessons] } : null,
   };
 }

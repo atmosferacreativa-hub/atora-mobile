@@ -79,4 +79,24 @@ describe('planSync', () => {
     expect(plan.index.lessons[11]?.revision).toBe(6);
     expect(plan.removeLessons).toEqual([10]);
   });
+
+  it('estado completo cortado a mitad: no borra nada y guarda lo visto', () => {
+    const local: LocalIndex = { courses: { 3: 2, 8: 1 }, lessons: { 10: { courseId: 3, revision: 1 }, 20: { courseId: 8, revision: 1 } } };
+    const cut = planSync(local, [page([course(3, 2), lesson(10, 1)], { full: true, has_more: true, enrolled_course_ids: [3] })]);
+    expect(cut.removeCourses).toEqual([]);
+    expect(cut.removeLessons).toEqual([]);
+    expect(cut.fullCarry).toEqual({ courses: [3], lessons: [10] });
+
+    // Ejecución siguiente: continúa el listado y termina; solo se borra lo que de verdad no está.
+    const done = planSync(cut.index, [page([course(8, 1)], { has_more: false, enrolled_course_ids: [3, 8] })], cut.fullCarry);
+    expect(done.removeCourses).toEqual([]);
+    expect(done.removeLessons).toEqual([20]);
+    expect(done.fullCarry).toBeNull();
+  });
+
+  it('incremental cortado: tampoco poda por matrículas hasta la última página', () => {
+    const plan = planSync(synced(), [page([], { has_more: true, enrolled_course_ids: [] })]);
+    expect(plan.removeCourses).toEqual([]);
+    expect(plan.fullCarry).toBeNull();
+  });
 });

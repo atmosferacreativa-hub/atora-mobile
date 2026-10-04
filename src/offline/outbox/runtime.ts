@@ -56,9 +56,18 @@ export async function enqueueEvent<P>(input: Omit<EnqueueInput<P>, 'userId'>): P
   return event;
 }
 
-/** Envía lo pendiente. Una sola ejecución a la vez; las llamadas concurrentes esperan la misma. */
+let flushAgain = false;
+
+/**
+ * Envía lo pendiente. Una sola ejecución a la vez; las llamadas concurrentes esperan la misma.
+ * 0.4.1: si llega un pedido durante un envío (p. ej. la posición final al salir de un video),
+ * al terminar se hace una pasada más en lugar de esperar al ciclo siguiente.
+ */
 export function flushOutbox(token: string): Promise<ProcessResult | null> {
-  if (flushing) return flushing;
+  if (flushing) {
+    flushAgain = true;
+    return flushing;
+  }
   flushing = (async () => {
     const userId = await getSessionUserId();
     if (!userId) return null;
@@ -75,6 +84,10 @@ export function flushOutbox(token: string): Promise<ProcessResult | null> {
     }
   })().finally(() => {
     flushing = null;
+    if (flushAgain) {
+      flushAgain = false;
+      void flushOutbox(token).catch(() => undefined);
+    }
   });
   return flushing;
 }
