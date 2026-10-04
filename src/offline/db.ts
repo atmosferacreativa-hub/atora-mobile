@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
  */
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 async function open(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync('atora.db');
@@ -55,6 +55,13 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
         revision  INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (user_id, kind, entity_id)
       );
+      PRAGMA user_version = 2;
+    `);
+  }
+  if ((row?.user_version ?? 0) < 3) {
+    // 0.4.1: estado completo que quedó a medias (lo visto, para podar al terminar).
+    await db.execAsync(`
+      ALTER TABLE sync_state ADD COLUMN full_seen TEXT NOT NULL DEFAULT '';
       PRAGMA user_version = ${SCHEMA_VERSION};
     `);
   }

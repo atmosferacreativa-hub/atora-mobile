@@ -25,6 +25,8 @@ export type DownloadRecord = {
   serverUpdatedAt?: string | null;
   /** El servidor tiene una versión más nueva que no se bajó sola. */
   updateAvailable?: boolean;
+  /** 0.4.1: video de la lección (`videos[].key`). Sin clave = primer video (descargas de 0.4.0). */
+  videoKey?: string;
 };
 
 export type DownloadSettings = {
@@ -98,4 +100,14 @@ export function formatBytes(bytes: number | null | undefined): string {
   if (!bytes || bytes <= 0) return '';
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * 0.4.1: ¿este registro es el video `key` de la lección? Un registro de video
+ * sin clave (0.4.0) pertenece al primer video. Descargar un video solo
+ * reemplaza su propio registro, nunca el de otro video de la misma lección.
+ */
+export function isSameVideo(record: DownloadRecord, lessonId: number, key: string, isFirst: boolean): boolean {
+  if (kindOf(record) !== 'video' || record.lessonId !== lessonId) return false;
+  return record.videoKey ? record.videoKey === key : isFirst;
 }

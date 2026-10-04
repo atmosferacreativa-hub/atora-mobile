@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Network from 'expo-network';
 import { getSessionUserId } from '../api/session';
 import {
+  isSameVideo,
   kindOf,
   planMaintenance,
   resourceKey,
@@ -204,15 +205,31 @@ async function fetchToManifest(
 export async function downloadLessonMedia(
   lessonId: number,
   sourceUrl: string,
-  meta: { title?: string; thumbnailUrl?: string; courseId?: number } = {},
+  meta: { title?: string; thumbnailUrl?: string; courseId?: number; videoKey?: string; isFirstVideo?: boolean } = {},
 ): Promise<DownloadRecord> {
   await assertNetwork(await getDownloadSettings());
+  const key = meta.videoKey ?? '';
+  const isFirst = meta.isFirstVideo ?? true;
   return fetchToManifest(
     sourceUrl,
     `lesson-${lessonId}-${Date.now()}${safeExtension(sourceUrl)}`,
-    { lessonId, sourceUrl, kind: 'video', title: meta.title, thumbnailUrl: meta.thumbnailUrl, courseId: meta.courseId },
-    (record) => kindOf(record) === 'video' && record.lessonId === lessonId,
+    { lessonId, sourceUrl, kind: 'video', title: meta.title, thumbnailUrl: meta.thumbnailUrl, courseId: meta.courseId, videoKey: meta.videoKey },
+    // 0.4.1: solo reemplaza la descarga de este mismo video, no la de los otros de la lección.
+    (record) => (key ? isSameVideo(record, lessonId, key, isFirst) : kindOf(record) === 'video' && record.lessonId === lessonId),
   );
+}
+
+/** 0.4.1: descarga de un video concreto de la lección (la de 0.4.0 sin clave es del primero). */
+export function findVideoDownload(lessonId: number, videoKey: string, isFirst: boolean, sourceUrl: string): Promise<DownloadRecord | null> {
+  return touch((record) => isSameVideo(record, lessonId, videoKey, isFirst) && record.sourceUrl === sourceUrl);
+}
+
+export function removeVideoDownload(lessonId: number, videoKey: string, isFirst: boolean): Promise<void> {
+  return removeDownloads((record) => isSameVideo(record, lessonId, videoKey, isFirst));
+}
+
+export async function listVideoDownloads(lessonId: number): Promise<DownloadRecord[]> {
+  return (await readManifest()).filter((record) => kindOf(record) === 'video' && record.lessonId === lessonId);
 }
 
 /** Material de apoyo (0.4.0): mismo manifiesto, cuota, caducidad y preferencia "solo Wi-Fi" que los videos. */

@@ -48,6 +48,14 @@ export async function fetchAssignment(lessonId: number, token: string): Promise<
   }
 }
 
+/** 0.4.1: para la sincronización: lanza si falla (sin caer a la caché). */
+export async function refreshAssignment(lessonId: number, token: string): Promise<AssignmentResponse> {
+  const data = await authenticatedRequest<AssignmentResponse>(`assignments/${lessonId}`, { token });
+  const userId = await getSessionUserId();
+  if (userId) await cacheSet(userId, 'assignment', lessonId, data);
+  return data;
+}
+
 /** Valida contra lo que informa el servidor, antes de encolar. Devuelve el motivo del rechazo o null. */
 export function validateAttachments(accepted: AssignmentInfo['accepted_files'], files: PickedFile[]): string | null {
   if (files.length > accepted.max_files) {

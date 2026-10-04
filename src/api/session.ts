@@ -6,9 +6,13 @@ import { purgeLocalDb } from '../offline/db';
 import { cacheGet, cacheSet } from '../offline/localCache';
 import { purgeOutboxFiles } from '../offline/outboxFiles';
 import { purgeLocalThumbnails } from '../offline/thumbnailFiles';
+import { performLogout, revokePending } from './logoutFlow';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 
 const SESSION_KEY = 'atora.mobile.session.v1';
+// Fuera de los prefijos que se purgan al cerrar sesión: tiene que sobrevivir hasta el próximo inicio con red.
+const PENDING_REVOKE_KEY = 'atora.mobile.revoke-pending.v1';
+const MAX_PENDING_REVOKE = 10;
 const CACHE_PREFIX = 'atora.cache.';
 const QUEUE_PREFIX = 'atora.queue.';
 
@@ -86,6 +90,8 @@ export async function login(
   });
   await clearAppCaches();
   await persist(withExpirations(response.session, response.user.id));
+  // Hay conexión: se revocan las sesiones que quedaron abiertas por un cierre sin red.
+  void revokePendingSessions().catch(() => undefined);
   return response;
 }
 
@@ -156,12 +162,43 @@ export async function loadDashboard(token: string): Promise<StudentHome> {
   }
 }
 
+const revokeToken = async (token: string) => {
+  await apiRequest<{ revoked: boolean }>('auth/logout', { method: 'POST', token });
+};
+const tokenAlreadyInvalid = (reason: unknown) => reason instanceof ApiError && (reason.status === 401 || reason.status === 403);
+
+async function readPendingRevocations(): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(PENDING_REVOKE_KEY);
+  const parsed: unknown = raw ? JSON.parse(raw) : [];
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+}
+
+async function writePendingRevocations(tokens: string[]): Promise<void> {
+  if (!tokens.length) await AsyncStorage.removeItem(PENDING_REVOKE_KEY);
+  else await AsyncStorage.setItem(PENDING_REVOKE_KEY, JSON.stringify(tokens.slice(-MAX_PENDING_REVOKE)));
+}
+
+/**
+ * 0.4.1: nunca lanza. La revocación en el servidor es "mejor esfuerzo"; sin red,
+ * la sesión local se borra igual y el token se revoca en el próximo inicio de sesión.
+ */
 export async function logout(token: string): Promise<void> {
-  try {
-    await apiRequest<{ revoked: boolean }>('auth/logout', { method: 'POST', token });
-  } finally {
-    await clearSession();
-  }
+  await performLogout(token, {
+    revoke: revokeToken,
+    alreadyInvalid: tokenAlreadyInvalid,
+    clearLocal: clearSession,
+    rememberForLater: async (pending) => writePendingRevocations([...await readPendingRevocations(), pending]),
+  });
+}
+
+/** Revoca los tokens que quedaron pendientes por un cierre de sesión sin red. */
+export function revokePendingSessions(): Promise<number> {
+  return revokePending({
+    list: readPendingRevocations,
+    save: writePendingRevocations,
+    revoke: revokeToken,
+    alreadyInvalid: tokenAlreadyInvalid,
+  });
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
