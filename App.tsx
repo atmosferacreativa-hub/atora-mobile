@@ -4,10 +4,12 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import './src/api/courses';
 import './src/api/assignments';
 import './src/api/positions';
-import { loadServerCapabilities } from './src/api/discovery';
+import { getServerCapabilities, loadServerCapabilities } from './src/api/discovery';
+import { fetchGrades, newGradeCourseIds } from './src/api/grades';
 import { ApiError, isRetriableError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { purgeCurrentUserDownloads } from './src/offline/mediaDownloads';
+import { purgeCertificateFiles } from './src/api/certificates';
 import { migrateLegacyStorage } from './src/offline/legacyMigration';
 import { flushOutbox } from './src/offline/outbox/runtime';
 import { runSync } from './src/offline/sync/runtime';
@@ -17,7 +19,7 @@ import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/naviga
 import { LoginScreen } from './src/screens/LoginScreen';
 import { initRuntimeConfig } from './src/runtimeConfig';
 import { colors, spacing } from './src/theme';
-import type { StudentHome } from './src/types';
+import type { ServerCapabilities, StudentHome } from './src/types';
 
 function AppShell() {
   const [token, setToken] = useState<string | null>(null);
@@ -26,8 +28,22 @@ function AppShell() {
   const [starting, setStarting] = useState(true);
   const [loading, setLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState('');
+  const [capabilities, setCapabilities] = useState<ServerCapabilities | null>(null);
+  const [newGradeCourses, setNewGradeCourses] = useState<number[]>([]);
   const network = useNetworkState();
   const prevOffline = useRef<boolean>(network.offline);
+
+  // 0.5.0: aviso de nota nueva (Yo y el curso). Sin conexión usa la última lista sincronizada.
+  const refreshGradeBadges = useCallback(async (accessToken: string) => {
+    const caps = await getServerCapabilities().catch(() => null);
+    setCapabilities(caps);
+    if (!caps?.grades) {
+      setNewGradeCourses([]);
+      return;
+    }
+    const summary = await fetchGrades(accessToken).catch(() => null);
+    setNewGradeCourses(summary ? await newGradeCourseIds(summary.data) : []);
+  }, []);
 
   const fetchDashboard = useCallback(async (accessToken: string) => {
     setLoading(true);
@@ -39,6 +55,7 @@ function AppShell() {
       setDashboardError('');
       // 0.4.0: al abrir (y al refrescar), traer solo lo que cambió desde la última vez.
       void runSync(accessToken).catch(() => undefined);
+      void refreshGradeBadges(accessToken).catch(() => undefined);
     } catch (reason) {
       setDashboardError(
         reason instanceof ApiError
@@ -49,7 +66,7 @@ function AppShell() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshGradeBadges]);
 
   useEffect(() => {
     let active = true;
@@ -124,12 +141,14 @@ function AppShell() {
     try {
       if (token) await flushOutbox(token).catch(() => null);
       await purgeCurrentUserDownloads().catch(() => undefined);
+      await purgeCertificateFiles().catch(() => undefined);
       if (token) await logout(token);
     } finally {
       // 0.4.1: la pantalla vuelve al inicio de sesión pase lo que pase (por ejemplo, sin red).
       setToken(null);
       setDashboard(null);
       setMode('student');
+      setNewGradeCourses([]);
     }
   };
 
@@ -170,6 +189,9 @@ function AppShell() {
           refresh: () => void fetchDashboard(token).catch(() => undefined),
           logout: () => void handleLogout(),
           switchMode,
+          features: { grades: Boolean(capabilities?.grades), certificates: Boolean(capabilities?.certificates) },
+          newGradeCourses,
+          refreshGradeBadges: () => void refreshGradeBadges(token).catch(() => undefined),
         }}
       />
     </SafeAreaView>

@@ -15,6 +15,9 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { ProgramScreen } from '../screens/ProgramScreen';
 import { QuizScreen } from '../screens/QuizScreen';
 import { DownloadsScreen } from '../screens/DownloadsScreen';
+import { CertificatesScreen } from '../screens/CertificatesScreen';
+import { CourseGradesScreen } from '../screens/CourseGradesScreen';
+import { EvolutionScreen } from '../screens/EvolutionScreen';
 import { ResourceViewerScreen } from '../screens/ResourceViewerScreen';
 import { openWithSystem } from '../viewer/files';
 import { colors, spacing } from '../theme';
@@ -31,6 +34,11 @@ export type AppSessionValue = {
   refresh: () => void;
   logout: () => void;
   switchMode: (mode: AppMode) => void;
+  /** Funciones que el servidor declara (0.5.0). */
+  features: { grades: boolean; certificates: boolean };
+  /** Cursos con una nota liberada que el estudiante todavía no vio. */
+  newGradeCourses: number[];
+  refreshGradeBadges: () => void;
 };
 
 const AppSessionContext = createContext<AppSessionValue | null>(null);
@@ -49,19 +57,38 @@ export type LearningStackParams = {
   Lesson: { lessonId: number };
   Quiz: { lessonId: number };
   Assignment: { lessonId: number };
-  Resource: { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
+  Resource: { title: string; localUri: string; kind: 'pdf' | 'image' | 'html'; mime?: string };
+  CourseGrades: { courseId: number; title: string };
 };
 
 type LearningProps<T extends keyof LearningStackParams> = NativeStackScreenProps<LearningStackParams, T>;
 
 function CourseRoute({ route, navigation }: LearningProps<'Course'>) {
-  const { token } = useAppSession();
+  const { token, mode, features, newGradeCourses } = useAppSession();
+  const { courseId } = route.params;
   return (
     <CourseScreen
-      courseId={route.params.courseId}
+      courseId={courseId}
       token={token}
       onBack={() => navigation.goBack()}
       onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
+      hasNewGrade={newGradeCourses.includes(courseId)}
+      onOpenGrades={features.grades && mode === 'student' ? (title) => navigation.push('CourseGrades', { courseId, title }) : undefined}
+    />
+  );
+}
+
+function CourseGradesRoute({ route, navigation }: LearningProps<'CourseGrades'>) {
+  const { token, refreshGradeBadges } = useAppSession();
+  return (
+    <CourseGradesScreen
+      courseId={route.params.courseId}
+      title={route.params.title}
+      token={token}
+      onBack={() => navigation.goBack()}
+      onOpenAssignment={(lessonId) => navigation.push('Assignment', { lessonId })}
+      onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
+      onSeen={refreshGradeBadges}
     />
   );
 }
@@ -147,10 +174,19 @@ function CoursesRoot({ navigation }: LearningProps<'Root'>) {
   );
 }
 
-type ProfileStackParams = { Root: undefined; Downloads: undefined };
+type ProfileStackParams = {
+  Root: undefined;
+  Downloads: undefined;
+  Evolution: undefined;
+  Certificates: undefined;
+  CourseGrades: { courseId: number; title: string };
+  Resource: LearningStackParams['Resource'];
+};
+type ProfileProps<T extends keyof ProfileStackParams> = NativeStackScreenProps<ProfileStackParams, T>;
 
-function ProfileRoot({ navigation }: NativeStackScreenProps<ProfileStackParams, 'Root'>) {
-  const { dashboard, logout, mode, canSwitchMode, switchMode } = useAppSession();
+function ProfileRoot({ navigation }: ProfileProps<'Root'>) {
+  const { dashboard, logout, mode, canSwitchMode, switchMode, features, newGradeCourses } = useAppSession();
+  const student = mode === 'student';
   return (
     <ProfileScreen
       displayName={dashboard?.user.display_name || 'Perfil'}
@@ -159,11 +195,69 @@ function ProfileRoot({ navigation }: NativeStackScreenProps<ProfileStackParams, 
       mode={mode}
       onSwitchMode={canSwitchMode ? switchMode : undefined}
       onOpenDownloads={() => navigation.push('Downloads')}
+      onOpenEvolution={features.grades && student ? () => navigation.push('Evolution') : undefined}
+      newGrades={newGradeCourses.length}
+      onOpenCertificates={features.certificates && student ? () => navigation.push('Certificates') : undefined}
     />
   );
 }
 
-function DownloadsRoute({ navigation }: NativeStackScreenProps<ProfileStackParams, 'Downloads'>) {
+function EvolutionRoute({ navigation }: ProfileProps<'Evolution'>) {
+  const { token, newGradeCourses, refreshGradeBadges } = useAppSession();
+  return (
+    <EvolutionScreen
+      token={token}
+      newGradeCourses={newGradeCourses}
+      onBack={() => navigation.goBack()}
+      onOpenCourseGrades={(courseId, title) => navigation.push('CourseGrades', { courseId, title })}
+      onSeen={refreshGradeBadges}
+    />
+  );
+}
+
+function ProfileCourseGradesRoute({ route, navigation }: ProfileProps<'CourseGrades'>) {
+  const { token, refreshGradeBadges } = useAppSession();
+  // Desde Yo, la tarea o la lección se abren en la pestaña Cursos (allí vive su pila).
+  const openInCourses = (screen: 'Assignment' | 'Lesson', lessonId: number) =>
+    navigation.getParent()?.navigate('Courses', { screen, params: { lessonId }, initial: false });
+  return (
+    <CourseGradesScreen
+      courseId={route.params.courseId}
+      title={route.params.title}
+      token={token}
+      onBack={() => navigation.goBack()}
+      onOpenAssignment={(lessonId) => openInCourses('Assignment', lessonId)}
+      onOpenLesson={(lessonId) => openInCourses('Lesson', lessonId)}
+      onSeen={refreshGradeBadges}
+    />
+  );
+}
+
+function CertificatesRoute({ navigation }: ProfileProps<'Certificates'>) {
+  const { token } = useAppSession();
+  return (
+    <CertificatesScreen
+      token={token}
+      onBack={() => navigation.goBack()}
+      onOpen={(title, localUri) => navigation.push('Resource', { title, localUri, kind: 'html', mime: 'text/html' })}
+    />
+  );
+}
+
+function ProfileResourceRoute({ route, navigation }: ProfileProps<'Resource'>) {
+  const { title, localUri, kind, mime } = route.params;
+  return (
+    <ResourceViewerScreen
+      title={title}
+      localUri={localUri}
+      kind={kind}
+      onBack={() => navigation.goBack()}
+      onOpenWithSystem={() => void openWithSystem(localUri, mime).catch(() => undefined)}
+    />
+  );
+}
+
+function DownloadsRoute({ navigation }: ProfileProps<'Downloads'>) {
   const { dashboard } = useAppSession();
   return <DownloadsScreen courses={dashboard?.courses ?? []} onBack={() => navigation.goBack()} />;
 }
@@ -174,6 +268,10 @@ function ProfileStack() {
     <ProfileNav.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper } }}>
       <ProfileNav.Screen name="Root" component={ProfileRoot} />
       <ProfileNav.Screen name="Downloads" component={DownloadsRoute} />
+      <ProfileNav.Screen name="Evolution" component={EvolutionRoute} />
+      <ProfileNav.Screen name="CourseGrades" component={ProfileCourseGradesRoute} />
+      <ProfileNav.Screen name="Certificates" component={CertificatesRoute} />
+      <ProfileNav.Screen name="Resource" component={ProfileResourceRoute} />
     </ProfileNav.Navigator>
   );
 }
@@ -191,6 +289,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Quiz" component={QuizRoute} />
         <Stack.Screen name="Assignment" component={AssignmentRoute} />
         <Stack.Screen name="Resource" component={ResourceRoute} />
+        <Stack.Screen name="CourseGrades" component={CourseGradesRoute} />
       </Stack.Navigator>
     );
   };
@@ -270,6 +369,7 @@ function BrandHeader() {
 
 export function AppNavigator({ session }: { session: AppSessionValue }) {
   const tabs = session.mode === 'teacher' ? TEACHER_TABS : STUDENT_TABS;
+  const meBadge = session.mode === 'student' && session.newGradeCourses.length ? session.newGradeCourses.length : undefined;
   return (
     <AppSessionContext.Provider value={session}>
       <NavigationContainer theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } }}>
@@ -292,6 +392,8 @@ export function AppNavigator({ session }: { session: AppSessionValue }) {
               component={tab.component}
               options={{
                 title: tab.label,
+                tabBarBadge: tab.name === 'Me' ? meBadge : undefined,
+                tabBarBadgeStyle: { backgroundColor: colors.mustard, color: colors.navy, fontWeight: '900' },
                 tabBarIcon: ({ color, size }) => <Ionicons name={tab.icon} color={color} size={size} />,
               }}
             />

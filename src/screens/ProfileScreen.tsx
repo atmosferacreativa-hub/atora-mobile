@@ -39,6 +39,10 @@ type Props = {
   onSwitchMode?: (mode: AppMode) => void;
   /** 0.4.0: pantalla de descargas agrupada por curso. */
   onOpenDownloads?: () => void;
+  /** 0.5.0: evolución académica y certificados (solo si el servidor los ofrece). */
+  onOpenEvolution?: () => void;
+  newGrades?: number;
+  onOpenCertificates?: () => void;
 };
 
 const formatMegabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -49,7 +53,7 @@ const EVENT_LABELS: Record<string, string> = {
   playback_position: 'Posición del video',
 };
 
-export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode, onOpenDownloads }: Props) {
+export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode, onOpenDownloads, onOpenEvolution, newGrades = 0, onOpenCertificates }: Props) {
   const [settings, setSettings] = useState<DownloadSettings | null>(null);
   const [summary, setSummary] = useState<StorageSummary | null>(null);
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
@@ -129,6 +133,17 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
       <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <Text style={styles.title}>{displayName || 'Perfil'}</Text>
       {email ? <Text style={styles.email}>{email}</Text> : null}
+
+      {onOpenEvolution ? (
+        <Pressable accessibilityRole="button" onPress={onOpenEvolution} style={styles.panelButton}>
+          <Text style={styles.panelText}>Mi evolución y notas{newGrades ? ` · ${newGrades} nueva${newGrades === 1 ? '' : 's'}` : ''}</Text>
+        </Pressable>
+      ) : null}
+      {onOpenCertificates ? (
+        <Pressable accessibilityRole="button" onPress={onOpenCertificates} style={styles.panelButton}>
+          <Text style={styles.panelText}>Mis certificados</Text>
+        </Pressable>
+      ) : null}
 
       {outbox.pending.length || outbox.failed.length ? (
         <Card>

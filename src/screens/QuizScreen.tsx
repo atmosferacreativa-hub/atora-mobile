@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { ApiError } from '../api/client';
 import { fetchQuiz, submitQuiz } from '../api/quizzes';
+import { getSessionUserId } from '../api/session';
+import { useNetworkState } from '../hooks/useNetworkState';
+import { sqliteQuizDraftStore } from '../offline/quizDraftStore';
+import { afterSubmitFailure, answersPayload, discardDraft, newDraft, restoreDraft, saveDraft, type QuizDraft } from '../offline/quizDrafts';
 import { colors, spacing } from '../theme';
 import type { QuizAnswer, QuizPayload, QuizQuestion, QuizResult } from '../types';
 
@@ -109,26 +114,59 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [resumed, setResumed] = useState(false);
+  const network = useNetworkState();
+  // 0.5.0: el intento se guarda en el teléfono con cada cambio (quizDrafts.ts).
+  const draft = useRef<QuizDraft | null>(null);
+  const userId = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetchQuiz(lessonId, token)
-      .then((value) => {
+    (async () => {
+      userId.current = await getSessionUserId();
+      const saved = userId.current ? await restoreDraft(sqliteQuizDraftStore, userId.current, lessonId, Date.now()).catch(() => null) : null;
+      if (saved) {
+        // Retomar el mismo intento, aunque no haya conexión.
         if (!active) return;
-        setQuiz(value);
-        setRemaining(value.remaining_seconds);
-      })
-      .catch((reason) => {
-        if (active) setError(reason instanceof Error ? reason.message : 'No pudimos abrir la evaluación.');
-      });
+        draft.current = saved.draft;
+        setQuiz(saved.draft.quiz);
+        setAnswers(saved.draft.answers);
+        setIndex(Math.min(saved.draft.index, Math.max(0, saved.draft.quiz.questions.length - 1)));
+        setResumed(true);
+        return;
+      }
+      // Un intento nuevo solo con conexión: lo abre el servidor.
+      const value = await fetchQuiz(lessonId, token);
+      if (!active) return;
+      const fresh = newDraft(lessonId, value, Date.now());
+      draft.current = fresh;
+      if (userId.current && value.token) await saveDraft(sqliteQuizDraftStore, userId.current, fresh, Date.now()).catch(() => undefined);
+      setQuiz(value);
+    })().catch((reason) => {
+      if (!active) return;
+      setError(reason instanceof ApiError && reason.status === 0
+        ? 'Necesitas conexión para iniciar la evaluación.'
+        : reason instanceof Error ? reason.message : 'No pudimos abrir la evaluación.');
+    });
     return () => { active = false; };
   }, [lessonId, token]);
 
+  // Tiempo restante desde que se abrió el intento (también al retomarlo).
   useEffect(() => {
     if (!quiz || quiz.remaining_seconds <= 0 || result) return;
-    const timer = setInterval(() => setRemaining((value) => Math.max(0, value - 1)), 1000);
+    const startedAt = draft.current?.startedAt ?? Date.now();
+    const tick = () => setRemaining(Math.max(0, quiz.remaining_seconds - Math.floor((Date.now() - startedAt) / 1000)));
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [quiz, result]);
+
+  // Guardar con cada cambio de respuesta o de pregunta.
+  useEffect(() => {
+    if (!draft.current || !userId.current || result) return;
+    draft.current = { ...draft.current, answers, index };
+    void saveDraft(sqliteQuizDraftStore, userId.current, draft.current, Date.now()).catch(() => undefined);
+  }, [answers, index, result]);
 
   const answered = useMemo(
     () => quiz?.questions.filter((question) => hasAnswer(answers[question.id])).length ?? 0,
@@ -141,15 +179,20 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
     `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
   const performSubmit = async () => {
-    if (!quiz) return;
+    if (!quiz || !draft.current) return;
     setBusy(true);
     setError('');
     try {
-      const payload = quiz.questions.map((item) => answers[item.id] ?? (item.type === 'multiple' ? [] : ''));
-      const nextResult = await submitQuiz(lessonId, quiz.token, payload, token);
+      const nextResult = await submitQuiz(lessonId, quiz.token, answersPayload({ ...draft.current, answers }), token);
+      if (userId.current) await discardDraft(sqliteQuizDraftStore, userId.current, lessonId).catch(() => undefined);
       setResult(nextResult);
       onCompleted();
     } catch (reason) {
+      const status = reason instanceof ApiError ? reason.status : 0;
+      if (afterSubmitFailure(status) === 'discard' && userId.current) {
+        // El servidor cerró el intento (vencido, intentos agotados…): su motivo, tal cual.
+        await discardDraft(sqliteQuizDraftStore, userId.current, lessonId).catch(() => undefined);
+      }
       setError(reason instanceof Error ? reason.message : 'No fue posible entregar la evaluación.');
     } finally {
       setBusy(false);
@@ -227,6 +270,10 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
         {remaining === 0 && quiz.remaining_seconds > 0 ? (
           <Text accessibilityRole="alert" style={styles.error}>El tiempo terminó. Intenta entregar tus respuestas.</Text>
         ) : null}
+        {resumed ? <Text style={styles.hint}>Retomaste la evaluación donde la dejaste.</Text> : null}
+        {network.offline ? (
+          <Text accessibilityRole="alert" style={styles.offline}>Necesitas conexión para entregar. Tus respuestas están guardadas.</Text>
+        ) : null}
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       </ScrollView>
 
@@ -247,7 +294,7 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
             <Text style={styles.primaryText}>Siguiente</Text>
           </Pressable>
         ) : (
-          <Pressable disabled={busy} onPress={confirmSubmit} style={styles.submitButton}>
+          <Pressable disabled={busy || network.offline} onPress={confirmSubmit} style={[styles.submitButton, network.offline && styles.disabled]}>
             {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>Revisar y entregar</Text>}
           </Pressable>
         )}
@@ -287,6 +334,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: colors.paper, borderColor: colors.border, borderRadius: 14, borderWidth: 2, color: colors.ink, fontSize: 17, minHeight: 56, padding: spacing.md },
   textarea: { minHeight: 150, textAlignVertical: 'top' },
   error: { color: colors.red, lineHeight: 20, textAlign: 'center' },
+  offline: { color: colors.accentText, fontWeight: '800', lineHeight: 20, marginTop: spacing.md, textAlign: 'center' },
   actions: { backgroundColor: colors.white, borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   navButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 14, borderWidth: 2, flex: 1, justifyContent: 'center', minHeight: 54 },
   navText: { color: colors.blue, fontSize: 16, fontWeight: '800' },

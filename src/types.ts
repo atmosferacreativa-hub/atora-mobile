@@ -197,6 +197,9 @@ export type ServerCapabilities = {
   resource_downloads?: boolean;
   /** 6.28.2+ */
   multi_video?: boolean;
+  /** 6.29.0+ */
+  grades?: boolean;
+  certificates?: boolean;
 };
 
 export type AssignmentInfo = {
@@ -229,6 +232,63 @@ export type AssignmentSubmission = {
   grade?: number | null;
   feedback?: string | null;
   review_status?: string;
+  /** 6.29.0+: rúbrica por criterio, solo con la nota liberada. */
+  rubric?: SubmissionRubric | null;
+  /** 6.29.0+: entregada y en revisión (nota aún no liberada). */
+  in_review?: boolean;
+};
+
+export type SubmissionRubric = {
+  rows: { name: string; competency: string; score: number; max: number; feedback: string }[];
+  strengths: string[];
+  reinforce: string[];
+  recommendation: string;
 };
 
 export type AssignmentResponse = { assignment: AssignmentInfo; submissions: AssignmentSubmission[] };
+
+/** 6.29.0+: `GET /grades`, `GET /courses/{id}/grades`. Solo notas liberadas. */
+export type AcademicStatus = 'not_started' | 'in_progress' | 'at_risk' | 'approved' | 'not_approved';
+
+export type CourseGrade = {
+  course_id: number;
+  title: string;
+  final_grade: number | null;
+  passing_grade: number;
+  progress: number;
+  status: AcademicStatus;
+  /** 6.29.1+ */
+  graded_count?: number;
+  last_graded_at?: string | null;
+};
+
+export type ProgramGrade = { wp_program_id: number; title: string; courses: number; final_grade: number | null; progress: number };
+
+export type GradesSummary = { courses: CourseGrade[]; programs: ProgramGrade[]; generated_at: string };
+
+export type ActivityGrade = {
+  lesson_id: number;
+  title: string;
+  kind: 'assignment' | 'quiz' | 'activity';
+  activity_type: string;
+  weight_label: string;
+  weight: number | null;
+  grade: number | null;
+  status: 'graded' | 'in_review' | 'needs_revision' | 'completed' | 'pending';
+  has_feedback: boolean;
+  graded_at: string | null;
+};
+
+export type CourseGradesDetail = { course: CourseGrade; activities: ActivityGrade[] };
+
+export type CertificateItem = {
+  type: 'course' | 'program';
+  id: number;
+  course_id: number | null;
+  title: string;
+  status: 'issued' | 'available' | 'revoked';
+  issued_at: string;
+  certificate_code: string;
+  download_url: string;
+  download_expires_at: string | null;
+};

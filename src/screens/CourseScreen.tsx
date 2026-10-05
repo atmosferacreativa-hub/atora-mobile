@@ -15,9 +15,12 @@ type Props = {
   token: string;
   onBack: () => void;
   onOpenLesson: (lessonId: number) => void;
+  /** 0.5.0: notas del curso (solo si el servidor las ofrece). */
+  onOpenGrades?: (title: string) => void;
+  hasNewGrade?: boolean;
 };
 
-export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
+export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrades, hasNewGrade }: Props) {
   const [data, setData] = useState<CourseDetail | null>(null);
   const [error, setError] = useState('');
   const [localThumbs, setLocalThumbs] = useState<Record<number, string>>({});
@@ -98,6 +101,12 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson }: Props) {
               {data.progress.completed_lessons} de {data.progress.total_lessons} lecciones
             </Text>
           </View>
+          {onOpenGrades ? (
+            <Pressable accessibilityRole="button" onPress={() => onOpenGrades(data.course.title)} style={styles.gradesButton}>
+              <Text style={styles.materialText}>Notas</Text>
+              {hasNewGrade ? <Text style={styles.newBadge}>Nota nueva</Text> : null}
+            </Pressable>
+          ) : null}
           {materialSupported && data.curriculum.length ? (
             <Pressable accessibilityRole="button" disabled={Boolean(material)} onPress={() => void downloadMaterial()} style={styles.materialButton}>
               {material ? (
@@ -150,6 +159,8 @@ const styles = StyleSheet.create({
   materialButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 46, padding: spacing.sm },
   materialBusy: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   materialText: { color: colors.blue, fontWeight: '800' },
+  gradesButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', padding: spacing.md },
+  newBadge: { backgroundColor: colors.mustard, borderRadius: 10, color: colors.navy, fontSize: 11, fontWeight: '900', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2 },
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   content: { gap: spacing.md, padding: spacing.lg },
   back: { color: colors.blue, fontWeight: '800' },

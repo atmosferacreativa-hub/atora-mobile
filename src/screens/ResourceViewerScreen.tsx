@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { VIEWER_ROOT, viewerUrl } from '../viewer/files';
 import { colors, spacing } from '../theme';
@@ -7,7 +7,7 @@ import { colors, spacing } from '../theme';
 type Props = {
   title: string;
   localUri: string;
-  kind: 'pdf' | 'image';
+  kind: 'pdf' | 'image' | 'html';
   onBack: () => void;
   onOpenWithSystem: () => void;
 };
@@ -48,7 +48,7 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
           allowFileAccessFromFileURLs
           allowUniversalAccessFromFileURLs
           allowingReadAccessToURL={VIEWER_ROOT}
-          javaScriptEnabled
+          javaScriptEnabled={kind !== 'html'}
           setBuiltInZoomControls={kind === 'image'}
           setDisplayZoomControls={false}
           onError={() => setFailed(true)}
@@ -60,7 +60,12 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
               // Mensaje ajeno.
             }
           }}
-          onShouldStartLoadWithRequest={({ url }) => url.startsWith('file://') || url === 'about:blank'}
+          onShouldStartLoadWithRequest={({ url }) => {
+            if (url.startsWith('file://') || url === 'about:blank') return true;
+            // Enlaces del documento (verificación, compartir): en el navegador.
+            if (/^https?:\/\//i.test(url)) void Linking.openURL(url).catch(() => undefined);
+            return false;
+          }}
           startInLoadingState
           renderLoading={() => <View style={styles.center}><ActivityIndicator color={colors.blue} /></View>}
           style={styles.web}
