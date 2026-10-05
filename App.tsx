@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, StatusBar, StyleSheet, Text, View } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import './src/api/courses';
 import './src/api/assignments';
 import './src/api/positions';
+import { fetchUnreadCount, subscribeUnread } from './src/api/messages';
+import { registerDevice, unregisterDevice } from './src/api/push';
+import { destinationFor, type PushData } from './src/notifications/route';
 import { getServerCapabilities, loadServerCapabilities } from './src/api/discovery';
 import { fetchGrades, newGradeCourseIds } from './src/api/grades';
 import { ApiError, isRetriableError } from './src/api/client';
@@ -14,7 +18,7 @@ import { migrateLegacyStorage } from './src/offline/legacyMigration';
 import { flushOutbox } from './src/offline/outbox/runtime';
 import { runSync } from './src/offline/sync/runtime';
 import { useNetworkState } from './src/hooks/useNetworkState';
-import { AppNavigator } from './src/navigation/AppNavigator';
+import { AppNavigator, navigationRef, openDestination } from './src/navigation/AppNavigator';
 import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/navigation/roles';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { initRuntimeConfig } from './src/runtimeConfig';
@@ -30,6 +34,7 @@ function AppShell() {
   const [dashboardError, setDashboardError] = useState('');
   const [capabilities, setCapabilities] = useState<ServerCapabilities | null>(null);
   const [newGradeCourses, setNewGradeCourses] = useState<number[]>([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const network = useNetworkState();
   const prevOffline = useRef<boolean>(network.offline);
 
@@ -45,6 +50,15 @@ function AppShell() {
     setNewGradeCourses(summary ? await newGradeCourseIds(summary.data) : []);
   }, []);
 
+  // 0.6.0: el contador de la pestaña Mensajes lo actualizan la lista, el hilo y esto.
+  useEffect(() => subscribeUnread(setUnreadMessages), []);
+
+  const refreshInbox = useCallback(async (accessToken: string) => {
+    const caps = await getServerCapabilities().catch(() => null);
+    if (caps?.messages) await fetchUnreadCount(accessToken).catch(() => undefined);
+    if (caps?.push_notifications) await registerDevice(accessToken).catch(() => undefined);
+  }, []);
+
   const fetchDashboard = useCallback(async (accessToken: string) => {
     setLoading(true);
     try {
@@ -56,6 +70,8 @@ function AppShell() {
       // 0.4.0: al abrir (y al refrescar), traer solo lo que cambió desde la última vez.
       void runSync(accessToken).catch(() => undefined);
       void refreshGradeBadges(accessToken).catch(() => undefined);
+      // 0.6.0: contador único del buzón y token de avisos (si ya hay permiso; nunca se pide aquí).
+      void refreshInbox(accessToken).catch(() => undefined);
     } catch (reason) {
       setDashboardError(
         reason instanceof ApiError
@@ -66,7 +82,7 @@ function AppShell() {
     } finally {
       setLoading(false);
     }
-  }, [refreshGradeBadges]);
+  }, [refreshGradeBadges, refreshInbox]);
 
   useEffect(() => {
     let active = true;
@@ -119,6 +135,37 @@ function AppShell() {
     return () => clearInterval(id);
   }, [network.offline, token]);
 
+  // 0.6.0: sin permiso de avisos la app igual se pone al día al volver a primer plano.
+  useEffect(() => {
+    if (!token) return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' || network.offline) return;
+      void flushOutbox(token).catch(() => undefined).then(() => runSync(token)).catch(() => undefined);
+      void refreshInbox(token).catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, [network.offline, refreshInbox, token]);
+
+  // 0.6.0: tocar un aviso abre la pantalla correcta (también si la app estaba cerrada).
+  useEffect(() => {
+    if (!token) return;
+    const open = (data: unknown) => {
+      const go = () => openDestination(destinationFor(data as PushData));
+      if (navigationRef.isReady()) go();
+      else setTimeout(go, 600);
+    };
+    void Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) {
+          open(response.notification.request.content.data);
+          void Notifications.clearLastNotificationResponseAsync?.().catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => open(response.notification.request.content.data));
+    return () => subscription.remove();
+  }, [token]);
+
   const handleLogin = async (loginValue: string, password: string) => {
     const response = await login(loginValue, password);
     // La academia pudo cambiar en la pantalla de inicio: capacidades de la nueva.
@@ -142,6 +189,8 @@ function AppShell() {
       if (token) await flushOutbox(token).catch(() => null);
       await purgeCurrentUserDownloads().catch(() => undefined);
       await purgeCertificateFiles().catch(() => undefined);
+      // 0.6.0: el servidor deja de enviar avisos a este teléfono.
+      if (token) await unregisterDevice(token).catch(() => undefined);
       if (token) await logout(token);
     } finally {
       // 0.4.1: la pantalla vuelve al inicio de sesión pase lo que pase (por ejemplo, sin red).
@@ -149,6 +198,7 @@ function AppShell() {
       setDashboard(null);
       setMode('student');
       setNewGradeCourses([]);
+      setUnreadMessages(0);
     }
   };
 
@@ -189,7 +239,15 @@ function AppShell() {
           refresh: () => void fetchDashboard(token).catch(() => undefined),
           logout: () => void handleLogout(),
           switchMode,
-          features: { grades: Boolean(capabilities?.grades), certificates: Boolean(capabilities?.certificates) },
+          features: {
+            grades: Boolean(capabilities?.grades),
+            certificates: Boolean(capabilities?.certificates),
+            messages: Boolean(capabilities?.messages),
+            agenda: Boolean(capabilities?.agenda),
+            today: Boolean(capabilities?.today),
+            push: Boolean(capabilities?.push_notifications),
+          },
+          unreadMessages,
           newGradeCourses,
           refreshGradeBadges: () => void refreshGradeBadges(token).catch(() => undefined),
         }}

@@ -1,7 +1,7 @@
 import { createContext, useContext, type ComponentProps, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NavigationContainer, DefaultTheme, getFocusedRouteNameFromRoute, type RouteProp } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, createNavigationContainerRef, getFocusedRouteNameFromRoute, type RouteProp } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NetworkBanner } from '../components/NetworkBanner';
@@ -19,9 +19,16 @@ import { CertificatesScreen } from '../screens/CertificatesScreen';
 import { CourseGradesScreen } from '../screens/CourseGradesScreen';
 import { EvolutionScreen } from '../screens/EvolutionScreen';
 import { ResourceViewerScreen } from '../screens/ResourceViewerScreen';
+import { AgendaScreen } from '../screens/AgendaScreen';
+import { ComposeScreen } from '../screens/ComposeScreen';
+import { MessagesScreen } from '../screens/MessagesScreen';
+import { ThreadScreen } from '../screens/ThreadScreen';
+import { TodayScreen } from '../screens/TodayScreen';
+import { PushPreferences, PushPrompt } from '../components/PushSettings';
+import type { Destination } from '../notifications/route';
 import { openWithSystem } from '../viewer/files';
 import { colors, spacing } from '../theme';
-import type { StudentHome } from '../types';
+import type { InternalLink, StudentHome } from '../types';
 import type { AppMode } from './roles';
 
 export type AppSessionValue = {
@@ -34,8 +41,10 @@ export type AppSessionValue = {
   refresh: () => void;
   logout: () => void;
   switchMode: (mode: AppMode) => void;
-  /** Funciones que el servidor declara (0.5.0). */
-  features: { grades: boolean; certificates: boolean };
+  /** Funciones que el servidor declara (0.5.0; 0.6.0 suma buzón, agenda, Hoy y avisos al teléfono). */
+  features: { grades: boolean; certificates: boolean; messages: boolean; agenda: boolean; today: boolean; push: boolean };
+  /** Contador único de no leídos (mensajes y avisos), 0.6.0. */
+  unreadMessages: number;
   /** Cursos con una nota liberada que el estudiante todavía no vio. */
   newGradeCourses: number[];
   refreshGradeBadges: () => void;
@@ -59,9 +68,73 @@ export type LearningStackParams = {
   Assignment: { lessonId: number };
   Resource: { title: string; localUri: string; kind: 'pdf' | 'image' | 'html'; mime?: string };
   CourseGrades: { courseId: number; title: string };
+  /** 0.6.0: buzón. */
+  Thread: { threadId?: number; title?: string; recipient?: { id: number; name: string; courseId?: number } };
+  Compose: undefined;
 };
 
+/** 0.6.0: para abrir la pantalla de una notificación desde fuera del árbol. */
+export const navigationRef = createNavigationContainerRef<Record<string, object | undefined>>();
+
+/** Abre lo que anuncia una notificación (pestaña y pantalla). */
+export function openDestination(destination: Destination): void {
+  if (!navigationRef.isReady()) return;
+  navigationRef.navigate(destination.tab, destination.screen === 'Root' ? { screen: 'Root' } : { screen: destination.screen, params: destination.params, initial: false });
+}
+
 type LearningProps<T extends keyof LearningStackParams> = NativeStackScreenProps<LearningStackParams, T>;
+
+/** Enlace interno (aviso, agenda, Hoy) dentro de la misma pila. */
+function openLink(navigation: LearningProps<keyof LearningStackParams>['navigation'], link: InternalLink): void {
+  if (link.type === 'assignment') navigation.push('Assignment', { lessonId: link.id });
+  else if (link.type === 'quiz') navigation.push('Quiz', { lessonId: link.id });
+  else if (link.type === 'lesson') navigation.push('Lesson', { lessonId: link.id });
+  else navigation.push('Course', { courseId: link.id });
+}
+
+function ThreadRoute({ route, navigation }: LearningProps<'Thread'>) {
+  const { token } = useAppSession();
+  return (
+    <ThreadScreen
+      token={token}
+      threadId={route.params.threadId}
+      title={route.params.title}
+      recipient={route.params.recipient}
+      onBack={() => navigation.goBack()}
+      onOpenLink={(link) => openLink(navigation, link)}
+      onThreadCreated={(threadId) => navigation.replace('Thread', { threadId, title: route.params.recipient?.name })}
+    />
+  );
+}
+
+function ComposeRoute({ navigation }: LearningProps<'Compose'>) {
+  const { token } = useAppSession();
+  return <ComposeScreen token={token} onBack={() => navigation.goBack()} onPick={(recipient) => navigation.replace('Thread', { recipient })} />;
+}
+
+function MessagesRoot({ navigation }: LearningProps<'Root'>) {
+  const { token, mode, features } = useAppSession();
+  if (!features.messages) {
+    return <ComingSoonScreen title="Mensajes" description="Actualiza ATORA LMS a la 6.30.0 para usar el buzón en la app." />;
+  }
+  return (
+    <MessagesScreen
+      token={token}
+      canCompose={mode === 'student'}
+      onOpenThread={(thread) => navigation.push('Thread', { threadId: thread.id, title: thread.title })}
+      onCompose={() => navigation.push('Compose')}
+      pushPrompt={features.push ? <PushPrompt token={token} compact /> : null}
+    />
+  );
+}
+
+function AgendaRoot({ navigation }: LearningProps<'Root'>) {
+  const { token, features } = useAppSession();
+  if (!features.agenda) {
+    return <ComingSoonScreen title="Agenda" description="Actualiza ATORA LMS a la 6.30.0 para ver tus fechas en la app." />;
+  }
+  return <AgendaScreen token={token} onOpenLink={(link) => openLink(navigation, link)} />;
+}
 
 function CourseRoute({ route, navigation }: LearningProps<'Course'>) {
   const { token, mode, features, newGradeCourses } = useAppSession();
@@ -147,6 +220,21 @@ function ResourceRoute({ route, navigation }: LearningProps<'Resource'>) {
 
 function TodayRoot({ navigation }: LearningProps<'Root'>) {
   const { token, dashboard, loading, refresh, mode } = useAppSession();
+  const today = useAppSession();
+  if (today.mode === 'student' && today.features.today) {
+    return (
+      <TodayScreen
+        token={today.token}
+        name={today.dashboard?.user.display_name ?? ''}
+        newGradeCourses={today.newGradeCourses}
+        onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
+        onOpenQuiz={(lessonId) => navigation.push('Quiz', { lessonId })}
+        onOpenLink={(link) => openLink(navigation, link)}
+        onOpenMessages={() => navigation.getParent()?.navigate('Messages')}
+        onOpenCourseGrades={(courseId, title) => navigation.push('CourseGrades', { courseId, title })}
+      />
+    );
+  }
   return (
     <HomeScreen
       data={dashboard}
@@ -187,7 +275,7 @@ type ProfileStackParams = {
 type ProfileProps<T extends keyof ProfileStackParams> = NativeStackScreenProps<ProfileStackParams, T>;
 
 function ProfileRoot({ navigation }: ProfileProps<'Root'>) {
-  const { dashboard, logout, mode, canSwitchMode, switchMode, features, newGradeCourses } = useAppSession();
+  const { token, dashboard, logout, mode, canSwitchMode, switchMode, features, newGradeCourses } = useAppSession();
   const student = mode === 'student';
   return (
     <ProfileScreen
@@ -200,6 +288,7 @@ function ProfileRoot({ navigation }: ProfileProps<'Root'>) {
       onOpenEvolution={features.grades && student ? () => navigation.push('Evolution') : undefined}
       newGrades={newGradeCourses.length}
       onOpenCertificates={features.certificates && student ? () => navigation.push('Certificates') : undefined}
+      notificationSettings={features.push ? <PushPreferences token={token} /> : undefined}
     />
   );
 }
@@ -292,6 +381,8 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Assignment" component={AssignmentRoute} />
         <Stack.Screen name="Resource" component={ResourceRoute} />
         <Stack.Screen name="CourseGrades" component={CourseGradesRoute} />
+        <Stack.Screen name="Thread" component={ThreadRoute} />
+        <Stack.Screen name="Compose" component={ComposeRoute} />
       </Stack.Navigator>
     );
   };
@@ -311,12 +402,8 @@ function singleStack(Screen: () => ReactElement) {
   };
 }
 
-const AgendaStack = singleStack(() => (
-  <ComingSoonScreen title="Agenda" description="Tus clases, entregas y fechas importantes aparecerán aquí." />
-));
-const MessagesStack = singleStack(() => (
-  <ComingSoonScreen title="Mensajes" description="Las conversaciones con tus docentes y compañeros llegarán en una próxima versión." />
-));
+const AgendaStack = learningStack(AgendaRoot);
+const MessagesStack = learningStack(MessagesRoot);
 const GradingStack = singleStack(() => (
   <ComingSoonScreen title="Calificar" description="La revisión de entregas desde el teléfono llegará en una próxima versión. Por ahora, califica desde la web." />
 ));
@@ -345,7 +432,7 @@ const Tabs = createBottomTabNavigator();
 /** Rutas a pantalla completa: sin cabecera de marca ni barra inferior. */
 function isImmersive(route: RouteProp<Record<string, object | undefined>, string>): boolean {
   const focused = getFocusedRouteNameFromRoute(route);
-  return focused === 'Quiz' || focused === 'Resource';
+  return focused === 'Quiz' || focused === 'Resource' || focused === 'Thread';
 }
 
 function BrandHeader() {
@@ -374,7 +461,7 @@ export function AppNavigator({ session }: { session: AppSessionValue }) {
   const meBadge = session.mode === 'student' && session.newGradeCourses.length ? session.newGradeCourses.length : undefined;
   return (
     <AppSessionContext.Provider value={session}>
-      <NavigationContainer theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } }}>
+      <NavigationContainer ref={navigationRef} theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } }}>
         <Tabs.Navigator
           // La clave fuerza un árbol nuevo al cambiar de modo: cada rol arranca en Hoy.
           key={session.mode}
@@ -394,7 +481,7 @@ export function AppNavigator({ session }: { session: AppSessionValue }) {
               component={tab.component}
               options={{
                 title: tab.label,
-                tabBarBadge: tab.name === 'Me' ? meBadge : undefined,
+                tabBarBadge: tab.name === 'Me' ? meBadge : tab.name === 'Messages' && session.unreadMessages > 0 ? (session.unreadMessages > 99 ? '99+' : session.unreadMessages) : undefined,
                 tabBarBadgeStyle: { backgroundColor: colors.mustard, color: colors.navy, fontWeight: '900' },
                 tabBarIcon: ({ color, size }) => <Ionicons name={tab.icon} color={color} size={size} />,
               }}
