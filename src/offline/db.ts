@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
  */
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 async function open(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync('atora.db');
@@ -62,6 +62,24 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     // 0.4.1: estado completo que quedó a medias (lo visto, para podar al terminar).
     await db.execAsync(`
       ALTER TABLE sync_state ADD COLUMN full_seen TEXT NOT NULL DEFAULT '';
+      PRAGMA user_version = 3;
+    `);
+  }
+  if ((row?.user_version ?? 0) < 4) {
+    // 0.5.3: cursos y lecciones cuya sincronización falló; se reintentan aunque el servidor no los vuelva a listar.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS sync_pending (
+        user_id         INTEGER NOT NULL,
+        kind            TEXT    NOT NULL,
+        entity_id       INTEGER NOT NULL,
+        course_id       INTEGER NOT NULL DEFAULT 0,
+        target_revision INTEGER NOT NULL DEFAULT 0,
+        attempts        INTEGER NOT NULL DEFAULT 0,
+        last_error      TEXT    NOT NULL DEFAULT '',
+        next_attempt_at INTEGER NOT NULL DEFAULT 0,
+        new_course      INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, kind, entity_id)
+      );
       PRAGMA user_version = ${SCHEMA_VERSION};
     `);
   }
@@ -80,5 +98,5 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 
 export async function purgeLocalDb(): Promise<void> {
   const db = await getDb();
-  await db.execAsync('DELETE FROM cache; DELETE FROM outbox; DELETE FROM sync_state; DELETE FROM sync_index;');
+  await db.execAsync('DELETE FROM cache; DELETE FROM outbox; DELETE FROM sync_state; DELETE FROM sync_index; DELETE FROM sync_pending;');
 }

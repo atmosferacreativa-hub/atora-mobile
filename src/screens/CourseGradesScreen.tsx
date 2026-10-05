@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourseGrades, fetchGrades, markGradesSeen } from '../api/grades';
+import { gradeLabel } from '../grades/gradeLabel';
 import { colors, spacing } from '../theme';
 import type { ActivityGrade, CourseGradesDetail } from '../types';
 import { STATUS_LABELS } from './EvolutionScreen';
@@ -63,7 +64,7 @@ export function CourseGradesScreen({ courseId, title, token, onBack, onOpenAssig
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {detail ? (
         <View style={styles.summary}>
-          <Text style={styles.summaryGrade}>{detail.course.final_grade ?? '—'}</Text>
+          <Text style={gradeLabel(detail.course.final_grade).empty ? styles.summaryEmpty : styles.summaryGrade}>{gradeLabel(detail.course.final_grade).text}</Text>
           <Text style={styles.meta}>Nota acumulada · {STATUS_LABELS[detail.course.status] ?? detail.course.status} · {detail.course.progress}% de avance</Text>
         </View>
       ) : null}
@@ -98,6 +99,7 @@ const styles = StyleSheet.create({
   error: { color: colors.red },
   summary: { alignItems: 'center', backgroundColor: colors.navy, borderRadius: 18, gap: 4, padding: spacing.lg },
   summaryGrade: { color: colors.mustard, fontSize: 40, fontWeight: '900' },
+  summaryEmpty: { color: colors.mustard, fontSize: 20, fontWeight: '900' },
   meta: { color: colors.muted, fontSize: 12 },
   row: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   flex: { flex: 1, gap: 2 },

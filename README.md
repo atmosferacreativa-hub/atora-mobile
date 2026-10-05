@@ -4,7 +4,7 @@ Aplicación móvil oficial de ATORA LMS para Android e iOS.
 
 ## Estado
 
-Versión **0.5.2**. Requiere **ATORA LMS 6.29.1** o superior (Mobile API v1) para notas, evolución, aviso de nota nueva y certificados (con 6.28.x se ocultan); el nivel alcanzado por criterio de la rúbrica llega desde 6.29.2 (con las bandas de SpeedGrader desde 6.29.3); sincronización incremental, material descargable, posición de video y varios videos por lección desde 6.28.2 (con 6.28.0 se muestra un solo video); con 6.27.x se ocultan esas funciones y siguen las entregas y miniaturas (6.27.1). pdf.js se empaqueta en `postinstall` (`scripts/vendor-pdfjs.js`). El desarrollo se mantiene separado:
+Versión **0.5.3**. Requiere **ATORA LMS 6.29.5** o superior (notas: `null` = sin calificaciones, `0` = cero; antes de 6.29.5 un curso con solo quizzes en 0 podía verse sin calificaciones). Desde 6.29.1 (Mobile API v1) para notas, evolución, aviso de nota nueva y certificados (con 6.28.x se ocultan); el nivel alcanzado por criterio de la rúbrica llega desde 6.29.2 (con las bandas de SpeedGrader desde 6.29.3); sincronización incremental, material descargable, posición de video y varios videos por lección desde 6.28.2 (con 6.28.0 se muestra un solo video); con 6.27.x se ocultan esas funciones y siguen las entregas y miniaturas (6.27.1). pdf.js se empaqueta en `postinstall` (`scripts/vendor-pdfjs.js`). El desarrollo se mantiene separado:
 
 - `Atora-LMS-6`: backend académico y API REST.
 - `atora-mobile`: cliente móvil, navegación y experiencia de usuario.

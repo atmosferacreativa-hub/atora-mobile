@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourseGrades, fetchGrades, markGradesSeen } from '../api/grades';
+import { gradeLabel } from '../grades/gradeLabel';
 import { colors, spacing } from '../theme';
 import type { ActivityGrade, AcademicStatus, CourseGrade, GradesSummary } from '../types';
 
@@ -29,6 +30,12 @@ function Bar({ value }: { value: number }) {
   return (
     <View style={styles.track}><View style={[styles.fill, { width: `${Math.max(0, Math.min(100, value))}%` }]} /></View>
   );
+}
+
+/** 0.5.3: "Sin calificaciones" (null) nunca se confunde con 0. */
+function Grade({ value }: { value: number | null }) {
+  const label = gradeLabel(value);
+  return <Text style={label.empty ? styles.noGrade : styles.grade}>{label.text}</Text>;
 }
 
 /** Evolución (0.5.0): avance por programa y curso, nota acumulada y próximas evaluaciones. */
@@ -84,7 +91,7 @@ export function EvolutionScreen({ token, newGradeCourses, onBack, onOpenCourseGr
             <View key={program.wp_program_id} style={styles.card}>
               <View style={styles.row}>
                 <Text style={styles.cardTitle}>{program.title}</Text>
-                <Text style={styles.grade}>{program.final_grade ?? '—'}</Text>
+                <Grade value={program.final_grade} />
               </View>
               <Bar value={program.progress} />
               <Text style={styles.meta}>{program.progress}% de avance · {program.courses} curso(s)</Text>
@@ -100,7 +107,7 @@ export function EvolutionScreen({ token, newGradeCourses, onBack, onOpenCourseGr
             <View style={styles.row}>
               <Text style={styles.cardTitle}>{course.title}</Text>
               {newGradeCourses.includes(course.course_id) ? <Text style={styles.newBadge}>Nota nueva</Text> : null}
-              <Text style={styles.grade}>{course.final_grade ?? '—'}</Text>
+              <Grade value={course.final_grade} />
             </View>
             <Bar value={course.progress} />
             <Text style={styles.meta}>{course.progress}% de avance · {STATUS_LABELS[course.status] ?? course.status} · aprueba con {course.passing_grade}</Text>
@@ -137,6 +144,7 @@ const styles = StyleSheet.create({
   row: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   cardTitle: { color: colors.ink, flex: 1, fontWeight: '800' },
   grade: { color: colors.navy, fontSize: 22, fontVariant: ['tabular-nums'], fontWeight: '900' },
+  noGrade: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   newBadge: { backgroundColor: colors.mustard, borderRadius: 10, color: colors.navy, fontSize: 11, fontWeight: '900', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2 },
   track: { backgroundColor: colors.border, borderRadius: 4, height: 6, overflow: 'hidden' },
   fill: { backgroundColor: colors.blue, height: 6 },

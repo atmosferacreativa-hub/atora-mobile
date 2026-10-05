@@ -2,6 +2,14 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.5.3 (2026-10-05)
+
+Correcciones de la auditoría. Requiere **ATORA LMS 6.29.5** para que "Sin calificaciones" y "0" lleguen distintos.
+
+- **Fix — reintento de sincronización incompleto** (alta): cuando fallaba un curso o una lección, la app conservaba su revisión anterior pero el cursor avanzaba; si el servidor no volvía a listar ese cambio, nunca se volvía a pedir (la prueba de 0.4.1 pasaba porque volvía a entregar el cambio). Ahora lo que falla va a la tabla local `sync_pending` (esquema 4: tipo, id, curso, revisión objetivo, intentos, último error, próximo intento) **en la misma transacción que guarda el cursor**, y cada sincronización lo reintenta primero aunque la respuesta venga vacía. Al lograrlo sale de la tabla y guarda su revisión. Espera creciente por elemento (1, 2, 4… min, hasta 6 h); tras 10 intentos sigue pendiente pero ya no cuenta como fallo de la sincronización. Un 404/403 en el reintento es una baja (se borran su contenido y descargas). Si el servidor vuelve a anunciar el objeto con otra revisión, se actualiza la revisión objetivo sin pedirlo dos veces. Cerrar sesión borra `sync_pending`.
+- **"Mi evolución" con cero**: "Sin calificaciones" cuando el servidor envía `null` y "0" cuando envía `0` (en 0.5.2 se veía "—" y "0"). También en el resumen de Notas del curso.
+- **TESTS** (Jest): lección que falla y respuesta siguiente **vacía** → se reintenta y actualiza (falla con 0.5.2: no se vuelve a pedir); falla dos veces y luego funciona, respetando la espera; pendiente y nueva revisión en la misma respuesta → un solo pedido; 404 en el reintento → baja local; tras 10 intentos no cuenta como fallo; `null` y `0` se muestran distinto.
+
 ## 0.5.2 (2026-10-04)
 
 - **Aviso de evaluación sin entregar**: si hay un intento de quiz guardado sin entregar, Hoy y el curso al que pertenece muestran "Tienes una evaluación sin entregar", con cuántas preguntas van respondidas y un botón "Retomar". La entrega sigue siendo manual.

@@ -6,7 +6,7 @@ import { fetchChanges } from '../../api/sync';
 import { getDb } from '../db';
 import { cacheDelete } from '../localCache';
 import { reconcileLessonResources, removeCourseDownloads, removeLessonAll } from '../mediaDownloads';
-import { applyPlan } from './apply';
+import { applyPlan, type PendingItem } from './apply';
 import { planSync, type FullCarry, type LocalIndex, type SyncPage } from './plan';
 
 /**
@@ -19,6 +19,9 @@ import { planSync, type FullCarry, type LocalIndex, type SyncPage } from './plan
  * vuelve a pedir la próxima vez; si falla todo, no se guarda nada. Si el límite
  * de páginas corta un estado completo, se guarda el cursor de continuación del
  * servidor junto con lo ya visto (`full_seen`) y la poda espera a la última página.
+ *
+ * 0.5.3: lo que falla va a `sync_pending` en la misma transacción que guarda el
+ * cursor, y cada sincronización lo reintenta primero aunque la respuesta venga vacía.
  */
 
 const MAX_PAGES = 50;
@@ -32,6 +35,24 @@ let running: Promise<SyncResult | null> | null = null;
 export function subscribeSync(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+async function loadPending(userId: number): Promise<PendingItem[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ kind: string; entity_id: number; course_id: number; target_revision: number; attempts: number; last_error: string; next_attempt_at: number; new_course: number }>(
+    'SELECT kind, entity_id, course_id, target_revision, attempts, last_error, next_attempt_at, new_course FROM sync_pending WHERE user_id = ?',
+    userId,
+  );
+  return rows.map((row) => ({
+    kind: row.kind === 'course' ? 'course' : 'lesson',
+    id: row.entity_id,
+    courseId: row.course_id,
+    targetRevision: row.target_revision,
+    attempts: row.attempts,
+    lastError: row.last_error,
+    nextAttemptAt: row.next_attempt_at,
+    newCourse: row.new_course === 1,
+  }));
 }
 
 async function loadState(userId: number): Promise<{ cursor: string; index: LocalIndex; carry: FullCarry | null }> {
@@ -55,9 +76,17 @@ async function loadState(userId: number): Promise<{ cursor: string; index: Local
   return { cursor: state?.cursor ?? '', index, carry };
 }
 
-async function saveState(userId: number, cursor: string, index: LocalIndex, carry: FullCarry | null): Promise<void> {
+async function saveState(userId: number, cursor: string, index: LocalIndex, carry: FullCarry | null, pending: PendingItem[]): Promise<void> {
   const db = await getDb();
   await db.withTransactionAsync(async () => {
+    // Pendientes y cursor juntos: si el cursor avanza, lo que falló queda registrado.
+    await db.runAsync('DELETE FROM sync_pending WHERE user_id = ?', userId);
+    for (const item of pending) {
+      await db.runAsync(
+        'INSERT INTO sync_pending (user_id, kind, entity_id, course_id, target_revision, attempts, last_error, next_attempt_at, new_course) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        userId, item.kind, item.id, item.courseId, item.targetRevision, item.attempts, item.lastError, item.nextAttemptAt, item.newCourse ? 1 : 0,
+      );
+    }
     await db.runAsync('DELETE FROM sync_index WHERE user_id = ?', userId);
     for (const [id, revision] of Object.entries(index.courses)) {
       await db.runAsync('INSERT INTO sync_index (user_id, kind, entity_id, course_id, revision) VALUES (?, ?, ?, ?, ?)', userId, 'course', Number(id), Number(id), revision);
@@ -79,6 +108,7 @@ async function sync(token: string): Promise<SyncResult | null> {
   if (!userId) return null;
 
   const { cursor, index, carry } = await loadState(userId);
+  const pendingBefore = await loadPending(userId);
   const pages: SyncPage[] = [];
   let next = cursor;
   for (let i = 0; i < MAX_PAGES; i += 1) {
@@ -113,9 +143,9 @@ async function sync(token: string): Promise<SyncResult | null> {
       await reconcileLessonResources(lesson);
       return { courseId: lesson.course_id, revision: lesson.revision };
     },
-  });
+  }, pendingBefore, Date.now());
 
-  await saveState(userId, next, result.index, plan.fullCarry);
+  await saveState(userId, next, result.index, plan.fullCarry, result.pending);
   if (result.fetched || result.removed) {
     listeners.forEach((listener) => {
       try {
