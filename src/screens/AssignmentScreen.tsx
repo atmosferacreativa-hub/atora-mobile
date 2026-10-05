@@ -45,6 +45,8 @@ function htmlToText(html: string): string {
 
 function serverStatus(submission: AssignmentSubmission): { label: string; tone: 'ok' | 'late' | 'graded' } {
   if (submission.grade !== null && submission.grade !== undefined) return { label: `Calificada · ${submission.grade}`, tone: 'graded' };
+  // 6.29.0: guardada por el docente pero no liberada: no hay nota que mostrar.
+  if (submission.in_review) return { label: 'En revisión', tone: 'ok' };
   if (submission.is_late) return { label: 'Tardía', tone: 'late' };
   return { label: 'Entregada', tone: 'ok' };
 }
@@ -256,6 +258,27 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
                   <Text style={styles.help}>Archivos: {submission.files.map((file) => file.filename).join(', ')}</Text>
                 ) : null}
                 {submission.feedback ? <Text style={styles.feedback}>“{submission.feedback}”</Text> : null}
+                {submission.rubric?.rows?.length ? (
+                  <View style={styles.rubric}>
+                    <Text style={styles.rubricTitle}>Rúbrica</Text>
+                    {submission.rubric.rows.map((row, index) => (
+                      <View key={`${row.name}-${index}`} style={styles.rubricRow}>
+                        <View style={styles.rubricHead}>
+                          <Text style={styles.rubricName}>{row.name}</Text>
+                          <Text style={styles.rubricScore}>{row.score} / {row.max}</Text>
+                        </View>
+                        <View style={styles.rubricTrack}>
+                          <View style={[styles.rubricFill, { width: `${Math.max(0, Math.min(100, (row.score / Math.max(1, row.max)) * 100))}%` }]} />
+                        </View>
+                        {row.competency ? <Text style={styles.help}>Competencia: {row.competency}</Text> : null}
+                        {row.feedback ? <Text style={styles.feedback}>“{row.feedback}”</Text> : null}
+                      </View>
+                    ))}
+                    {submission.rubric.strengths.length ? <Text style={styles.help}>Fortalezas: {submission.rubric.strengths.join(', ')}</Text> : null}
+                    {submission.rubric.reinforce.length ? <Text style={styles.help}>Para reforzar: {submission.rubric.reinforce.join(', ')}</Text> : null}
+                    {submission.rubric.recommendation ? <Text style={styles.help}>Sugerencia: {submission.rubric.recommendation}</Text> : null}
+                  </View>
+                ) : null}
               </View>
             );
           })}
@@ -293,4 +316,12 @@ const styles = StyleSheet.create({
   badgeLate: { backgroundColor: colors.accentSoft, color: colors.accentText },
   badgeGraded: { backgroundColor: colors.primarySoft, color: colors.primary },
   feedback: { color: colors.ink, fontSize: 14, fontStyle: 'italic' },
+  rubric: { borderTopColor: colors.border, borderTopWidth: 1, gap: spacing.sm, marginTop: spacing.xs, paddingTop: spacing.sm },
+  rubricTitle: { color: colors.navy, fontWeight: '900' },
+  rubricRow: { gap: 4 },
+  rubricHead: { flexDirection: 'row', justifyContent: 'space-between' },
+  rubricName: { color: colors.ink, flex: 1, fontWeight: '800' },
+  rubricScore: { color: colors.navy, fontVariant: ['tabular-nums'], fontWeight: '900' },
+  rubricTrack: { backgroundColor: colors.border, borderRadius: 4, height: 6, overflow: 'hidden' },
+  rubricFill: { backgroundColor: colors.success, height: 6 },
 });

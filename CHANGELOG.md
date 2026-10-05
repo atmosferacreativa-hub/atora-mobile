@@ -2,6 +2,19 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.5.0 (2026-10-04)
+
+Fase 2 — Rendir. Requiere **ATORA LMS 6.29.1** (`capabilities.grades`, `capabilities.certificates`); con servidores anteriores la app oculta notas, evolución y certificados. Regla: el estudiante nunca ve en la app una nota que no vería en la web; la decide el servidor.
+
+- **Quiz sin perder respuestas**: el intento se guarda en el teléfono a cada respuesta (`src/offline/quizDrafts.ts`, puro). Al volver, se retoma el mismo intento aunque no haya conexión; el reloj cuenta desde el inicio real. Entregar necesita conexión ("Tus respuestas están guardadas"). Si la entrega falla por red o servidor (0, 5xx, 401, 408, 429) el intento se conserva; si el servidor lo rechaza (otro 4xx) se descarta y se muestra su mensaje. No hay entrega automática. Un intento con más de una hora (vence el token) se descarta al abrir.
+- **Tareas**: estado "En revisión" mientras el docente califica; con la nota liberada se ve la rúbrica por criterio (puntaje, competencia, comentario, fortalezas, a reforzar, recomendación).
+- **Mi evolución** (en Yo): programas y cursos con avance, nota acumulada y estado (en curso, en riesgo, aprobado…), y próximas evaluaciones. Sin conexión muestra lo último sincronizado con su fecha.
+- **Notas del curso**: botón "Notas" en el curso (y desde Mi evolución) con cada actividad, su nota liberada y su estado; la tarea abre su entrega.
+- **Aviso de nota nueva**: distintivo en la pestaña Yo y "Nota nueva" en el curso cuando llega una nota liberada (`graded_count` / `last_graded_at`); se apaga al ver las notas. La primera vez no avisa de lo ya calificado.
+- **Certificados** (formato provisional HTML): lista con estado; "Descargar" lo guarda en el teléfono y se abre después sin conexión en el visor, sin JavaScript. Los enlaces del documento se abren en el navegador. Se borran al cerrar sesión, como las demás descargas.
+- **Caché local**: tipos `quiz_draft`, `grades`, `course_grades`, `certificates`.
+- **TESTS** (Jest): borrador de quiz (guardar, retomar, vencido, decisión tras fallo de entrega) y aviso de nota nueva (línea base, nota nueva, marcar visto por curso).
+
 ## 0.4.1 (2026-10-04)
 
 Correcciones de la auditoría y varios videos por lección. Requiere **ATORA LMS 6.28.2** para varios videos (`capabilities.multi_video`); con servidores anteriores, un solo video como en 0.4.0.

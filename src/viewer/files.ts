@@ -117,7 +117,9 @@ export function ensureViewerFiles(): Promise<string> {
   return ready;
 }
 
-export async function viewerUrl(kind: 'pdf' | 'image', localUri: string): Promise<string> {
+export async function viewerUrl(kind: 'pdf' | 'image' | 'html', localUri: string): Promise<string> {
+  // 0.5.0: un documento HTML guardado (certificado provisional) se abre tal cual.
+  if (kind === 'html') return localUri;
   const dir = await ensureViewerFiles();
   return `${dir}${kind}.html?file=${encodeURIComponent(localUri)}`;
 }
