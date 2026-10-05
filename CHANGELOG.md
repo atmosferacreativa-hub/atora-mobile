@@ -2,6 +2,10 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.5.1 (2026-10-04)
+
+- **Rúbrica: nivel alcanzado por criterio** (Fase 2, Parte C.3). Con ATORA LMS 6.29.2 cada criterio de una tarea calificada muestra "Nivel: Competente" (o el que corresponda) junto al puntaje, la competencia y el comentario. Con 6.29.1 se ve como en 0.5.0, sin nivel.
+
 ## 0.5.0 (2026-10-04)
 
 Fase 2 — Rendir. Requiere **ATORA LMS 6.29.1** (`capabilities.grades`, `capabilities.certificates`); con servidores anteriores la app oculta notas, evolución y certificados. Regla: el estudiante nunca ve en la app una nota que no vería en la web; la decide el servidor.

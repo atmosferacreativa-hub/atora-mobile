@@ -239,7 +239,8 @@ export type AssignmentSubmission = {
 };
 
 export type SubmissionRubric = {
-  rows: { name: string; competency: string; score: number; max: number; feedback: string }[];
+  /** `level` desde 6.29.2: nivel alcanzado (vacío si el puntaje no coincide con un nivel). */
+  rows: { name: string; competency: string; score: number; max: number; level?: string; feedback: string }[];
   strengths: string[];
   reinforce: string[];
   recommendation: string;
