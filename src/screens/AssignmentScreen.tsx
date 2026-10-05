@@ -270,6 +270,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
                         <View style={styles.rubricTrack}>
                           <View style={[styles.rubricFill, { width: `${Math.max(0, Math.min(100, (row.score / Math.max(1, row.max)) * 100))}%` }]} />
                         </View>
+                        {row.level ? <Text style={styles.rubricLevel}>Nivel: {row.level}</Text> : null}
                         {row.competency ? <Text style={styles.help}>Competencia: {row.competency}</Text> : null}
                         {row.feedback ? <Text style={styles.feedback}>“{row.feedback}”</Text> : null}
                       </View>
@@ -321,6 +322,7 @@ const styles = StyleSheet.create({
   rubricRow: { gap: 4 },
   rubricHead: { flexDirection: 'row', justifyContent: 'space-between' },
   rubricName: { color: colors.ink, flex: 1, fontWeight: '800' },
+  rubricLevel: { color: colors.success, fontSize: 13, fontWeight: '800' },
   rubricScore: { color: colors.navy, fontVariant: ['tabular-nums'], fontWeight: '900' },
   rubricTrack: { backgroundColor: colors.border, borderRadius: 4, height: 6, overflow: 'hidden' },
   rubricFill: { backgroundColor: colors.success, height: 6 },
