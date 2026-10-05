@@ -14,7 +14,7 @@ import { fetchQuiz, submitQuiz } from '../api/quizzes';
 import { getSessionUserId } from '../api/session';
 import { useNetworkState } from '../hooks/useNetworkState';
 import { sqliteQuizDraftStore } from '../offline/quizDraftStore';
-import { afterSubmitFailure, answersPayload, discardDraft, newDraft, restoreDraft, saveDraft, type QuizDraft } from '../offline/quizDrafts';
+import { afterSubmitFailure, answersPayload, discardDraft, newDraft, remainingSeconds, restoreDraft, saveDraft, type QuizDraft } from '../offline/quizDrafts';
 import { colors, spacing } from '../theme';
 import type { QuizAnswer, QuizPayload, QuizQuestion, QuizResult } from '../types';
 
@@ -154,8 +154,8 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
   // Tiempo restante desde que se abrió el intento (también al retomarlo).
   useEffect(() => {
     if (!quiz || quiz.remaining_seconds <= 0 || result) return;
-    const startedAt = draft.current?.startedAt ?? Date.now();
-    const tick = () => setRemaining(Math.max(0, quiz.remaining_seconds - Math.floor((Date.now() - startedAt) / 1000)));
+    const current = draft.current ?? newDraft(lessonId, quiz, Date.now());
+    const tick = () => setRemaining(remainingSeconds(current, Date.now()) ?? 0);
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);

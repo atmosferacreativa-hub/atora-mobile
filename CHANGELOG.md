@@ -2,6 +2,12 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.5.2 (2026-10-04)
+
+- **Aviso de evaluación sin entregar**: si hay un intento de quiz guardado sin entregar, Hoy y el curso al que pertenece muestran "Tienes una evaluación sin entregar", con cuántas preguntas van respondidas y un botón "Retomar". La entrega sigue siendo manual.
+- **Tiempo restante en el aviso**: si el quiz tiene límite, el aviso indica cuánto queda según el servidor: el `remaining_seconds` que el servidor calculó al abrir el intento, menos lo transcurrido desde entonces (el mismo cálculo del reloj del quiz, ahora compartido en `remainingSeconds()`). Al agotarse dice "El tiempo terminó"; al retomarlo, el servidor da el motivo al entregar. Un intento que el servidor ya no acepta no se anuncia.
+- **TESTS** (Jest): aviso con respuestas contadas y tiempo descontado; sin límite no hay tiempo; intento vencido no se anuncia.
+
 ## 0.5.1 (2026-10-04)
 
 - **Rúbrica: nivel alcanzado por criterio** (Fase 2, Parte C.3). Con ATORA LMS 6.29.2 cada criterio de una tarea calificada muestra "Nivel: Competente" (o el que corresponda) junto al puntaje, la competencia y el comentario. Con 6.29.1 se ve como en 0.5.0, sin nivel.

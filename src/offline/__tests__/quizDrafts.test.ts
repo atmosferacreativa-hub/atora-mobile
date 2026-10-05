@@ -1,4 +1,4 @@
-import { afterSubmitFailure, answersPayload, ATTEMPT_TOKEN_TTL_MS, discardDraft, newDraft, restoreDraft, saveDraft, type QuizDraft, type QuizDraftStore } from '../quizDrafts';
+import { afterSubmitFailure, answersPayload, ATTEMPT_TOKEN_TTL_MS, discardDraft, newDraft, pendingQuizzes, remainingLabel, remainingSeconds, restoreDraft, saveDraft, type QuizDraft, type QuizDraftStore } from '../quizDrafts';
 import type { QuizPayload } from '../../types';
 
 class MemoryStore implements QuizDraftStore {
@@ -64,5 +64,22 @@ describe('respuestas de quiz guardadas', () => {
     expect(afterSubmitFailure(0)).toBe('keep');      // sin conexión
     expect(afterSubmitFailure(503)).toBe('keep');
     expect(afterSubmitFailure(429)).toBe('keep');    // entrega en proceso
+  });
+
+  it('aviso de evaluación sin entregar: cuenta respuestas y descuenta el tiempo informado por el servidor', () => {
+    const timed = { ...quiz('tok-t'), remaining_seconds: 600 };
+    const draft = { ...newDraft(7, timed, 1_000_000), answers: { 1: 'y', 2: [] as string[] }, savedAt: 1_000_000 };
+    const [item] = pendingQuizzes([draft], 1_000_000 + 125_000);
+    expect(item).toEqual({ lessonId: 7, answered: 1, total: 3, remainingSeconds: 475 });
+    expect(remainingLabel(item?.remainingSeconds ?? null)).toBe('Quedan 7 min');
+    expect(remainingSeconds(draft, 1_000_000 + 700_000)).toBe(0);
+    expect(remainingLabel(0)).toBe('El tiempo terminó');
+  });
+
+  it('sin límite no hay tiempo; un intento vencido no se anuncia', () => {
+    const draft = newDraft(7, quiz('tok-s'), 0);
+    expect(pendingQuizzes([draft], 1_000)[0]?.remainingSeconds).toBeNull();
+    expect(remainingLabel(null)).toBe('');
+    expect(pendingQuizzes([draft], ATTEMPT_TOKEN_TTL_MS + 1)).toEqual([]);
   });
 });

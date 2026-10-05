@@ -72,3 +72,46 @@ export function afterSubmitFailure(status: number): 'discard' | 'keep' {
 export function answersPayload(draft: QuizDraft): QuizAnswer[] {
   return draft.quiz.questions.map((question) => draft.answers[question.id] ?? (question.type === 'multiple' ? [] : ''));
 }
+
+/**
+ * Segundos que quedan según el servidor (0.5.2): `remaining_seconds` es lo que el
+ * servidor calculó al abrir el intento (límite menos lo transcurrido desde que
+ * lo emitió); se le resta lo que pasó desde entonces. `null` si no hay límite.
+ */
+export function remainingSeconds(draft: QuizDraft, now: number): number | null {
+  const fromServer = draft.quiz.remaining_seconds;
+  if (!fromServer || fromServer <= 0) return null;
+  return Math.max(0, fromServer - Math.floor((now - draft.startedAt) / 1000));
+}
+
+export type PendingQuiz = { lessonId: number; answered: number; total: number; remainingSeconds: number | null };
+
+function answered(value: QuizAnswer | undefined): boolean {
+  return Array.isArray(value) ? value.length > 0 : typeof value === 'string' ? value.trim() !== '' : value !== undefined && value !== null;
+}
+
+/**
+ * Intentos guardados sin entregar, para el aviso en Hoy y en el curso.
+ * Un intento que el servidor ya no acepta (token vencido) no se anuncia.
+ */
+export function pendingQuizzes(drafts: QuizDraft[], now: number): PendingQuiz[] {
+  return drafts
+    .filter((draft) => draft?.quiz?.token && now - draft.startedAt <= ATTEMPT_TOKEN_TTL_MS)
+    .sort((a, b) => b.savedAt - a.savedAt)
+    .map((draft) => ({
+      lessonId: draft.lessonId,
+      answered: draft.quiz.questions.filter((question) => answered(draft.answers[question.id])).length,
+      total: draft.quiz.questions.length,
+      remainingSeconds: remainingSeconds(draft, now),
+    }));
+}
+
+/** Texto del tiempo en el aviso. */
+export function remainingLabel(seconds: number | null): string {
+  if (seconds === null) return '';
+  if (seconds <= 0) return 'El tiempo terminó';
+  if (seconds < 60) return `Quedan ${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `Quedan ${minutes} min`;
+  return `Quedan ${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}

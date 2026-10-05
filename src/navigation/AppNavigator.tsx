@@ -73,6 +73,7 @@ function CourseRoute({ route, navigation }: LearningProps<'Course'>) {
       onBack={() => navigation.goBack()}
       onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
       hasNewGrade={newGradeCourses.includes(courseId)}
+      onOpenQuiz={mode === 'student' ? (lessonId) => navigation.push('Quiz', { lessonId }) : undefined}
       onOpenGrades={features.grades && mode === 'student' ? (title) => navigation.push('CourseGrades', { courseId, title }) : undefined}
     />
   );
@@ -145,7 +146,7 @@ function ResourceRoute({ route, navigation }: LearningProps<'Resource'>) {
 }
 
 function TodayRoot({ navigation }: LearningProps<'Root'>) {
-  const { token, dashboard, loading, refresh } = useAppSession();
+  const { token, dashboard, loading, refresh, mode } = useAppSession();
   return (
     <HomeScreen
       data={dashboard}
@@ -155,6 +156,7 @@ function TodayRoot({ navigation }: LearningProps<'Root'>) {
       onOpenCourse={(courseId) => navigation.push('Course', { courseId })}
       onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
       onOpenProgram={(programId) => navigation.push('Program', { programId })}
+      onOpenQuiz={mode === 'student' ? (lessonId) => navigation.push('Quiz', { lessonId }) : undefined}
     />
   );
 }
