@@ -8,6 +8,8 @@ import { MediaImage } from '../components/MediaImage';
 import { ListRow } from '../components/ui';
 import { getLocalThumbnail } from '../offline/videoThumbnails';
 import { colors, spacing } from '../theme';
+import { PendingQuizNotice } from '../components/PendingQuizNotice';
+import { usePendingQuizzes } from '../hooks/usePendingQuizzes';
 import type { CourseDetail } from '../types';
 
 type Props = {
@@ -18,9 +20,12 @@ type Props = {
   /** 0.5.0: notas del curso (solo si el servidor las ofrece). */
   onOpenGrades?: (title: string) => void;
   hasNewGrade?: boolean;
+  /** 0.5.2: retomar un quiz de este curso guardado sin entregar. */
+  onOpenQuiz?: (lessonId: number) => void;
 };
 
-export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrades, hasNewGrade }: Props) {
+export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrades, hasNewGrade, onOpenQuiz }: Props) {
+  const pendingQuizzes = usePendingQuizzes();
   const [data, setData] = useState<CourseDetail | null>(null);
   const [error, setError] = useState('');
   const [localThumbs, setLocalThumbs] = useState<Record<number, string>>({});
@@ -101,6 +106,9 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
               {data.progress.completed_lessons} de {data.progress.total_lessons} lecciones
             </Text>
           </View>
+          {onOpenQuiz ? pendingQuizzes
+            .filter((item) => data.curriculum.some((lesson) => lesson.id === item.lessonId))
+            .map((item) => <PendingQuizNotice key={item.lessonId} item={item} onOpen={() => onOpenQuiz(item.lessonId)} />) : null}
           {onOpenGrades ? (
             <Pressable accessibilityRole="button" onPress={() => onOpenGrades(data.course.title)} style={styles.gradesButton}>
               <Text style={styles.materialText}>Notas</Text>

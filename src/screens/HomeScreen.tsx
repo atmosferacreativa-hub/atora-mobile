@@ -4,6 +4,8 @@ import { fetchCourse } from '../api/courses';
 import { fetchPrograms } from '../api/programs';
 import { MediaImage } from '../components/MediaImage';
 import { colors, spacing } from '../theme';
+import { PendingQuizNotice } from '../components/PendingQuizNotice';
+import { usePendingQuizzes } from '../hooks/usePendingQuizzes';
 import type { StudentHome } from '../types';
 
 type Props = {
@@ -14,9 +16,12 @@ type Props = {
   onOpenCourse: (courseId: number) => void;
   onOpenLesson: (lessonId: number) => void;
   onOpenProgram: (programId: number) => void;
+  /** 0.5.2: retomar un quiz guardado sin entregar. */
+  onOpenQuiz?: (lessonId: number) => void;
 };
 
-export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOpenLesson, onOpenProgram }: Props) {
+export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOpenLesson, onOpenProgram, onOpenQuiz }: Props) {
+  const pendingQuizzes = usePendingQuizzes();
   const [programId, setProgramId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -53,6 +58,10 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
       <Text style={styles.eyebrow}>MI JORNADA</Text>
       <Text style={styles.title}>Hola, {data?.user.display_name || 'Estudiante'}</Text>
       <Text style={styles.subtitle}>Continúa aprendiendo donde lo dejaste.</Text>
+
+      {onOpenQuiz ? pendingQuizzes.map((item) => (
+        <PendingQuizNotice key={item.lessonId} item={item} onOpen={() => onOpenQuiz(item.lessonId)} />
+      )) : null}
 
       <View style={styles.pending}>
         <Text style={styles.pendingNumber}>{data?.pending_activities ?? 0}</Text>

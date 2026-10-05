@@ -25,6 +25,19 @@ export async function cacheSet(userId: number, kind: CacheKind, entityId: number
   );
 }
 
+/** Todas las entradas de un tipo para el usuario (0.5.2: intentos de quiz pendientes). */
+export async function cacheList<T>(userId: number, kind: CacheKind): Promise<T[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ payload: string }>('SELECT payload FROM cache WHERE user_id = ? AND kind = ?', userId, kind);
+  return rows.flatMap((row) => {
+    try {
+      return [JSON.parse(row.payload) as T];
+    } catch {
+      return [];
+    }
+  });
+}
+
 export async function cacheDelete(userId: number, kind: CacheKind, entityId: number): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM cache WHERE user_id = ? AND kind = ? AND entity_id = ?', userId, kind, entityId);
