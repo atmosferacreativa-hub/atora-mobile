@@ -43,6 +43,8 @@ type Props = {
   onOpenEvolution?: () => void;
   newGrades?: number;
   onOpenCertificates?: () => void;
+  /** 0.6.0: avisos en el teléfono (explicación, permiso y preferencias por tipo). */
+  notificationSettings?: React.ReactNode;
 };
 
 const formatMegabytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -53,7 +55,7 @@ const EVENT_LABELS: Record<string, string> = {
   playback_position: 'Posición del video',
 };
 
-export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode, onOpenDownloads, onOpenEvolution, newGrades = 0, onOpenCertificates }: Props) {
+export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode, onOpenDownloads, onOpenEvolution, newGrades = 0, onOpenCertificates, notificationSettings }: Props) {
   const [settings, setSettings] = useState<DownloadSettings | null>(null);
   const [summary, setSummary] = useState<StorageSummary | null>(null);
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
@@ -143,6 +145,13 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
         <Pressable accessibilityRole="button" onPress={onOpenCertificates} style={styles.panelButton}>
           <Text style={styles.panelText}>Mis certificados</Text>
         </Pressable>
+      ) : null}
+
+      {notificationSettings ? (
+        <Card>
+          <Text style={styles.heading}>Avisos en el teléfono</Text>
+          {notificationSettings}
+        </Card>
       ) : null}
 
       {outbox.pending.length || outbox.failed.length ? (

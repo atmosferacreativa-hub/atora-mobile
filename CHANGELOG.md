@@ -2,6 +2,18 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.6.0 (2026-10-05)
+
+Fase 3 — Organizarse. Requiere **ATORA LMS 6.30.0** (`capabilities.messages`, `agenda`, `today`, `push_notifications`); con servidores anteriores, Mensajes y Agenda muestran "Próximamente" y Hoy usa el panel anterior.
+
+- **Mensajes** (estudiante y docente): lista de hilos con no leídos y **Avisos fijo arriba**; hilo con historial paginado hacia atrás; responder. El estudiante puede escribir a sus docentes de curso ("Escribir"). Contador único en la pestaña (el mismo de la web). Escribir sin conexión entra a la cola de envíos con su `client_event_id`: el mensaje se ve "Pendiente" y se envía solo al volver la conexión, una sola vez; si el servidor lo rechaza, "No se envió" con el motivo y "Descartar". Los hilos ya abiertos se leen sin conexión. Los avisos con enlace abren la lección, tarea, quiz o curso.
+- **Agenda** (estudiante): vista por día y por semana (lunes a domingo), con fechas límite, clases en vivo y eventos; tocar abre la tarea, el quiz o la lección. Sin conexión muestra lo último sincronizado que cubre esas fechas, con su fecha.
+- **Hoy** (estudiante): reemplaza el panel anterior con los bloques de `/today`: evaluación sin entregar (0.5.2), continuar la última lección, vencidas sin entregar, próximos 7 días, mensajes sin leer y notas nuevas.
+- **Avisos en el teléfono** (`expo-notifications`): el permiso se pide solo al tocar "Activar", después de una explicación (en Mensajes y en Yo), nunca al abrir la app por primera vez. Preferencias por tipo en Yo (mensajes, notas, fechas límite, avisos), guardadas en la academia. Tocar un aviso abre la pantalla correcta, también con la app cerrada. El aviso no muestra el contenido. Sin permiso, la app se pone al día al abrirse y al volver a primer plano. Cerrar sesión borra el token del teléfono en la academia.
+- **Docente**: Mensajes funciona igual; Calificar sigue en "Próximamente" (Fase 4).
+- **TESTS** (Jest): cola de mensajes (pendiente arriba, pendiente → enviado sin duplicar por `client_event_id`, error definitivo con motivo, idempotencia en caché, vacío no se envía); notificación → pantalla (mensaje → hilo, nota → tarea, lección, quiz, curso, aviso sin enlace → Avisos, datos rotos); agenda (semana lunes–domingo, agrupación por día, sin conexión con fecha y fuera de rango).
+- Dependencias nuevas: `expo-notifications`, `expo-device`, `expo-constants` (SDK 54).
+
 ## 0.5.3 (2026-10-05)
 
 Correcciones de la auditoría. Requiere **ATORA LMS 6.29.5** para que "Sin calificaciones" y "0" lleguen distintos.

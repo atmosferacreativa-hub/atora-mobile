@@ -10,7 +10,7 @@ import type { EnqueueInput } from './types';
 
 export const LESSON_COMPLETION = 'lesson_completion';
 
-export type CacheKind = 'dashboard' | 'courses' | 'course' | 'lesson' | 'assignment' | 'video_thumb' | 'quiz_draft' | 'grades' | 'course_grades' | 'certificates';
+export type CacheKind = 'dashboard' | 'courses' | 'course' | 'lesson' | 'assignment' | 'video_thumb' | 'quiz_draft' | 'grades' | 'course_grades' | 'certificates' | 'threads' | 'thread' | 'agenda' | 'today' | 'push';
 
 export function lessonCompletionDedupeKey(lessonId: number): string {
   return `${LESSON_COMPLETION}:${lessonId}`;

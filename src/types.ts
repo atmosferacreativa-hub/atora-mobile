@@ -200,6 +200,11 @@ export type ServerCapabilities = {
   /** 6.29.0+ */
   grades?: boolean;
   certificates?: boolean;
+  /** 6.30.0+ */
+  messages?: boolean;
+  agenda?: boolean;
+  today?: boolean;
+  push_notifications?: boolean;
 };
 
 export type AssignmentInfo = {
@@ -293,3 +298,63 @@ export type CertificateItem = {
   download_url: string;
   download_expires_at: string | null;
 };
+
+/** 6.30.0+: buzón (mensajes y avisos). */
+export type InternalLink = { type: 'lesson' | 'assignment' | 'quiz' | 'course'; id: number; course_id: number };
+
+export type InboxMessage = {
+  id: number;
+  thread_id: number;
+  kind: string;
+  author: { id: number; name: string } | null;
+  mine: boolean;
+  title: string;
+  body: string;
+  link: InternalLink | null;
+  client_event_id: string | null;
+  created_at: string | null;
+  read: boolean;
+};
+
+export type MessageThread = {
+  id: number;
+  type: 'system' | 'direct' | 'course';
+  title: string;
+  course_id: number;
+  unread: number;
+  muted: boolean;
+  can_reply: boolean;
+  last_message_at: string | null;
+  last_message: { id: number; kind: string; preview: string; mine: boolean } | null;
+};
+
+export type ThreadsResponse = { avisos: MessageThread; threads: MessageThread[]; next_cursor: string | null; unread: number };
+export type ThreadResponse = { thread: MessageThread; messages: InboxMessage[]; next_before: number | null };
+export type MessageRecipient = { id: number; name: string; courses: { id: number; title: string }[] };
+
+/** 6.30.0+: agenda y Hoy. */
+export type AgendaItem = {
+  type: 'event' | 'assignment_due' | 'quiz_due' | 'live_class';
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  course: { id: number; title: string } | null;
+  link: InternalLink | null;
+  done: boolean;
+};
+
+export type AgendaResponse = { from: string; to: string; timezone: string; items: AgendaItem[]; generated_at: string };
+
+export type TodayStudent = {
+  role: 'student';
+  continue: { course: { id: number; title: string }; lesson: { id: number; title: string }; progress: number } | null;
+  upcoming: AgendaItem[];
+  overdue: AgendaItem[];
+  unread_messages: number;
+  new_grades: { course_id: number; title: string; graded_count: number; last_graded_at: string }[];
+  generated_at: string;
+};
+
+export type TodayStaff = { role: 'staff'; items: { source: string; title: string; count: number; urgency: string; url: string }[]; unread_messages: number; generated_at: string };
+
+export type NotificationPreferences = { messages: boolean; notices: boolean; grades: boolean; deadlines: boolean };
