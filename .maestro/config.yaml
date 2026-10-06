@@ -11,3 +11,6 @@ executionOrder:
     - quiz
     - mensajes
     - sin-conexion
+    - docente-hoy
+    - docente-estudiantes
+    - docente-aviso
