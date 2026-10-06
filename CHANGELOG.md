@@ -2,6 +2,19 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.8.0 (2026-10-06)
+
+Fase 4 — Docente: calificar (Bloque 5). Requiere **ATORA LMS 6.31.0** (`capabilities.teacher_grading`). **Única APK `preview` de la Fase 4.**
+
+- **Calificar** (pestaña): cola filtrable (por calificar, en borrador, tardías, calificadas), de la más antigua a la más nueva, con **contador en la pestaña**.
+- **Pantalla de calificación**: visor de la entrega (texto; PDF en el visor de la Fase 1; imágenes con zoom; otros formatos con la app del sistema; enlaces firmados y temporales); lista de intentos con fecha, origen (web o app), tardía y "Realizada sin conexión el…"; **rúbrica táctil**: tocar un nivel pone su puntaje, ajustable con decimales (coma o punto, hasta 2), con el nivel o la banda ("entre X y Y", "por debajo de X") calculados con la misma regla que la web; comentario por criterio; total parcial y nota final con **"Copiar % de la rúbrica"**; comentario general; **Guardar borrador** o **Publicar** (con confirmación); después, **Siguiente entrega**. Sale del mismo guardado que SpeedGrader.
+- **Sin conexión**: calificar exige conexión; lo escrito se guarda en el teléfono a cada cambio y se ofrece recuperarlo al volver a abrir la entrega (avisando si otro docente guardó después). Nunca se envía solo; se descarta al guardar en el servidor.
+- **Conflicto (409)**: si otro docente guardó primero, se muestra su versión (estado, nota, puntajes y comentario) y se pregunta: revisar su versión o reemplazarla (con confirmación). Nunca se sobrescribe sin confirmar.
+- **Entregas grupales**: se indica el grupo y que la nota se aplica a todos los integrantes (también al confirmar la publicación).
+- Cerrar sesión borra los archivos descargados para calificar.
+- **Recorridos de pantalla**: `docente-calificar` (PDF, rúbrica con un decimal, borrador, publicar y el estudiante ve la nota, el nivel y el comentario) y `docente-calificar-409` (un segundo docente guarda por la API mientras el primero edita).
+- **TESTS** (Jest): borrador local (guardar, recuperar, por usuario y entrega, revisión vieja, descartar al guardar, vacío no se guarda); bandas, total y % iguales al servidor con los mismos casos que `RubricLevelBandsTest`; validación de puntaje y nota final como SpeedGrader.
+
 ## 0.7.0 (2026-10-06)
 
 Fase 4 — Docente: ver y comunicar (Bloque 4). Requiere **ATORA LMS 6.31.0** (`capabilities.teacher`); con servidores anteriores el docente ve lo de antes y Calificar dice "Próximamente". **Sin APK** (la única de la fase sale con la 0.8.0).
