@@ -25,11 +25,18 @@ name: docente-estudiantes
 - extendedWaitUntil:
     visible: "Avance.*"
     timeout: 30000
-- assertVisible: "Alertas"
 - takeScreenshot: capturas/docente-estudiantes-03-ficha
+- scrollUntilVisible:
+    element: "Alertas"
+- assertVisible: "2 entregas vencidas"
+- takeScreenshot: capturas/docente-estudiantes-04-alertas
+- scrollUntilVisible:
+    element:
+      id: "teacher-write"
+    direction: UP
 - tapOn:
     id: "teacher-write"
 - extendedWaitUntil:
     visible: "Escribe un mensaje"
     timeout: 30000
-- takeScreenshot: capturas/docente-estudiantes-04-escribir
+- takeScreenshot: capturas/docente-estudiantes-05-escribir
