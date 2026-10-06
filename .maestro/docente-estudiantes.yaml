@@ -1,0 +1,35 @@
+appId: com.atmosferacreativa.atora
+name: docente-estudiantes
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- tapOn: "Curso E2E"
+- extendedWaitUntil:
+    visible: "Estudiante E2E"
+    timeout: 30000
+- assertVisible: "Riesgo alto.*|Riesgo medio.*"
+- takeScreenshot: capturas/docente-estudiantes-01-lista
+- tapOn:
+    id: "teacher-student-search"
+- inputText: "Dos"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Estudiante Dos E2E"
+    timeout: 30000
+- assertNotVisible: "^Estudiante E2E$"
+- takeScreenshot: capturas/docente-estudiantes-02-busqueda
+- tapOn: "Estudiante Dos E2E"
+- extendedWaitUntil:
+    visible: "Avance.*"
+    timeout: 30000
+- assertVisible: "Alertas"
+- takeScreenshot: capturas/docente-estudiantes-03-ficha
+- tapOn:
+    id: "teacher-write"
+- extendedWaitUntil:
+    visible: "Escribe un mensaje"
+    timeout: 30000
+- takeScreenshot: capturas/docente-estudiantes-04-escribir

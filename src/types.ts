@@ -205,6 +205,10 @@ export type ServerCapabilities = {
   agenda?: boolean;
   today?: boolean;
   push_notifications?: boolean;
+  /** 6.31.0+ (Fase 4: docente) */
+  teacher?: boolean;
+  teacher_grading?: boolean;
+  group_assignments?: boolean;
 };
 
 export type AssignmentInfo = {

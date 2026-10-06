@@ -24,6 +24,12 @@ import { ComposeScreen } from '../screens/ComposeScreen';
 import { MessagesScreen } from '../screens/MessagesScreen';
 import { ThreadScreen } from '../screens/ThreadScreen';
 import { TodayScreen } from '../screens/TodayScreen';
+import { AnnouncementScreen } from '../screens/teacher/AnnouncementScreen';
+import { GradingQueueScreen } from '../screens/teacher/GradingQueueScreen';
+import { TeacherCoursesScreen } from '../screens/teacher/TeacherCoursesScreen';
+import { TeacherStudentScreen } from '../screens/teacher/TeacherStudentScreen';
+import { TeacherStudentsScreen } from '../screens/teacher/TeacherStudentsScreen';
+import { TeacherTodayScreen } from '../screens/teacher/TeacherTodayScreen';
 import { PushPreferences, PushPrompt } from '../components/PushSettings';
 import type { Destination } from '../notifications/route';
 import { openWithSystem } from '../viewer/files';
@@ -42,7 +48,7 @@ export type AppSessionValue = {
   logout: () => void;
   switchMode: (mode: AppMode) => void;
   /** Funciones que el servidor declara (0.5.0; 0.6.0 suma buzón, agenda, Hoy y avisos al teléfono). */
-  features: { grades: boolean; certificates: boolean; messages: boolean; agenda: boolean; today: boolean; push: boolean };
+  features: { grades: boolean; certificates: boolean; messages: boolean; agenda: boolean; today: boolean; push: boolean; teacher: boolean; grading: boolean };
   /** Contador único de no leídos (mensajes y avisos), 0.6.0. */
   unreadMessages: number;
   /** Cursos con una nota liberada que el estudiante todavía no vio. */
@@ -71,6 +77,10 @@ export type LearningStackParams = {
   /** 0.6.0: buzón. */
   Thread: { threadId?: number; title?: string; recipient?: { id: number; name: string; courseId?: number } };
   Compose: undefined;
+  /** 0.7.0: docente. */
+  TeacherStudents: { courseId: number; title: string; sections: { id: number; title: string }[] };
+  TeacherStudent: { studentId: number; courseId: number; name: string };
+  Announcement: { courseId: number; title: string; sections: { id: number; title: string }[] };
 };
 
 /** 0.6.0: para abrir la pantalla de una notificación desde fuera del árbol. */
@@ -218,9 +228,54 @@ function ResourceRoute({ route, navigation }: LearningProps<'Resource'>) {
   );
 }
 
+function TeacherStudentsRoute({ route, navigation }: LearningProps<'TeacherStudents'>) {
+  const { token } = useAppSession();
+  const { courseId, title, sections } = route.params;
+  return (
+    <TeacherStudentsScreen
+      token={token}
+      courseId={courseId}
+      title={title}
+      onBack={() => navigation.goBack()}
+      onOpenStudent={(student) => navigation.push('TeacherStudent', { studentId: student.id, courseId, name: student.name })}
+      onAnnounce={() => navigation.push('Announcement', { courseId, title, sections })}
+    />
+  );
+}
+
+function TeacherStudentRoute({ route, navigation }: LearningProps<'TeacherStudent'>) {
+  const { token } = useAppSession();
+  return (
+    <TeacherStudentScreen
+      token={token}
+      studentId={route.params.studentId}
+      courseId={route.params.courseId}
+      name={route.params.name}
+      onBack={() => navigation.goBack()}
+      onWrite={(recipient) => navigation.push('Thread', { recipient, title: recipient.name })}
+    />
+  );
+}
+
+function AnnouncementRoute({ route, navigation }: LearningProps<'Announcement'>) {
+  const { token } = useAppSession();
+  return <AnnouncementScreen token={token} courseId={route.params.courseId} title={route.params.title} sections={route.params.sections} onBack={() => navigation.goBack()} />;
+}
+
 function TodayRoot({ navigation }: LearningProps<'Root'>) {
   const { token, dashboard, loading, refresh, mode } = useAppSession();
   const today = useAppSession();
+  if (today.mode === 'teacher' && today.features.teacher) {
+    return (
+      <TeacherTodayScreen
+        token={today.token}
+        name={today.dashboard?.user.display_name ?? ''}
+        onOpenGrading={() => navigation.getParent()?.navigate('Grading')}
+        onOpenStudent={(studentId, courseId, name) => navigation.push('TeacherStudent', { studentId, courseId, name })}
+        onOpenMessages={() => navigation.getParent()?.navigate('Messages')}
+      />
+    );
+  }
   if (today.mode === 'student' && today.features.today) {
     return (
       <TodayScreen
@@ -250,7 +305,15 @@ function TodayRoot({ navigation }: LearningProps<'Root'>) {
 }
 
 function CoursesRoot({ navigation }: LearningProps<'Root'>) {
-  const { token, dashboard, loading, refresh } = useAppSession();
+  const { token, dashboard, loading, refresh, mode, features } = useAppSession();
+  if (mode === 'teacher' && features.teacher) {
+    return (
+      <TeacherCoursesScreen
+        token={token}
+        onOpenCourse={(course) => navigation.push('TeacherStudents', { courseId: course.id, title: course.title, sections: course.sections.map(({ id, title }) => ({ id, title })) })}
+      />
+    );
+  }
   return (
     <CoursesScreen
       courses={dashboard?.courses ?? []}
@@ -383,6 +446,9 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="CourseGrades" component={CourseGradesRoute} />
         <Stack.Screen name="Thread" component={ThreadRoute} />
         <Stack.Screen name="Compose" component={ComposeRoute} />
+        <Stack.Screen name="TeacherStudents" component={TeacherStudentsRoute} />
+        <Stack.Screen name="TeacherStudent" component={TeacherStudentRoute} />
+        <Stack.Screen name="Announcement" component={AnnouncementRoute} />
       </Stack.Navigator>
     );
   };
@@ -404,9 +470,15 @@ function singleStack(Screen: () => ReactElement) {
 
 const AgendaStack = learningStack(AgendaRoot);
 const MessagesStack = learningStack(MessagesRoot);
-const GradingStack = singleStack(() => (
-  <ComingSoonScreen title="Calificar" description="La revisión de entregas desde el teléfono llegará en una próxima versión. Por ahora, califica desde la web." />
-));
+function GradingRoot() {
+  const { token, features } = useAppSession();
+  if (!features.teacher) {
+    return <ComingSoonScreen title="Calificar" description="Actualiza ATORA LMS a la 6.31.0 para ver la cola de entregas en la app. Por ahora, califica desde la web." />;
+  }
+  // 0.7.0: cola de consulta; calificar llega en 0.8.0.
+  return <GradingQueueScreen token={token} />;
+}
+const GradingStack = learningStack(GradingRoot);
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type TabSpec = { name: string; label: string; icon: IconName; component: () => ReactElement };
