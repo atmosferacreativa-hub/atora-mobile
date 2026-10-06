@@ -77,8 +77,13 @@ name: docente-calificar
     element: "Ver tarea"
 - tapOn: "Ver tarea"
 - extendedWaitUntil:
-    visible: "Buen trabajo, revisa la estructura."
+    visible: "Tu entrega"
     timeout: 30000
 - scrollUntilVisible:
-    element: "Rúbrica"
-- takeScreenshot: capturas/docente-calificar-07-estudiante
+    element: ".*Buen trabajo, revisa la estructura.*"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-07-estudiante-nota
+- scrollUntilVisible:
+    element: ".*entre Inicial y Logrado.*|.*Logrado.*"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-08-estudiante-rubrica
