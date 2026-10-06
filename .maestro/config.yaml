@@ -1,0 +1,13 @@
+# Pruebas de pantalla (Maestro). Corren en CI contra un WordPress temporal
+# sembrado con `wp atora seed-e2e` (ver .github/workflows/e2e.yml).
+flows:
+  - "*.yaml"
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - login
+    - leccion
+    - tarea
+    - quiz
+    - mensajes
+    - sin-conexion

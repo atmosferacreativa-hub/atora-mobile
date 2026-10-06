@@ -1,0 +1,23 @@
+appId: com.atmosferacreativa.atora
+name: mensajes
+---
+- runFlow: common/login-estudiante.yaml
+- tapOn: "Mensajes"
+- extendedWaitUntil:
+    visible: "Docente E2E.*"
+    timeout: 30000
+- assertVisible: "Avisos"
+- takeScreenshot: capturas/mensajes-01-hilos
+- tapOn: "Docente E2E.*"
+- extendedWaitUntil:
+    visible: "Hola, revisa la tarea de esta semana."
+    timeout: 30000
+- tapOn: "Escribe un mensaje"
+- inputText: "Recibido, gracias."
+- hideKeyboard
+- tapOn: "Enviar"
+- extendedWaitUntil:
+    visible: "Recibido, gracias."
+    timeout: 30000
+- assertNotVisible: "Pendiente · se enviará al tener conexión"
+- takeScreenshot: capturas/mensajes-02-respuesta

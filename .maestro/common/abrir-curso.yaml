@@ -1,0 +1,10 @@
+appId: com.atmosferacreativa.atora
+---
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- tapOn: "Curso E2E"
+- extendedWaitUntil:
+    visible: "Contenido"
+    timeout: 30000

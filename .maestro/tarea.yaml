@@ -1,0 +1,28 @@
+appId: com.atmosferacreativa.atora
+name: tarea
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "Tarea"
+- tapOn: "Tarea"
+- scrollUntilVisible:
+    element: "Ver tarea"
+- tapOn: "Ver tarea"
+- extendedWaitUntil:
+    visible: "Tu entrega"
+    timeout: 30000
+- takeScreenshot: capturas/tarea-01-consigna
+- tapOn: "Escribe tu respuesta (opcional si adjuntas archivos)"
+- inputText: "Entrega desde la prueba de pantalla."
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Entregar"
+- tapOn: "Entregar"
+# Con conexión sale enseguida: el aviso de "guardada" desaparece y el intento queda en el historial.
+- extendedWaitUntil:
+    notVisible: "Guardada. Se enviará cuando tengas conexión."
+    timeout: 60000
+- scrollUntilVisible:
+    element: "Intento \\d+ · (En revisión|Entregada)"
+- takeScreenshot: capturas/tarea-02-entregada

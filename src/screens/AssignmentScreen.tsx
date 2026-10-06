@@ -205,7 +205,8 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
             <Text style={styles.notice}>Ya no quedan intentos para esta tarea.</Text>
           )}
 
-          {saved ? (
+          {/* Solo mientras siga en la cola: al confirmarse, el historial muestra el intento. */}
+          {saved && local.pending.length ? (
             <View style={styles.savedBox} accessibilityRole="alert">
               <Text style={styles.savedTitle}>Guardada. Se enviará cuando tengas conexión.</Text>
               <Text style={styles.help}>La hiciste el {formatDate(saved)}. La academia decide si llegó a tiempo según cuándo la recibe.</Text>

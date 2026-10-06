@@ -1,0 +1,29 @@
+appId: com.atmosferacreativa.atora
+name: quiz
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "Quiz"
+- tapOn: "Quiz"
+- scrollUntilVisible:
+    element: "Comenzar evaluación"
+- tapOn: "Comenzar evaluación"
+- extendedWaitUntil:
+    visible: "¿Cuánto es 2 \\+ 2\\?"
+    timeout: 30000
+- takeScreenshot: capturas/quiz-01-pregunta
+- tapOn: "4"
+- tapOn: "Siguiente"
+- tapOn: "Caracas"
+- tapOn: "Siguiente"
+- tapOn: "Verdadero"
+- tapOn: "Revisar y entregar"
+- extendedWaitUntil:
+    visible: "Entregar ahora"
+    timeout: 15000
+- tapOn: "Entregar ahora"
+- extendedWaitUntil:
+    visible: "EVALUACIÓN ENTREGADA"
+    timeout: 60000
+- takeScreenshot: capturas/quiz-02-entregada
