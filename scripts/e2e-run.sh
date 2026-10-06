@@ -17,4 +17,5 @@ else
   done
 fi
 
-maestro test --format junit --output maestro-report.xml "${args[@]}"
+# API_HOST: los scripts de los recorridos (p. ej. el segundo docente del 409) llaman a la API desde el runner.
+maestro test -e API_HOST="${API_HOST:-http://localhost:8080/wp-json/atora-mobile/v1}" --format junit --output maestro-report.xml "${args[@]}"

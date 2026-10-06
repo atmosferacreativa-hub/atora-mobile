@@ -1,0 +1,89 @@
+appId: com.atmosferacreativa.atora
+name: docente-calificar
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Calificar"
+- extendedWaitUntil:
+    visible: "Estudiante Dos E2E"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-01-cola
+- tapOn: "Estudiante Dos E2E"
+- extendedWaitUntil:
+    visible: "Rúbrica.*"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-02-entrega
+# Visor de PDF de la Fase 1.
+- tapOn: "ensayo-e2e.pdf"
+- extendedWaitUntil:
+    visible: "ensayo-e2e.pdf"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-03-pdf
+- back
+# Rúbrica táctil: tocar un nivel pone su puntaje; el otro con un decimal.
+- scrollUntilVisible:
+    element:
+      id: "criterion-0"
+- tapOn: "Logrado.*"
+- scrollUntilVisible:
+    element:
+      id: "score-1"
+- tapOn:
+    id: "score-1"
+- inputText: "7,5"
+- hideKeyboard
+- assertVisible:
+    id: "band-1"
+    text: "entre Inicial y Logrado"
+- scrollUntilVisible:
+    element:
+      id: "copy-rubric-percent"
+- tapOn:
+    id: "copy-rubric-percent"
+- tapOn:
+    id: "general-feedback"
+- inputText: "Buen trabajo, revisa la estructura."
+- hideKeyboard
+- takeScreenshot: capturas/docente-calificar-04-rubrica
+- scrollUntilVisible:
+    element:
+      id: "grading-save-draft"
+- tapOn:
+    id: "grading-save-draft"
+- extendedWaitUntil:
+    visible: "Borrador guardado.*"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-05-borrador
+- scrollUntilVisible:
+    element:
+      id: "grading-publish"
+- tapOn:
+    id: "grading-publish"
+- extendedWaitUntil:
+    visible: "¿Publicar la calificación?"
+    timeout: 10000
+- tapOn: "Publicar"
+- extendedWaitUntil:
+    visible: "Calificación publicada"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-06-publicada
+# El estudiante ve la nota, el nivel por criterio y el comentario.
+- runFlow: common/login-estudiante2.yaml
+- tapOn: "Cursos"
+- tapOn: "Curso E2E"
+- scrollUntilVisible:
+    element: "Ensayo"
+- tapOn: "Ensayo"
+- scrollUntilVisible:
+    element: "Ver tarea"
+- tapOn: "Ver tarea"
+- extendedWaitUntil:
+    visible: "Tu entrega"
+    timeout: 30000
+- scrollUntilVisible:
+    element: ".*Buen trabajo, revisa la estructura.*"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-07-estudiante-nota
+- scrollUntilVisible:
+    element: ".*entre Inicial y Logrado.*|.*Logrado.*"
+    timeout: 30000
+- takeScreenshot: capturas/docente-calificar-08-estudiante-rubrica

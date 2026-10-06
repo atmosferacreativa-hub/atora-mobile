@@ -1,4 +1,4 @@
-import { createContext, useContext, type ComponentProps, type ReactElement } from 'react';
+import { createContext, useContext, useEffect, useState, type ComponentProps, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer, DefaultTheme, createNavigationContainerRef, getFocusedRouteNameFromRoute, type RouteProp } from '@react-navigation/native';
@@ -26,6 +26,8 @@ import { ThreadScreen } from '../screens/ThreadScreen';
 import { TodayScreen } from '../screens/TodayScreen';
 import { AnnouncementScreen } from '../screens/teacher/AnnouncementScreen';
 import { GradingQueueScreen } from '../screens/teacher/GradingQueueScreen';
+import { GradeSubmissionScreen } from '../screens/teacher/GradeSubmissionScreen';
+import { emitQueueCount, fetchQueue, subscribeQueueCount } from '../api/teacher';
 import { TeacherCoursesScreen } from '../screens/teacher/TeacherCoursesScreen';
 import { TeacherStudentScreen } from '../screens/teacher/TeacherStudentScreen';
 import { TeacherStudentsScreen } from '../screens/teacher/TeacherStudentsScreen';
@@ -81,6 +83,8 @@ export type LearningStackParams = {
   TeacherStudents: { courseId: number; title: string; sections: { id: number; title: string }[] };
   TeacherStudent: { studentId: number; courseId: number; name: string };
   Announcement: { courseId: number; title: string; sections: { id: number; title: string }[] };
+  /** 0.8.0: calificar. */
+  GradeSubmission: { submissionId: number };
 };
 
 /** 0.6.0: para abrir la pantalla de una notificación desde fuera del árbol. */
@@ -449,6 +453,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="TeacherStudents" component={TeacherStudentsRoute} />
         <Stack.Screen name="TeacherStudent" component={TeacherStudentRoute} />
         <Stack.Screen name="Announcement" component={AnnouncementRoute} />
+        <Stack.Screen name="GradeSubmission" component={GradeSubmissionRoute} />
       </Stack.Navigator>
     );
   };
@@ -470,13 +475,55 @@ function singleStack(Screen: () => ReactElement) {
 
 const AgendaStack = learningStack(AgendaRoot);
 const MessagesStack = learningStack(MessagesRoot);
-function GradingRoot() {
+function GradingRoot({ navigation }: LearningProps<'Root'>) {
   const { token, features } = useAppSession();
   if (!features.teacher) {
-    return <ComingSoonScreen title="Calificar" description="Actualiza ATORA LMS a la 6.31.0 para ver la cola de entregas en la app. Por ahora, califica desde la web." />;
+    return <ComingSoonScreen title="Calificar" description="Actualiza ATORA LMS a la 6.31.0 para calificar desde el teléfono. Por ahora, califica desde la web." />;
   }
-  // 0.7.0: cola de consulta; calificar llega en 0.8.0.
-  return <GradingQueueScreen token={token} />;
+  return (
+    <GradingQueueScreen
+      token={token}
+      onOpen={features.grading ? (item) => navigation.push('GradeSubmission', { submissionId: item.id }) : undefined}
+      onCount={emitQueueCount}
+    />
+  );
+}
+
+function GradeSubmissionRoute({ route, navigation }: LearningProps<'GradeSubmission'>) {
+  const { token } = useAppSession();
+  const { submissionId } = route.params;
+  return (
+    <GradeSubmissionScreen
+      token={token}
+      submissionId={submissionId}
+      onBack={() => navigation.goBack()}
+      onOpenFile={(params) => navigation.push('Resource', params)}
+      onOpenWithSystem={(localUri, mime) => void openWithSystem(localUri, mime).catch(() => undefined)}
+      onNext={() => {
+        // La más antigua por calificar que no sea esta; si no hay, vuelve a la cola.
+        void fetchQueue(token, { status: 'pending' })
+          .then((page) => {
+            emitQueueCount(page.total);
+            const next = page.items.find((item) => item.id !== submissionId);
+            if (next) navigation.replace('GradeSubmission', { submissionId: next.id });
+            else navigation.goBack();
+          })
+          .catch(() => navigation.goBack());
+      }}
+    />
+  );
+}
+
+/** Contador de la pestaña Calificar (lo publica la cola y "Siguiente entrega"). */
+function useQueueCount(token: string, enabled: boolean): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const unsubscribe = subscribeQueueCount(setCount);
+    void fetchQueue(token, { status: 'pending' }).then((page) => emitQueueCount(page.total)).catch(() => undefined);
+    return unsubscribe;
+  }, [enabled, token]);
+  return count;
 }
 const GradingStack = learningStack(GradingRoot);
 
@@ -504,7 +551,7 @@ const Tabs = createBottomTabNavigator();
 /** Rutas a pantalla completa: sin cabecera de marca ni barra inferior. */
 function isImmersive(route: RouteProp<Record<string, object | undefined>, string>): boolean {
   const focused = getFocusedRouteNameFromRoute(route);
-  return focused === 'Quiz' || focused === 'Resource' || focused === 'Thread';
+  return focused === 'Quiz' || focused === 'Resource' || focused === 'Thread' || focused === 'GradeSubmission';
 }
 
 function BrandHeader() {
@@ -531,6 +578,7 @@ function BrandHeader() {
 export function AppNavigator({ session }: { session: AppSessionValue }) {
   const tabs = session.mode === 'teacher' ? TEACHER_TABS : STUDENT_TABS;
   const meBadge = session.mode === 'student' && session.newGradeCourses.length ? session.newGradeCourses.length : undefined;
+  const gradingCount = useQueueCount(session.token, session.mode === 'teacher' && session.features.teacher);
   return (
     <AppSessionContext.Provider value={session}>
       <NavigationContainer ref={navigationRef} theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } }}>
@@ -553,7 +601,10 @@ export function AppNavigator({ session }: { session: AppSessionValue }) {
               component={tab.component}
               options={{
                 title: tab.label,
-                tabBarBadge: tab.name === 'Me' ? meBadge : tab.name === 'Messages' && session.unreadMessages > 0 ? (session.unreadMessages > 99 ? '99+' : session.unreadMessages) : undefined,
+                tabBarBadge: tab.name === 'Me' ? meBadge
+                  : tab.name === 'Messages' && session.unreadMessages > 0 ? (session.unreadMessages > 99 ? '99+' : session.unreadMessages)
+                  : tab.name === 'Grading' && gradingCount > 0 ? (gradingCount > 99 ? '99+' : gradingCount)
+                  : undefined,
                 tabBarBadgeStyle: { backgroundColor: colors.mustard, color: colors.navy, fontWeight: '900' },
                 tabBarIcon: ({ color, size }) => <Ionicons name={tab.icon} color={color} size={size} />,
               }}

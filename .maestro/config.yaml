@@ -14,3 +14,5 @@ executionOrder:
     - docente-hoy
     - docente-estudiantes
     - docente-aviso
+    - docente-calificar
+    - docente-calificar-409

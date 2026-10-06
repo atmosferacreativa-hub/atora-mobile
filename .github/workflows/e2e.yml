@@ -139,6 +139,9 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
+          # Con la memoria por defecto el sistema mataba los servicios de Google (y la app con ellos) al abrir el visor de PDF.
+          ram-size: 4096M
+          heap-size: 512M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: bash scripts/e2e-run.sh "${{ steps.flows.outputs.list }}"
 

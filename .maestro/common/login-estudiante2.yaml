@@ -1,0 +1,23 @@
+appId: com.atmosferacreativa.atora
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: "Ingresar a tu academia"
+          timeout: 60000
+- tapOn:
+    id: "login-user"
+- inputText: "estudiante2_e2e"
+- hideKeyboard
+- tapOn:
+    id: "login-password"
+- inputText: "atora-e2e-2026"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible: "Cursos"
+    timeout: 60000
