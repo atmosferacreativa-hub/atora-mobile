@@ -76,7 +76,11 @@ jobs:
 
       - name: Instalar WordPress y sembrar datos
         run: |
-          WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp wordpress:cli-php8.1 wp"
+          WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp wordpress:cli-php8.1 wp"
+          for i in $(seq 1 40); do
+            if docker exec db mysqladmin ping -uwp -pwp --silent 2>/dev/null && $WP db check >/dev/null 2>&1; then break; fi
+            sleep 3
+          done
           $WP core install --url="$WP_URL" --title="ATORA E2E" --admin_user=admin --admin_password=admin --admin_email=admin@e2e.test --skip-email
           $WP rewrite structure '/%postname%/' --hard
           $WP plugin activate atora-lms
