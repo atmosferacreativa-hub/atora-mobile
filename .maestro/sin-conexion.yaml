@@ -1,12 +1,21 @@
 appId: com.atmosferacreativa.atora
 name: sin-conexion
+# Pase lo que pase, el siguiente recorrido arranca con conexión.
+onFlowComplete:
+  - setAirplaneMode: disabled
 ---
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
+# Con conexión: abrir el hilo una vez para que quede guardado en el teléfono.
 - tapOn: "Mensajes"
 - extendedWaitUntil:
     visible: "Docente E2E.*"
     timeout: 30000
+- tapOn: "Docente E2E.*"
+- extendedWaitUntil:
+    visible: "Hola, revisa la tarea de esta semana."
+    timeout: 30000
+- back
 - setAirplaneMode: enabled
 - extendedWaitUntil:
     visible: "Tu progreso y tus entregas se guardan.*"
@@ -18,6 +27,9 @@ name: sin-conexion
 # Un mensaje escrito sin conexión queda en la cola y sale al volver.
 - tapOn: "Mensajes"
 - tapOn: "Docente E2E.*"
+- extendedWaitUntil:
+    visible: "Hola, revisa la tarea de esta semana."
+    timeout: 30000
 - tapOn: "Escribe un mensaje"
 - inputText: "Escrito sin conexión."
 - hideKeyboard
