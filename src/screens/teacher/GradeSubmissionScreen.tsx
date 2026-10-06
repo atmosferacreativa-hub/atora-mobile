@@ -46,6 +46,8 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const [conflict, setConflict] = useState<{ message: string; theirs: SubmissionDetail } | null>(null);
   const [opening, setOpening] = useState(0);
   const userId = useRef<number | null>(null);
+  /** El formulario tal como está en el servidor: sin cambios no hay borrador local. */
+  const pristine = useRef<Form | null>(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -55,6 +57,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       setDetail(data);
       setRevision(data.revision);
       const base = formFrom(data);
+      pristine.current = base;
       setForm(base);
       const recovered = userId.current ? await recoverDraft(sqliteGradingDraftStore, userId.current, submissionId, data.revision).catch(() => null) : null;
       if (recovered) {
@@ -76,7 +79,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
 
   // El borrador local se guarda a cada cambio; nunca se envía solo.
   useEffect(() => {
-    if (!form || !userId.current || saved) return;
+    if (!form || !userId.current || saved === 'published' || form === pristine.current) return;
     const draft: GradingDraft = { submissionId, revision, attempt: form.attempt, scores: form.scores, feedback: form.feedback, grade: form.grade, savedAt: Date.now() };
     void saveDraft(sqliteGradingDraftStore, userId.current, draft).catch(() => undefined);
   }, [form, revision, submissionId, saved]);
@@ -134,6 +137,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         setConflict({ message: outcome.message, theirs: outcome.submission });
         return;
       }
+      pristine.current = form;
       if (userId.current) await discardDraft(sqliteGradingDraftStore, userId.current, submissionId).catch(() => undefined);
       setDetail(outcome.submission);
       setRevision(outcome.submission.revision);
@@ -283,12 +287,13 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       {saved ? (
         <View style={styles.saved} testID="grading-saved">
           <Ionicons name="checkmark-circle" size={20} color={colors.white} />
-          <Text style={styles.savedText}>{saved === 'published' ? 'Calificación publicada' : 'Borrador guardado'}</Text>
+          <Text style={styles.savedText}>{saved === 'published' ? 'Calificación publicada' : 'Borrador guardado: el estudiante todavía no la ve'}</Text>
           <Pressable accessibilityRole="button" onPress={onNext} style={styles.next} testID="grading-next">
             <Text style={styles.nextText}>Siguiente entrega</Text>
           </Pressable>
         </View>
-      ) : (
+      ) : null}
+      {saved === 'published' ? null : (
         <View style={styles.actions}>
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => void submit(false)} style={[styles.secondary, busy && styles.disabled]} testID="grading-save-draft">
             <Text style={styles.secondaryText}>Guardar borrador</Text>
@@ -318,9 +323,11 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
               accessibilityRole="button"
               onPress={() => {
                 if (!conflict) return;
+                const theirs = formFrom(conflict.theirs);
+                pristine.current = theirs;
                 setDetail(conflict.theirs);
                 setRevision(conflict.theirs.revision);
-                setForm(formFrom(conflict.theirs));
+                setForm(theirs);
                 setConflict(null);
               }}
               style={styles.primary}
