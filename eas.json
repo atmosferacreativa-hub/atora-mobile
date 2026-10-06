@@ -27,6 +27,16 @@
         "autoIncrement": "versionCode",
         "buildType": "app-bundle"
       }
+    },
+    "e2e": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "ATORA_E2E": "1",
+        "EXPO_PUBLIC_ATORA_API_URL": "http://10.0.2.2:8080/wp-json/atora-mobile/v1"
+      }
     }
   },
   "submit": {

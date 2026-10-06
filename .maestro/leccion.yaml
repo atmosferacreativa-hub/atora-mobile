@@ -1,0 +1,22 @@
+appId: com.atmosferacreativa.atora
+name: leccion
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- takeScreenshot: capturas/leccion-01-curso
+- scrollUntilVisible:
+    element: "Videos"
+- tapOn: "Videos"
+- extendedWaitUntil:
+    visible: "Video 1"
+    timeout: 30000
+- assertVisible: "Video 2"
+- assertVisible: "Video 3"
+- takeScreenshot: capturas/leccion-02-videos
+- scrollUntilVisible:
+    element: "Marcar como completada"
+- tapOn: "Marcar como completada"
+- extendedWaitUntil:
+    visible: "Lección completada"
+    timeout: 30000
+- takeScreenshot: capturas/leccion-03-completada

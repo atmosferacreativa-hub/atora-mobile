@@ -1,0 +1,25 @@
+appId: com.atmosferacreativa.atora
+name: tarea
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "Tarea"
+- tapOn: "Tarea"
+- scrollUntilVisible:
+    element: "Ver tarea"
+- tapOn: "Ver tarea"
+- extendedWaitUntil:
+    visible: "Tu entrega"
+    timeout: 30000
+- takeScreenshot: capturas/tarea-01-consigna
+- tapOn: "Escribe tu respuesta (opcional si adjuntas archivos)"
+- inputText: "Entrega desde la prueba de pantalla."
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Entregar"
+- tapOn: "Entregar"
+- extendedWaitUntil:
+    visible: "En revisión|Entregada"
+    timeout: 60000
+- takeScreenshot: capturas/tarea-02-entregada

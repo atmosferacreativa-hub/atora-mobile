@@ -77,6 +77,7 @@ export function LoginScreen({ onLogin }: Props) {
           onChangeText={setLogin}
           placeholder="Correo o usuario"
           style={styles.input}
+          testID="login-user"
           value={login}
         />
         <TextInput
@@ -88,6 +89,7 @@ export function LoginScreen({ onLogin }: Props) {
           placeholder="Contraseña"
           secureTextEntry
           style={styles.input}
+          testID="login-password"
           value={password}
         />
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -96,6 +98,7 @@ export function LoginScreen({ onLogin }: Props) {
           disabled={busy}
           onPress={submit}
           style={({ pressed }) => [styles.button, (pressed || busy) && styles.buttonPressed]}
+          testID="login-submit"
         >
           {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Entrar</Text>}
         </Pressable>

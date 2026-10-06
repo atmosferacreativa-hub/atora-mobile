@@ -1,0 +1,34 @@
+appId: com.atmosferacreativa.atora
+name: sin-conexion
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- tapOn: "Mensajes"
+- extendedWaitUntil:
+    visible: "Docente E2E.*"
+    timeout: 30000
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible: "Tu progreso y tus entregas se guardan.*"
+    timeout: 30000
+- takeScreenshot: capturas/sin-conexion-01-aviso
+# El curso ya visto se abre sin conexión desde la caché.
+- runFlow: common/abrir-curso.yaml
+- takeScreenshot: capturas/sin-conexion-02-curso
+# Un mensaje escrito sin conexión queda en la cola y sale al volver.
+- tapOn: "Mensajes"
+- tapOn: "Docente E2E.*"
+- tapOn: "Escribe un mensaje"
+- inputText: "Escrito sin conexión."
+- hideKeyboard
+- tapOn: "Enviar"
+- extendedWaitUntil:
+    visible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
+    timeout: 15000
+- takeScreenshot: capturas/sin-conexion-03-en-cola
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    notVisible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
+    timeout: 90000
+- assertVisible: "Escrito sin conexión."
+- takeScreenshot: capturas/sin-conexion-04-enviado

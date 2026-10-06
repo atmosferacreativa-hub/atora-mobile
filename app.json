@@ -2,7 +2,7 @@
   "expo": {
     "name": "ATORA",
     "slug": "atora-mobile",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "updates": {
       "url": "https://u.expo.dev/a3b6c6d0-c58c-4508-ac3b-25c6ea11dd62"
     },
@@ -40,7 +40,7 @@
     },
     "android": {
       "package": "com.atmosferacreativa.atora",
-      "versionCode": 10,
+      "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#13233A"

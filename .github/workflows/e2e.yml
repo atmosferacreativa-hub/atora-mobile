@@ -1,0 +1,144 @@
+name: Pruebas de pantalla
+
+# Recorridos Maestro en un emulador Android contra un WordPress temporal
+# (Docker) con el plugin de `Atora-LMS-6` en `main` y los datos de
+# `wp atora seed-e2e`. Nunca contra el demo.
+#
+# - Cada PR: `login` y `leccion` (rápido).
+# - Al etiquetar (v*), al fusionar en main o a mano: todos los recorridos.
+# Las capturas quedan como artefacto de la ejecución.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      flows:
+        description: 'Recorridos (separados por coma) o "todos"'
+        default: todos
+      plugin_ref:
+        description: 'Rama o etiqueta del plugin'
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WP_URL: http://10.0.2.2:8080
+  API_URL: http://10.0.2.2:8080/wp-json/atora-mobile/v1
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plugin ATORA LMS
+        uses: actions/checkout@v4
+        with:
+          repository: atmosferacreativa-hub/Atora-LMS-6
+          ref: ${{ inputs.plugin_ref || 'main' }}
+          path: _plugin
+
+      - name: Recorridos a ejecutar
+        id: flows
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "list=login,leccion" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.flows }}" ] && [ "${{ inputs.flows }}" != "todos" ]; then
+            echo "list=${{ inputs.flows }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "list=todos" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: WordPress temporal (Docker)
+        run: |
+          docker network create e2e
+          docker run -d --name db --network e2e \
+            -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=wp -e MYSQL_USER=wp -e MYSQL_PASSWORD=wp \
+            mysql:8.0
+          docker run -d --name wp --network e2e -p 8080:80 \
+            -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp \
+            -e WORDPRESS_CONFIG_EXTRA="define('WP_ENVIRONMENT_TYPE','local'); define('ATORA_E2E', true);" \
+            -v "$PWD/_plugin:/var/www/html/wp-content/plugins/atora-lms" \
+            wordpress:6.8-php8.1-apache
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://localhost:8080/wp-admin/install.php; then break; fi
+            sleep 3
+          done
+
+      - name: Instalar WordPress y sembrar datos
+        run: |
+          WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp wordpress:cli-php8.1 wp"
+          $WP core install --url="$WP_URL" --title="ATORA E2E" --admin_user=admin --admin_password=admin --admin_email=admin@e2e.test --skip-email
+          $WP rewrite structure '/%postname%/' --hard
+          $WP plugin activate atora-lms
+          docker exec wp mkdir -p /tmp/e2e-media
+          docker cp e2e/media/. wp:/tmp/e2e-media/
+          docker exec wp chown -R 33:33 /tmp/e2e-media
+          $WP atora seed-e2e --yes --video-dir=/tmp/e2e-media | tee seed.json
+          curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: APK de pruebas (perfil e2e)
+        env:
+          ATORA_E2E: '1'
+          EXPO_PUBLIC_ATORA_API_URL: ${{ env.API_URL }}
+          NODE_ENV: production
+        run: |
+          npm ci
+          npx expo prebuild --platform android --no-install
+          cd android
+          ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/atora-e2e.apk"
+
+      - name: Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Recorridos en el emulador (API 34, x86_64)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash scripts/e2e-run.sh "${{ steps.flows.outputs.list }}"
+
+      - name: Capturas y registros
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-${{ github.run_number }}
+          path: |
+            capturas/
+            .maestro/capturas/
+            maestro-report.xml
+            seed.json
+            ~/.maestro/tests/
+          if-no-files-found: warn
+          retention-days: 30
