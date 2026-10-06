@@ -15,6 +15,7 @@ import { ApiError, isRetriableError } from './src/api/client';
 import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { purgeCurrentUserDownloads } from './src/offline/mediaDownloads';
 import { purgeCertificateFiles } from './src/api/certificates';
+import { purgeGradingFiles } from './src/api/teacher';
 import { migrateLegacyStorage } from './src/offline/legacyMigration';
 import { flushOutbox } from './src/offline/outbox/runtime';
 import { runSync } from './src/offline/sync/runtime';
@@ -190,6 +191,7 @@ function AppShell() {
       if (token) await flushOutbox(token).catch(() => null);
       await purgeCurrentUserDownloads().catch(() => undefined);
       await purgeCertificateFiles().catch(() => undefined);
+      await purgeGradingFiles().catch(() => undefined);
       // 0.6.0: el servidor deja de enviar avisos a este teléfono.
       if (token) await unregisterDevice(token).catch(() => undefined);
       if (token) await logout(token);

@@ -57,3 +57,57 @@ export type StudentFile = {
 };
 
 export type QueuePage = { items: QueueItem[]; total: number; next_cursor: string | null };
+
+/** 0.8.0: entrega para calificar (`GET /teacher/submissions/{id}`). */
+export type SubmissionFileRef = { id: number; filename: string; mime_type: string; bytes: number; url: string | null; expires_at: string };
+export type SubmissionAttempt = {
+  attempt: number;
+  source: 'web' | 'mobile' | string;
+  server_received_at: string | null;
+  client_submitted_at: string | null;
+  is_late: boolean;
+  body_text: string;
+  files: SubmissionFileRef[];
+};
+export type RubricLevel = { label: string; points: number; descriptor: string };
+export type RubricCriterion = {
+  index: number;
+  name: string;
+  description: string;
+  max_points: number;
+  weight: number;
+  levels: RubricLevel[];
+  bands: { min: number; max: number; label: string; active_points: number | null; between: string; below: string }[];
+  score: number | null;
+  level: string | null;
+  feedback: string;
+};
+export type SubmissionDetail = {
+  id: number;
+  revision: number;
+  student: Person;
+  course: Named;
+  lesson: Named;
+  status: string;
+  grade: number | null;
+  feedback: string;
+  graded_attempt: number;
+  attempts: SubmissionAttempt[];
+  rubric: { id: number; title: string; total_points: number; criteria: RubricCriterion[] } | null;
+  group: { id: number; name: string; members: Person[]; submitted_by: Person | null } | null;
+  moderated: boolean;
+};
+
+export type GradeRequest = {
+  scores: { index: number; score: number | null; feedback: string }[];
+  feedback: string;
+  grade: number | null;
+  publish: boolean;
+  attempt: number;
+  expected_revision: number;
+  client_event_id: string;
+};
+
+export type GradeOutcome =
+  | { kind: 'saved'; submission: SubmissionDetail; replayed: boolean }
+  | { kind: 'conflict'; message: string; submission: SubmissionDetail };
