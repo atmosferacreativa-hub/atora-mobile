@@ -1,4 +1,4 @@
-import { discardDraft, hasContent, recoverDraft, saveDraft, type GradingDraft, type GradingDraftStore } from '../drafts';
+import { discardDraft, expectedRevision, hasContent, recoverDraft, saveDraft, type GradingDraft, type GradingDraftStore } from '../drafts';
 
 function memoryStore(): GradingDraftStore & { data: Map<string, GradingDraft> } {
   const data = new Map<string, GradingDraft>();
@@ -55,5 +55,17 @@ describe('borrador local de calificación (0.8.0)', () => {
     await saveDraft(store, 1, draft({ scores: { 0: { score: ' ', feedback: '' } } }));
     expect(store.data.size).toBe(0);
     expect(hasContent(draft({ scores: {}, feedback: '', grade: '79' }))).toBe(true);
+  });
+});
+
+describe('revisión que se envía con un borrador recuperado (0.8.1)', () => {
+  it('sin confirmar, se envía la revisión original del borrador (el servidor responde 409)', () => {
+    expect(expectedRevision(2, 3, false)).toBe(2);
+  });
+  it('tras "Reemplazar con mi borrador", la actual del servidor', () => {
+    expect(expectedRevision(2, 3, true)).toBe(3);
+  });
+  it('sin borrador recuperado, la del servidor', () => {
+    expect(expectedRevision(null, 3, false)).toBe(3);
   });
 });

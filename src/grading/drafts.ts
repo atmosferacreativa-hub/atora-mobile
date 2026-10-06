@@ -56,3 +56,14 @@ export async function recoverDraft(store: GradingDraftStore, userId: number, sub
 export function discardDraft(store: GradingDraftStore, userId: number, submissionId: number): Promise<void> {
   return store.remove(userId, submissionId);
 }
+
+/**
+ * 0.8.1: revisión que se envía al guardar. Un borrador recuperado conserva la
+ * revisión con la que se empezó: si otro docente guardó después, el servidor
+ * responde 409 en vez de pisar su nota. Solo tras elegir expresamente
+ * "Reemplazar con mi borrador" se envía la revisión actual del servidor.
+ */
+export function expectedRevision(draftRevision: number | null, serverRevision: number, replaceConfirmed: boolean): number {
+  if (draftRevision !== null && !replaceConfirmed) return draftRevision;
+  return serverRevision;
+}

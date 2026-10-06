@@ -1,0 +1,66 @@
+appId: com.atmosferacreativa.atora
+name: docente-borrador-recuperado
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Calificar"
+- tapOn: "En borrador"
+- extendedWaitUntil:
+    visible: "Estudiante E2E"
+    timeout: 30000
+- tapOn: "Estudiante E2E"
+- extendedWaitUntil:
+    visible: "Rúbrica.*"
+    timeout: 30000
+# Borrador local: el puntaje queda guardado en el teléfono.
+- scrollUntilVisible:
+    element:
+      id: "score-0"
+- tapOn:
+    id: "score-0"
+- eraseText: 10
+- inputText: "9"
+- hideKeyboard
+- takeScreenshot: capturas/docente-borrador-recuperado-01-escribe
+# Se cierra la app y, mientras tanto, otro docente califica.
+- stopApp
+- runScript: scripts/otro-docente-guarda.js
+- launchApp
+- extendedWaitUntil:
+    visible: "Calificar"
+    timeout: 90000
+- tapOn: "Calificar"
+- tapOn: "En borrador"
+- extendedWaitUntil:
+    visible: "Estudiante E2E"
+    timeout: 30000
+- tapOn: "Estudiante E2E"
+- extendedWaitUntil:
+    visible: "Borrador guardado en el teléfono"
+    timeout: 30000
+- takeScreenshot: capturas/docente-borrador-recuperado-02-recuperar
+- tapOn: "Recuperar"
+- extendedWaitUntil:
+    visible: "Otro docente guardó esta entrega después de tu borrador"
+    timeout: 15000
+- takeScreenshot: capturas/docente-borrador-recuperado-03-otra-version
+# Guardar sin confirmar: el servidor no pisa la otra nota (409).
+- scrollUntilVisible:
+    element:
+      id: "grading-save-draft"
+- tapOn:
+    id: "grading-save-draft"
+- extendedWaitUntil:
+    visible: "Otro docente calificó primero"
+    timeout: 30000
+- takeScreenshot: capturas/docente-borrador-recuperado-04-conflicto
+# Solo tras elegirlo expresamente se reemplaza.
+- tapOn:
+    id: "conflict-keep-mine"
+- extendedWaitUntil:
+    visible: "¿Reemplazar su calificación?"
+    timeout: 10000
+- tapOn: "Reemplazar"
+- extendedWaitUntil:
+    visible: "Borrador guardado.*"
+    timeout: 30000
+- takeScreenshot: capturas/docente-borrador-recuperado-05-reemplazado
