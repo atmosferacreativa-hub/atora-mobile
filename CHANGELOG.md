@@ -11,6 +11,7 @@ Pruebas de pantalla en CI (orden de la Fase 4, Bloque 2). Sin cambios para el us
 - **Perfil `e2e`** (`eas.json` y `ATORA_E2E=1`): solo esa compilación permite HTTP en claro (`plugins/withE2ECleartext.js`) y apaga las actualizaciones remotas; las APK de vista previa y de producción no cambian.
 - `docs/PRUEBA-TELEFONO.md`: la lista única que el titular recorre en el teléfono al cerrar cada fase.
 - Campos de inicio de sesión con `testID`.
+- **Fix**: en una tarea, el aviso "Guardada. Se enviará cuando tengas conexión." quedaba a la vista aunque la entrega ya se hubiera enviado; ahora solo se muestra mientras sigue en la cola (lo detectó el recorrido `tarea`).
 
 ## 0.6.0 (2026-10-05)
 

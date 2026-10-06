@@ -19,7 +19,10 @@ name: tarea
 - scrollUntilVisible:
     element: "Entregar"
 - tapOn: "Entregar"
+# Con conexión sale enseguida: el aviso de "guardada" desaparece y el intento queda en el historial.
 - extendedWaitUntil:
-    visible: "En revisión|Entregada"
+    notVisible: "Guardada. Se enviará cuando tengas conexión."
     timeout: 60000
+- scrollUntilVisible:
+    element: "Intento \\d+ · (En revisión|Entregada)"
 - takeScreenshot: capturas/tarea-02-entregada
