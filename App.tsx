@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import './src/api/courses';
 import './src/api/assignments';
 import './src/api/positions';
+import './src/api/teacher';
 import { fetchUnreadCount, subscribeUnread } from './src/api/messages';
 import { registerDevice, unregisterDevice } from './src/api/push';
 import { destinationFor, type PushData } from './src/notifications/route';
@@ -246,6 +247,8 @@ function AppShell() {
             agenda: Boolean(capabilities?.agenda),
             today: Boolean(capabilities?.today),
             push: Boolean(capabilities?.push_notifications),
+            teacher: Boolean(capabilities?.teacher),
+            grading: Boolean(capabilities?.teacher_grading),
           },
           unreadMessages,
           newGradeCourses,

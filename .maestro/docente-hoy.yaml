@@ -1,0 +1,16 @@
+appId: com.atmosferacreativa.atora
+name: docente-hoy
+---
+- runFlow: common/login-docente.yaml
+- extendedWaitUntil:
+    visible: "MI DÍA DOCENTE"
+    timeout: 30000
+- assertVisible: "POR CALIFICAR"
+- assertVisible: "Estudiantes en riesgo"
+- takeScreenshot: capturas/docente-hoy-01
+- tapOn:
+    id: "teacher-to-grade"
+- extendedWaitUntil:
+    visible: "CALIFICAR"
+    timeout: 30000
+- takeScreenshot: capturas/docente-hoy-02-cola

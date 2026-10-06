@@ -1,0 +1,36 @@
+appId: com.atmosferacreativa.atora
+name: docente-aviso
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Cursos"
+- tapOn: "Curso E2E"
+- extendedWaitUntil:
+    visible: "Aviso al grupo"
+    timeout: 30000
+- tapOn:
+    id: "teacher-announce"
+- tapOn:
+    id: "announcement-title"
+- inputText: "Mañana no hay clase"
+- tapOn:
+    id: "announcement-body"
+- inputText: "Nos vemos el jueves."
+- hideKeyboard
+- takeScreenshot: capturas/docente-aviso-01-redactar
+- tapOn:
+    id: "announcement-send"
+- extendedWaitUntil:
+    notVisible: "Pendiente · se enviará al tener conexión"
+    timeout: 60000
+- takeScreenshot: capturas/docente-aviso-02-enviado
+# El estudiante lo recibe en Avisos.
+- runFlow: common/login-estudiante.yaml
+- tapOn: "Mensajes"
+- extendedWaitUntil:
+    visible: "Avisos"
+    timeout: 30000
+- tapOn: "Avisos"
+- extendedWaitUntil:
+    visible: "Mañana no hay clase"
+    timeout: 30000
+- takeScreenshot: capturas/docente-aviso-03-estudiante

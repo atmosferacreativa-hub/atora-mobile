@@ -11,7 +11,7 @@ appId: com.atmosferacreativa.atora
           timeout: 60000
 - tapOn:
     id: "login-user"
-- inputText: "estudiante_e2e"
+- inputText: "docente_e2e"
 - hideKeyboard
 - tapOn:
     id: "login-password"
@@ -20,5 +20,5 @@ appId: com.atmosferacreativa.atora
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
-    visible: "Cursos"
+    visible: "Calificar"
     timeout: 60000

@@ -2,6 +2,19 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.7.0 (2026-10-06)
+
+Fase 4 — Docente: ver y comunicar (Bloque 4). Requiere **ATORA LMS 6.31.0** (`capabilities.teacher`); con servidores anteriores el docente ve lo de antes y Calificar dice "Próximamente". **Sin APK** (la única de la fase sale con la 0.8.0).
+
+- **Hoy del docente**: por calificar (cantidad y las más antiguas), estudiantes en riesgo, clases y fechas límite del día en sus cursos y mensajes sin leer. Tocar "Por calificar" abre Calificar.
+- **Cursos del docente**: sus cursos y secciones con estudiantes y entregas pendientes; la lista de estudiantes muestra avance, nota acumulada, último acceso y el **riesgo con color, ícono y texto con el motivo** ("Riesgo alto: 2 entregas vencidas"), nunca solo color. Búsqueda por nombre (sin acentos). La primera página se ve sin conexión.
+- **Ficha del estudiante**: avance, notas, entregas y alertas; **Escribir** abre un hilo directo en Mensajes.
+- **Aviso al grupo**: desde el curso (a todo el curso o a una sección); llega a "Avisos" de cada estudiante. Sin conexión queda en la cola de envíos con su `client_event_id` y sale una sola vez al volver.
+- **Calificar**: la cola de entregas (por calificar, en borrador, tardías, calificadas), de la más antigua a la más nueva; en esta versión, solo de consulta.
+- Cambio de modo docente/estudiante desde Yo, como antes; cada modo muestra solo sus datos (las pestañas y pantallas se rearman al cambiar).
+- **Recorridos de pantalla**: `docente-hoy`, `docente-estudiantes`, `docente-aviso` (el estudiante lo recibe en Avisos).
+- **TESTS** (Jest): señal de riesgo (texto y motivo siempre, niveles, datos incompletos); aviso (limpieza, vacío no se envía, pendientes por curso).
+
 ## 0.6.1 (2026-10-06)
 
 Pruebas de pantalla en CI (orden de la Fase 4, Bloque 2). Sin cambios para el usuario; **sin APK** (la única de la fase sale con la 0.8.0).
