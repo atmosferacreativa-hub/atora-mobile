@@ -84,10 +84,11 @@ jobs:
           $WP core install --url="$WP_URL" --title="ATORA E2E" --admin_user=admin --admin_password=admin --admin_email=admin@e2e.test --skip-email
           $WP rewrite structure '/%postname%/' --hard
           $WP plugin activate atora-lms
-          docker exec wp mkdir -p /tmp/e2e-media
-          docker cp e2e/media/. wp:/tmp/e2e-media/
-          docker exec wp chown -R 33:33 /tmp/e2e-media
-          $WP atora seed-e2e --yes --video-dir=/tmp/e2e-media | tee seed.json
+          # Dentro del volumen compartido: WP-CLI corre en otro contenedor (no ve /tmp de "wp").
+          docker exec wp mkdir -p /var/www/html/e2e-media
+          docker cp e2e/media/. wp:/var/www/html/e2e-media/
+          docker exec wp chown -R 33:33 /var/www/html/e2e-media
+          $WP atora seed-e2e --yes --video-dir=/var/www/html/e2e-media | tee seed.json
           curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
 
       - uses: actions/setup-node@v4
