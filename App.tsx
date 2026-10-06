@@ -256,6 +256,9 @@ function AppShell() {
   );
 }
 
+// PR de prueba (no fusionar): la app se cae al abrir; las pruebas de pantalla deben fallar.
+throw new Error('Arranque roto a propósito');
+
 export default function App() {
   return (
     <SafeAreaProvider>
