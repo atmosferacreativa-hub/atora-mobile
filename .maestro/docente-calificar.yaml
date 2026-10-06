@@ -53,6 +53,9 @@ name: docente-calificar
     visible: "Borrador guardado.*"
     timeout: 30000
 - takeScreenshot: capturas/docente-calificar-05-borrador
+- scrollUntilVisible:
+    element:
+      id: "grading-publish"
 - tapOn:
     id: "grading-publish"
 - extendedWaitUntil:

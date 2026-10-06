@@ -330,7 +330,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
                 setForm(theirs);
                 setConflict(null);
               }}
-              style={styles.primary}
+              style={[styles.primary, styles.modalButton]}
               testID="conflict-review"
             >
               <Text style={styles.primaryText}>Revisar su versión</Text>
@@ -346,7 +346,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
                   { text: 'Reemplazar', style: 'destructive', onPress: () => { setRevision(theirs.revision); void submit(false, theirs.revision); } },
                 ]);
               }}
-              style={styles.secondary}
+              style={[styles.secondary, styles.modalButton]}
               testID="conflict-keep-mine"
             >
               <Text style={styles.secondaryText}>Guardar la mía como borrador</Text>
@@ -407,6 +407,8 @@ const styles = StyleSheet.create({
   backdrop: { backgroundColor: colors.backdrop, flex: 1, justifyContent: 'center', padding: spacing.lg },
   modal: { backgroundColor: colors.surface, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.lg },
   theirs: { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, gap: 4, padding: spacing.md },
+  /** En el diálogo los botones van apilados: sin `flex: 1` (en columna los recortaba). */
+  modalButton: { flex: 0 },
   link: { alignItems: 'center', padding: spacing.sm },
   linkText: { color: colors.primary, fontWeight: '800' },
 });

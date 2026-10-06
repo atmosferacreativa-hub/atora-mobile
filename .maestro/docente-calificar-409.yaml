@@ -27,11 +27,11 @@ name: docente-calificar-409
 - extendedWaitUntil:
     visible: "Otro docente calificó primero"
     timeout: 30000
-- assertVisible: "Versión del docente dos.*"
+- assertVisible: ".*Versión del docente dos.*"
 - takeScreenshot: capturas/docente-calificar-409-01-conflicto
 - tapOn:
     id: "conflict-review"
 - extendedWaitUntil:
-    visible: "Versión del docente dos"
+    visible: ".*Versión del docente dos.*"
     timeout: 15000
 - takeScreenshot: capturas/docente-calificar-409-02-su-version
