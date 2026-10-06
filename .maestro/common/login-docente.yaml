@@ -1,10 +1,14 @@
 appId: com.atmosferacreativa.atora
 ---
-- launchApp:
-    clearState: true
-- extendedWaitUntil:
-    visible: "Ingresar a tu academia"
-    timeout: 90000
+# El emulador del CI a veces tarda en cargar la app tras borrar sus datos: se reintenta el arranque.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: "Ingresar a tu academia"
+          timeout: 60000
 - tapOn:
     id: "login-user"
 - inputText: "docente_e2e"
