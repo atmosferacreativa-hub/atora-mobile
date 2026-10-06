@@ -8,6 +8,7 @@ appId: com.atmosferacreativa.atora
 - tapOn:
     id: "login-user"
 - inputText: "estudiante2_e2e"
+- hideKeyboard
 - tapOn:
     id: "login-password"
 - inputText: "atora-e2e-2026"
