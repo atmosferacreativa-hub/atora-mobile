@@ -2,6 +2,16 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.6.1 (2026-10-06)
+
+Pruebas de pantalla en CI (orden de la Fase 4, Bloque 2). Sin cambios para el usuario; **sin APK** (la única de la fase sale con la 0.8.0).
+
+- **Recorridos Maestro** (`.maestro/`): `login`, `leccion` (3 videos y completar), `tarea` (entregar), `quiz` (responder y entregar), `mensajes` (leer y responder) y `sin-conexion` (modo avión: aviso, curso desde la caché, mensaje en cola que sale al volver). Una captura por pantalla.
+- **CI** (`.github/workflows/e2e.yml`): emulador Android API 34 x86_64 con KVM; WordPress + MySQL en Docker dentro del trabajo, con el plugin de `main` y los datos de `wp atora seed-e2e` (ATORA LMS 6.30.2 o superior); APK compilada en el CI con el perfil `e2e`. Cada PR corre `login` y `leccion`; al etiquetar, al fusionar en `main` o a mano, todos. Las capturas y el informe quedan como artefacto de la ejecución.
+- **Perfil `e2e`** (`eas.json` y `ATORA_E2E=1`): solo esa compilación permite HTTP en claro (`plugins/withE2ECleartext.js`) y apaga las actualizaciones remotas; las APK de vista previa y de producción no cambian.
+- `docs/PRUEBA-TELEFONO.md`: la lista única que el titular recorre en el teléfono al cerrar cada fase.
+- Campos de inicio de sesión con `testID`.
+
 ## 0.6.0 (2026-10-05)
 
 Fase 3 — Organizarse. Requiere **ATORA LMS 6.30.0** (`capabilities.messages`, `agenda`, `today`, `push_notifications`); con servidores anteriores, Mensajes y Agenda muestran "Próximamente" y Hoy usa el panel anterior.

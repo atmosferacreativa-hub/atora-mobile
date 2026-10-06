@@ -101,6 +101,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: APK de pruebas (perfil e2e)
+        timeout-minutes: 40
         env:
           ATORA_E2E: '1'
           EXPO_PUBLIC_ATORA_API_URL: ${{ env.API_URL }}
@@ -109,7 +110,14 @@ jobs:
           npm ci
           npx expo prebuild --platform android --no-install
           cd android
-          ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
+          # Con los 2 GiB / 512 MiB por defecto Gradle se queda sin Metaspace y se cuelga.
+          sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8/' gradle.properties
+          grep -q '^org.gradle.jvmargs' gradle.properties || echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g' >> gradle.properties
+          echo 'org.gradle.parallel=true' >> gradle.properties
+          echo 'org.gradle.caching=true' >> gradle.properties
+          # La APK de pruebas no necesita el lint de release (el paso más pesado).
+          printf '\nandroid { lint { checkReleaseBuilds = false } }\n' >> app/build.gradle
+          ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon --build-cache
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/atora-e2e.apk"
 
       - name: Maestro
