@@ -10,13 +10,16 @@ name: leccion
 - extendedWaitUntil:
     visible: "Video 1"
     timeout: 30000
-- assertVisible: "Video 2"
-- assertVisible: "Video 3"
 - takeScreenshot: capturas/leccion-02-videos
+- scrollUntilVisible:
+    element: "Video 2"
+- scrollUntilVisible:
+    element: "Video 3"
+- takeScreenshot: capturas/leccion-03-lista
 - scrollUntilVisible:
     element: "Marcar como completada"
 - tapOn: "Marcar como completada"
 - extendedWaitUntil:
     visible: "Lección completada"
     timeout: 30000
-- takeScreenshot: capturas/leccion-03-completada
+- takeScreenshot: capturas/leccion-04-completada
