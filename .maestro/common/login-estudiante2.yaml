@@ -1,10 +1,13 @@
 appId: com.atmosferacreativa.atora
 ---
-- launchApp:
-    clearState: true
-- extendedWaitUntil:
-    visible: "Ingresar a tu academia"
-    timeout: 90000
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: "Ingresar a tu academia"
+          timeout: 60000
 - tapOn:
     id: "login-user"
 - inputText: "estudiante2_e2e"
