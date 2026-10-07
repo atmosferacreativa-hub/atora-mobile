@@ -22,9 +22,12 @@ name: docente-sugerencia-ia
     visible:
       id: "ai-suggestion-ready"
     timeout: 130000
-- assertVisible: "Indicio de texto generado por IA: Medio"
-- assertVisible: "Indicio no concluyente. Verifica con el estudiante antes de decidir."
 - takeScreenshot: capturas/docente-sugerencia-ia-02-sugerencia
+- scrollUntilVisible:
+    element: "Indicio de texto generado por IA: Medio"
+- scrollUntilVisible:
+    element: "Indicio no concluyente. Verifica con el estudiante antes de decidir."
+- takeScreenshot: capturas/docente-sugerencia-ia-03-indicio
 - scrollUntilVisible:
     element:
       id: "ai-use-all"
@@ -43,7 +46,7 @@ name: docente-sugerencia-ia
 - assertVisible:
     id: "score-1"
     text: "10"
-- takeScreenshot: capturas/docente-sugerencia-ia-03-usada
+- takeScreenshot: capturas/docente-sugerencia-ia-04-usada
 - assertNotVisible:
     id: "grading-saved"
 # Editar quita la marca.
@@ -54,4 +57,4 @@ name: docente-sugerencia-ia
 - hideKeyboard
 - assertNotVisible:
     id: "ai-mark-1"
-- takeScreenshot: capturas/docente-sugerencia-ia-04-editada
+- takeScreenshot: capturas/docente-sugerencia-ia-05-editada
