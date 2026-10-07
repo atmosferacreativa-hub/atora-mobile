@@ -3,6 +3,11 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Tex
 import { Ionicons } from '@expo/vector-icons';
 import { downloadSubmissionFile, fetchSubmissionDetail, gradeSubmission } from '../../api/teacher';
 import { getSessionUserId } from '../../api/session';
+import { fetchSuggestionJob, requestSuggestion } from '../../api/ai';
+import { ApiError } from '../../api/client';
+import { getServerCapabilities } from '../../api/discovery';
+import { limitMessage } from '../../ai/conversation';
+import { applySuggestion, LIKELIHOOD_LABEL, NO_MARKS, pollSuggestion, unmarkCriterion, unmarkFeedback, type AiMarks, type GradingSuggestion } from '../../ai/suggestion';
 import { newEventId } from '../../offline/outbox/runtime';
 import { sqliteGradingDraftStore } from '../../grading/draftStore';
 import { discardDraft, expectedRevision, recoverDraft, saveDraft, type CriterionDraft, type GradingDraft } from '../../grading/drafts';
@@ -47,6 +52,13 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   /** 0.8.1: borrador recuperado después de que otro docente guardó (se muestra su versión al lado). */
   const [otherVersion, setOtherVersion] = useState<SubmissionDetail | null>(null);
   const [opening, setOpening] = useState(0);
+  /** 0.9.0: sugerencia de IA. Solo rellena el borrador; nunca guarda. */
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [ai, setAi] = useState<{ state: 'idle' | 'loading' | 'ready' | 'error'; suggestion?: GradingSuggestion; message?: string }>({ state: 'idle' });
+  const [aiMarks, setAiMarks] = useState<AiMarks>(NO_MARKS);
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(() => { void getServerCapabilities().then((caps) => setAiEnabled(Boolean(caps.ai_grading_suggestion))); }, []);
   const userId = useRef<number | null>(null);
   /** El formulario tal como está en el servidor: sin cambios no hay borrador local. */
   const pristine = useRef<Form | null>(null);
@@ -99,8 +111,42 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const total = rubricTotal(criteria.map((c, i) => ({ maxPoints: c.max_points, score: checks[i]?.ok ? (checks[i] as { value: number | null }).value : null })));
   const attempt = detail?.attempts.find((a) => a.attempt === form?.attempt) ?? detail?.attempts[detail.attempts.length - 1];
 
-  const setScore = (index: number, patch: Partial<CriterionDraft>) =>
+  const setScore = (index: number, patch: Partial<CriterionDraft>) => {
+    setAiMarks((marks) => unmarkCriterion(marks, index));
     setForm((current) => (current ? { ...current, scores: { ...current.scores, [index]: { score: '', feedback: '', ...current.scores[index], ...patch } } } : current));
+  };
+
+  const askSuggestion = async () => {
+    if (offline) {
+      Alert.alert('Sin conexión', 'La sugerencia de IA necesita conexión.');
+      return;
+    }
+    setAi({ state: 'loading' });
+    try {
+      const job = await requestSuggestion(token, submissionId);
+      const result = await pollSuggestion(job.job_id, {
+        fetch: (id) => fetchSuggestionJob(token, id),
+        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+        now: () => Date.now(),
+        cancelled: () => !mounted.current,
+      });
+      if (!mounted.current || result.kind === 'cancelled') return;
+      if (result.kind === 'done') setAi({ state: 'ready', suggestion: result.suggestion });
+      else setAi({ state: 'error', message: result.kind === 'failed' ? result.message : 'La sugerencia tardó demasiado. Intenta más tarde.' });
+    } catch (reason) {
+      if (!mounted.current) return;
+      const message = reason instanceof ApiError && reason.status === 429 ? limitMessage(reason.message, reason.data?.reset_at) : reason instanceof Error ? reason.message : 'No se pudo pedir la sugerencia.';
+      setAi({ state: 'error', message });
+    }
+  };
+
+  /** "Usar todo" (sin índice) o "Usar" en un criterio: solo el borrador local. */
+  const useSuggestion = (only?: number) => {
+    if (!form || !ai.suggestion) return;
+    const filled = applySuggestion(form, aiMarks, ai.suggestion, only);
+    setAiMarks(filled.marks);
+    setForm({ ...form, scores: filled.scores, feedback: filled.feedback });
+  };
 
   const openFile = async (file: SubmissionFileRef) => {
     setOpening(file.id);
@@ -236,6 +282,56 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         </View>
       ) : null}
 
+      {aiEnabled && detail.ai_suggestion_available && saved !== 'published' ? (
+        <View style={styles.aiCard} testID="ai-suggestion">
+          <View style={styles.scoreRow}>
+            <Ionicons name="sparkles-outline" size={20} color={colors.primaryStrong} />
+            <Text style={[styles.heading, styles.flex]}>Sugerencia de IA</Text>
+          </View>
+          <Text style={styles.meta}>La IA sugiere; tú decides. Usarla solo rellena tu borrador: nada se guarda ni se publica hasta que tú lo hagas.</Text>
+          {ai.state === 'idle' || ai.state === 'error' ? (
+            <Pressable accessibilityRole="button" disabled={offline} onPress={() => void askSuggestion()} style={[styles.copy, offline && styles.disabled]} testID="ai-suggestion-request">
+              <Text style={styles.copyText}>{ai.state === 'error' ? 'Pedir otra vez' : 'Sugerencia de IA'}</Text>
+            </Pressable>
+          ) : null}
+          {ai.state === 'loading' ? (
+            <View style={styles.scoreRow}><ActivityIndicator color={colors.primary} /><Text style={styles.meta}>Generando la sugerencia…</Text></View>
+          ) : null}
+          {ai.state === 'error' ? <Text style={styles.error} testID="ai-suggestion-error">{ai.message}</Text> : null}
+          {ai.state === 'ready' && ai.suggestion ? (
+            <View style={styles.aiBody} testID="ai-suggestion-ready">
+              {ai.suggestion.criteria.map((row) => (
+                <View key={row.index} style={styles.aiRow}>
+                  <View style={styles.flex}>
+                    <Text style={styles.criterion}>{row.name}: {row.score ?? '—'} de {row.max_points}{row.level ? ` · ${row.level}` : ''}</Text>
+                    <Text style={styles.meta}>{row.justification}</Text>
+                  </View>
+                  {row.score !== null ? (
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Usar sugerencia para ${row.name}`} onPress={() => useSuggestion(row.index)} style={styles.copy} testID={`ai-use-${row.index}`}>
+                      <Text style={styles.copyText}>Usar</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+              {ai.suggestion.feedback ? <Text style={styles.body}>{ai.suggestion.feedback}</Text> : null}
+              <View style={styles.likelihood} testID="ai-likelihood">
+                <Text style={styles.criterion}>Indicio de texto generado por IA: {LIKELIHOOD_LABEL[ai.suggestion.ai_likelihood]}</Text>
+                {ai.suggestion.ai_likelihood_note ? <Text style={styles.meta}>{ai.suggestion.ai_likelihood_note}</Text> : null}
+                <Text style={styles.likelihoodNote}>{ai.suggestion.disclaimer}</Text>
+              </View>
+              <View style={styles.actions}>
+                <Pressable accessibilityRole="button" onPress={() => useSuggestion()} style={styles.secondary} testID="ai-use-all">
+                  <Text style={styles.secondaryText}>Usar todo</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={() => void askSuggestion()} style={styles.secondary} testID="ai-suggestion-again">
+                  <Text style={styles.secondaryText}>Pedir otra</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       {criteria.length ? <Text style={styles.heading}>Rúbrica · {detail.rubric?.title}</Text> : null}
       {criteria.map((criterion, i) => {
         const draft = form.scores[criterion.index] ?? { score: '', feedback: '' };
@@ -245,6 +341,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         return (
           <View key={criterion.index} style={styles.card} testID={`criterion-${criterion.index}`}>
             <Text style={styles.criterion}>{criterion.name}</Text>
+            {aiMarks.criteria.includes(criterion.index) ? <Text style={styles.aiMark} testID={`ai-mark-${criterion.index}`}>Sugerido por IA</Text> : null}
             {criterion.description ? <Text style={styles.meta}>{criterion.description}</Text> : null}
             <View style={styles.chips}>
               {criterion.levels.map((level) => (
@@ -303,7 +400,8 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
           ) : null}
         </View>
         <Text style={styles.heading}>Comentario general</Text>
-        <TextInput accessibilityLabel="Comentario general" multiline onChangeText={(text) => setForm({ ...form, feedback: text })} placeholder="Retroalimentación para el estudiante" style={[styles.input, styles.feedback]} testID="general-feedback" value={form.feedback} />
+        {aiMarks.feedback ? <Text style={styles.aiMark} testID="ai-mark-feedback">Sugerido por IA</Text> : null}
+        <TextInput accessibilityLabel="Comentario general" multiline onChangeText={(text) => { setAiMarks(unmarkFeedback); setForm({ ...form, feedback: text }); }} placeholder="Retroalimentación para el estudiante" style={[styles.input, styles.feedback]} testID="general-feedback" value={form.feedback} />
       </View>
 
       {saved ? (
@@ -441,5 +539,11 @@ const styles = StyleSheet.create({
   /** En el diálogo los botones van apilados: sin `flex: 1` (en columna los recortaba). */
   modalButton: { flex: 0 },
   link: { alignItems: 'center', padding: spacing.sm },
+  aiCard: { backgroundColor: colors.primarySoft, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.md },
+  aiBody: { gap: spacing.sm },
+  aiRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
+  aiMark: { alignSelf: 'flex-start', backgroundColor: colors.primarySoft, borderRadius: 10, color: colors.primaryStrong, fontSize: 12, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2 },
+  likelihood: { backgroundColor: colors.accentSoft, borderRadius: radius.md, gap: 4, padding: spacing.sm },
+  likelihoodNote: { color: colors.accentText, fontSize: 13, fontStyle: 'italic' },
   linkText: { color: colors.primary, fontWeight: '800' },
 });

@@ -2,6 +2,16 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.9.0 (2026-10-06)
+
+Fase 5 — IA (Bloque 2). Requiere **ATORA LMS 6.32.0** (`capabilities.ai_assistant`, `ai_grading_suggestion`); con versiones anteriores, o si la academia no activó la IA, no aparece nada nuevo. **Única APK `preview` de la Fase 5.**
+
+- **Estudiante — "Preguntar"** en la lección: asistente que responde sobre esa lección (explica y da pistas; no resuelve evaluaciones ni tareas). La conversación vive solo en el teléfono durante la sesión y se borra al cerrar sesión. Aviso la primera vez y siempre visible: "Las respuestas las genera una IA y pueden contener errores. No compartas datos personales." Sin conexión, el botón y el envío se deshabilitan con "Necesitas conexión para usar el asistente" (no se encolan preguntas). Al llegar al límite, el mensaje dice cuándo se reinicia. Reintentar la misma pregunta no se cobra dos veces.
+- **Docente — "Sugerencia de IA"** al calificar una tarea abierta: la app pide la sugerencia y consulta cada 3 s (hasta 2 minutos). Muestra por criterio el puntaje sugerido, el nivel y la justificación, la devolución general y el **indicio** de texto generado por IA con su nota y "Indicio no concluyente. Verifica con el estudiante antes de decidir.". **"Usar todo"** o **"Usar"** por criterio solo rellenan el borrador local, marcado "Sugerido por IA" hasta que el docente lo edita: nada se guarda ni se publica sin que el docente lo haga.
+- **Recorridos de pantalla**: `estudiante-asistente` (pregunta, respuesta y sin conexión) y `docente-sugerencia-ia` (pedir, ver, usar todo, editar), contra el proveedor simulado del WordPress temporal del CI.
+- `docs/PRUEBA-TELEFONO.md`: filas 31–37 (Fase 5).
+- **TESTS** (Jest): conversación solo en la sesión (se borra al cerrar sesión, contexto de 6 turnos), mensaje de límite con la hora de reinicio; usar la sugerencia rellena sin enviar (todo o un criterio, marcas que se quitan al editar), consulta cada 3 s y se rinde a los 2 minutos; el indicio no aparece en ninguna pantalla ni tipo del estudiante.
+
 ## 0.8.1 (2026-10-06)
 
 Bloque A de la Fase 5 (auditoría externa de la Fase 4). Requiere **ATORA LMS 6.31.1** (revisión obligatoria al calificar). **Sin APK.**

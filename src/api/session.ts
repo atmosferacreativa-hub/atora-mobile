@@ -7,6 +7,7 @@ import { cacheGet, cacheSet } from '../offline/localCache';
 import { purgeOutboxFiles } from '../offline/outboxFiles';
 import { purgeLocalThumbnails } from '../offline/thumbnailFiles';
 import { performLogout, revokePending } from './logoutFlow';
+import { clearConversations } from '../ai/conversation';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 
 const SESSION_KEY = 'atora.mobile.session.v1';
@@ -33,6 +34,8 @@ function withExpirations(session: MobileSession, userId: number): StoredSession 
 }
 
 async function clearAppCaches(): Promise<void> {
+  // 0.9.0: la conversación con el asistente solo vive en la sesión.
+  clearConversations();
   // Base local (cachés y cola): no queda nada del usuario anterior.
   await purgeLocalDb().catch(() => undefined);
   // Archivos locales del usuario: un fallo en uno no debe impedir el resto ni el cierre de sesión.
