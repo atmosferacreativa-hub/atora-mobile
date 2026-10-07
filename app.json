@@ -2,7 +2,7 @@
   "expo": {
     "name": "ATORA",
     "slug": "atora-mobile",
-    "version": "0.9.0",
+    "version": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/a3b6c6d0-c58c-4508-ac3b-25c6ea11dd62"
     },
@@ -40,19 +40,18 @@
       ]
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.atmosferacreativa.atora",
-      "buildNumber": "3",
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true
-      }
+      },
+      "buildNumber": "3"
     },
     "android": {
       "package": "com.atmosferacreativa.atora",
-      "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#13233A"
@@ -61,7 +60,8 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.SYSTEM_ALERT_WINDOW"
-      ]
+      ],
+      "versionCode": 15
     },
     "web": {
       "bundler": "metro",
