@@ -5,6 +5,7 @@ import { gradeLabel } from '../grades/gradeLabel';
 import { colors, spacing } from '../theme';
 import type { ActivityGrade, CourseGradesDetail } from '../types';
 import { STATUS_LABELS } from './EvolutionScreen';
+import { locale, t, tk } from '../i18n';
 
 type Props = {
   courseId: number;
@@ -17,11 +18,11 @@ type Props = {
 };
 
 const ACTIVITY_STATUS: Record<ActivityGrade['status'], string> = {
-  graded: 'Calificada',
-  in_review: 'En revisión',
-  needs_revision: 'Devuelta para corregir',
-  completed: 'Completada',
-  pending: 'Pendiente',
+  graded: tk('Calificada'),
+  in_review: tk('En revisión'),
+  needs_revision: tk('Devuelta para corregir'),
+  completed: tk('Completada'),
+  pending: tk('Pendiente'),
 };
 
 /** Notas de un curso (0.5.0): cada actividad con su nota (solo liberadas) y estado. */
@@ -46,7 +47,7 @@ export function CourseGradesScreen({ courseId, title, token, onBack, onOpenAssig
         onSeen();
       }
     } catch {
-      setError('No pudimos cargar las notas. Conéctate para sincronizarlas.');
+      setError(t('No pudimos cargar las notas. Conéctate para sincronizarlas.'));
     } finally {
       setLoading(false);
     }
@@ -58,14 +59,14 @@ export function CourseGradesScreen({ courseId, title, token, onBack, onOpenAssig
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>← Volver</Text></Pressable>
-      <Text style={styles.title}>Notas · {title}</Text>
-      {syncedAt ? <Text style={styles.sync}>{fromCache ? 'Sin conexión · ' : ''}Actualizado el {new Date(syncedAt).toLocaleString('es')}</Text> : null}
+      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Text style={styles.title}>{t('Notas')} · {title}</Text>
+      {syncedAt ? <Text style={styles.sync}>{fromCache ? `${t('Sin conexión')} · ` : ''}{t('Actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {detail ? (
         <View style={styles.summary}>
           <Text style={gradeLabel(detail.course.final_grade).empty ? styles.summaryEmpty : styles.summaryGrade}>{gradeLabel(detail.course.final_grade).text}</Text>
-          <Text style={styles.meta}>Nota acumulada · {STATUS_LABELS[detail.course.status] ?? detail.course.status} · {detail.course.progress}% de avance</Text>
+          <Text style={styles.meta}>{t('Nota acumulada')} · {STATUS_LABELS[detail.course.status] ? t(STATUS_LABELS[detail.course.status]) : detail.course.status} · {t('{percent}% de avance', { percent: detail.course.progress })}</Text>
         </View>
       ) : null}
       {detail?.activities.map((activity) => {
@@ -77,15 +78,15 @@ export function CourseGradesScreen({ courseId, title, token, onBack, onOpenAssig
             <View style={styles.flex}>
               <Text style={styles.name}>{activity.title}</Text>
               <Text style={[styles.status, activity.status === 'graded' && styles.statusOk, activity.status === 'needs_revision' && styles.statusWarn]}>
-                {ACTIVITY_STATUS[activity.status] ?? activity.status}{activity.weight_label ? ` · ${activity.weight_label}${activity.weight !== null ? ` (${activity.weight}%)` : ''}` : ''}
-                {activity.has_feedback ? ' · con comentarios' : ''}
+                {ACTIVITY_STATUS[activity.status] ? t(ACTIVITY_STATUS[activity.status]) : activity.status}{activity.weight_label ? ` · ${activity.weight_label}${activity.weight !== null ? ` (${activity.weight}%)` : ''}` : ''}
+                {activity.has_feedback ? ` · ${t('con comentarios')}` : ''}
               </Text>
             </View>
             <Text style={styles.grade}>{activity.grade ?? '—'}</Text>
           </Pressable>
         );
       })}
-      {detail && !detail.activities.length ? <Text style={styles.meta}>Este curso todavía no tiene actividades con nota.</Text> : null}
+      {detail && !detail.activities.length ? <Text style={styles.meta}>{t('Este curso todavía no tiene actividades con nota.')}</Text> : null}
     </ScrollView>
   );
 }

@@ -6,6 +6,7 @@ import { formatBytes, kindOf, type CourseUsage, type DownloadRecord } from '../o
 import { getDownloadUsage, removeCourseDownloads, removeDownloadFile, removeLessonAll } from '../offline/mediaDownloads';
 import { colors, spacing } from '../theme';
 import type { CourseSummary } from '../types';
+import { t } from '../i18n';
 
 type Props = { courses: CourseSummary[]; onBack: () => void };
 
@@ -27,7 +28,7 @@ export function DownloadsScreen({ courses, onBack }: Props) {
     const titles: Record<number, string> = {};
     for (const course of next.courses) {
       for (const lesson of course.lessons) {
-        titles[lesson.lessonId] = lesson.title || (await cachedLesson(lesson.lessonId).catch(() => null))?.title || `Lección ${lesson.lessonId}`;
+        titles[lesson.lessonId] = lesson.title || (await cachedLesson(lesson.lessonId).catch(() => null))?.title || t('Lección {id}', { id: lesson.lessonId });
       }
     }
     setLessonTitles(titles);
@@ -36,12 +37,12 @@ export function DownloadsScreen({ courses, onBack }: Props) {
   useEffect(() => { void load(); }, [load]);
 
   const courseTitle = (courseId: number) =>
-    courses.find((course) => course.id === courseId)?.title || (courseId ? `Curso ${courseId}` : 'Otras descargas');
+    courses.find((course) => course.id === courseId)?.title || (courseId ? t('Curso {id}', { id: courseId }) : t('Otras descargas'));
 
   const confirm = (title: string, message: string, action: () => Promise<void>) => {
     Alert.alert(title, message, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => void action().then(load) },
+      { text: t('Cancelar'), style: 'cancel' },
+      { text: t('Eliminar'), style: 'destructive', onPress: () => void action().then(load) },
     ]);
   };
 
@@ -51,13 +52,13 @@ export function DownloadsScreen({ courses, onBack }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>← Volver</Text></Pressable>
-      <Text style={styles.title}>Descargas</Text>
+      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Text style={styles.title}>{t('Descargas')}</Text>
       <View style={styles.quota}>
-        <Text style={styles.quotaText}>{formatBytes(usage.usedBytes) || '0 MB'} de {formatBytes(usage.maxBytes)}</Text>
+        <Text style={styles.quotaText}>{t('{used} de {max}', { used: formatBytes(usage.usedBytes) || '0 MB', max: formatBytes(usage.maxBytes) })}</Text>
         <View style={styles.bar}><View style={[styles.fill, { width: `${pct}%` }]} /></View>
       </View>
-      {!usage.courses.length ? <Text style={styles.empty}>No hay nada descargado.</Text> : null}
+      {!usage.courses.length ? <Text style={styles.empty}>{t('No hay nada descargado.')}</Text> : null}
       {usage.courses.map((course) => (
         <View key={course.courseId} style={styles.course}>
           <View style={styles.courseHead}>
@@ -67,9 +68,9 @@ export function DownloadsScreen({ courses, onBack }: Props) {
             </View>
             <Pressable
               accessibilityRole="button"
-              onPress={() => confirm('¿Borrar todo el curso?', `Se liberan ${formatBytes(course.bytes)}. Seguirá disponible con conexión.`, () => removeCourseDownloads(course.courseId))}
+              onPress={() => confirm(t('¿Borrar todo el curso?'), t('Se liberan {size}. Seguirá disponible con conexión.', { size: formatBytes(course.bytes) }), () => removeCourseDownloads(course.courseId))}
             >
-              <Text style={styles.remove}>Borrar curso</Text>
+              <Text style={styles.remove}>{t('Borrar curso')}</Text>
             </Pressable>
           </View>
           {course.lessons.map((lesson) => (
@@ -78,7 +79,7 @@ export function DownloadsScreen({ courses, onBack }: Props) {
                 <Text numberOfLines={2} style={styles.lessonTitle}>{lessonTitles[lesson.lessonId] ?? ''}</Text>
                 <Text style={styles.meta}>{formatBytes(lesson.bytes)}</Text>
                 <Pressable accessibilityRole="button" onPress={() => void removeLessonAll(lesson.lessonId).then(load)}>
-                  <Text style={styles.remove}>Borrar</Text>
+                  <Text style={styles.remove}>{t('Borrar')}</Text>
                 </Pressable>
               </View>
               {lesson.items.map((item: DownloadRecord) => (
@@ -87,11 +88,11 @@ export function DownloadsScreen({ courses, onBack }: Props) {
                     ? <MediaImage play style={styles.thumb} uri={item.thumbnailUrl} />
                     : <View style={styles.fileIcon}><Text style={styles.fileIconText}>{fileLabel(item)}</Text></View>}
                   <View style={styles.flex}>
-                    <Text numberOfLines={2} style={styles.itemTitle}>{kindOf(item) === 'video' ? (item.videoKey && item.title ? item.title : 'Video') : item.title || 'Material'}</Text>
-                    <Text style={styles.meta}>{formatBytes(item.size)}{item.updateAvailable ? ' · Actualización disponible' : ''}</Text>
+                    <Text numberOfLines={2} style={styles.itemTitle}>{kindOf(item) === 'video' ? (item.videoKey && item.title ? item.title : t('Video')) : item.title || t('Material')}</Text>
+                    <Text style={styles.meta}>{formatBytes(item.size)}{item.updateAvailable ? ` · ${t('Actualización disponible')}` : ''}</Text>
                   </View>
                   <Pressable accessibilityRole="button" onPress={() => void removeDownloadFile(item.localUri).then(load)}>
-                    <Text style={styles.remove}>Eliminar</Text>
+                    <Text style={styles.remove}>{t('Eliminar')}</Text>
                   </Pressable>
                 </View>
               ))}

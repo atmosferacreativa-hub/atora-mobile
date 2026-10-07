@@ -14,6 +14,7 @@ import {
   type DownloadSettings,
 } from './downloadsMath';
 import type { LessonDetail, LessonResource } from '../types';
+import { t } from '../i18n/core';
 
 export type { DownloadRecord, DownloadSettings };
 
@@ -159,10 +160,10 @@ function isAllowedSource(sourceUrl: string): boolean {
 async function assertNetwork(settings: DownloadSettings, allowCellular = false): Promise<void> {
   const network = await Network.getNetworkStateAsync();
   if (!network.isConnected || network.isInternetReachable === false) {
-    throw new Error('Necesitas conexión para descargar.');
+    throw new Error(t('Necesitas conexión para descargar.'));
   }
   if (settings.wifiOnly && !allowCellular && network.type !== Network.NetworkStateType.WIFI) {
-    throw new Error('Las descargas están limitadas a Wi-Fi.');
+    throw new Error(t('Las descargas están limitadas a Wi-Fi.'));
   }
 }
 
@@ -173,13 +174,13 @@ async function fetchToManifest(
   replace: (existing: DownloadRecord) => boolean,
 ): Promise<DownloadRecord> {
   if (!isAllowedSource(sourceUrl)) {
-    throw new Error('Solo se permiten descargas protegidas por HTTPS.');
+    throw new Error(t('Solo se permiten descargas protegidas por HTTPS.'));
   }
   await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, { intermediates: true });
   const result = await FileSystem.downloadAsync(sourceUrl, `${DOWNLOAD_DIR}${fileName}`);
   if (result.status < 200 || result.status >= 300) {
     await FileSystem.deleteAsync(result.uri, { idempotent: true });
-    throw new Error('El servidor no entregó el archivo.');
+    throw new Error(t('El servidor no entregó el archivo.'));
   }
   const info = await FileSystem.getInfoAsync(result.uri);
   const now = Date.now();
@@ -198,7 +199,7 @@ async function fetchToManifest(
   });
   const maintained = await maintainDownloads();
   const kept = maintained.find((item) => item.localUri === saved.localUri);
-  if (!kept) throw new Error('No hay espacio disponible dentro del límite configurado.');
+  if (!kept) throw new Error(t('No hay espacio disponible dentro del límite configurado.'));
   return kept;
 }
 
@@ -239,7 +240,7 @@ export async function downloadResource(
   options: { allowCellular?: boolean } = {},
 ): Promise<DownloadRecord> {
   const sourceUrl = resource.download_url || resource.url;
-  if (!resource.downloadable || !sourceUrl) throw new Error('Este material solo está disponible con conexión.');
+  if (!resource.downloadable || !sourceUrl) throw new Error(t('Este material solo está disponible con conexión.'));
   await assertNetwork(await getDownloadSettings(), options.allowCellular);
   const key = resourceKey(lesson.id, resource);
   return fetchToManifest(

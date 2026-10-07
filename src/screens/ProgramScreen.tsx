@@ -5,6 +5,7 @@ import { fetchProgram } from '../api/programs';
 import { MediaImage } from '../components/MediaImage';
 import { colors, spacing } from '../theme';
 import type { ProgramDetail } from '../types';
+import { t } from '../i18n';
 
 type Props = {
   programId: number;
@@ -23,7 +24,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
     let active = true;
     fetchProgram(programId, token)
       .then((value) => { if (active) setData(value); })
-      .catch(() => { if (active) setError('No pudimos cargar este programa.'); });
+      .catch(() => { if (active) setError(t('No pudimos cargar este programa.')); });
     return () => { active = false; };
   }, [programId, token]);
 
@@ -52,7 +53,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable onPress={onBack}><Text style={styles.back}>← Volver</Text></Pressable>
+      <Pressable onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {program ? (
         <>
@@ -64,7 +65,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
             <View style={styles.metaCard}>
               {outcomes.length ? (
                 <>
-                  <Text style={styles.metaTitle}>Qué aprenderás</Text>
+                  <Text style={styles.metaTitle}>{t('Qué aprenderás')}</Text>
                   {outcomes.slice(0, 6).map((item) => (
                     <Text key={item} style={styles.bullet}>• {item}</Text>
                   ))}
@@ -72,7 +73,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
               ) : null}
               {exitProfile.length ? (
                 <>
-                  <Text style={styles.metaTitle}>Perfil de egreso</Text>
+                  <Text style={styles.metaTitle}>{t('Perfil de egreso')}</Text>
                   {exitProfile.slice(0, 6).map((item) => (
                     <Text key={item} style={styles.bullet}>• {item}</Text>
                   ))}
@@ -81,7 +82,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
             </View>
           ) : null}
 
-          <Text style={styles.heading}>Cursos del programa</Text>
+          <Text style={styles.heading}>{t('Cursos del programa')}</Text>
           {(data.courses ?? []).map((course) => (
             <View key={course.id} style={styles.courseCard}>
               <MediaImage uri={course.thumbnail_url} />
@@ -89,13 +90,13 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
                 <Text style={styles.courseTitle}>{course.title}</Text>
                 <Text style={styles.percent}>{course.progress}%</Text>
               </View>
-              <Text style={styles.courseMeta}>{course.completed_lessons} de {course.total_lessons} lecciones</Text>
+              <Text style={styles.courseMeta}>{t('{done} de {total} lecciones', { done: course.completed_lessons, total: course.total_lessons })}</Text>
               <View style={styles.actions}>
                 <Pressable onPress={() => void continueCourse(course.id)} style={styles.primary}>
-                  {continuingId === course.id ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>{course.progress > 0 ? 'Continuar' : 'Empezar'}</Text>}
+                  {continuingId === course.id ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>{course.progress > 0 ? t('Continuar') : t('Empezar')}</Text>}
                 </Pressable>
                 <Pressable onPress={() => onOpenCourse(course.id)} style={styles.secondary}>
-                  <Text style={styles.secondaryText}>Ver temario</Text>
+                  <Text style={styles.secondaryText}>{t('Ver temario')}</Text>
                 </Pressable>
               </View>
             </View>

@@ -7,6 +7,7 @@ import { subscribeOutbox } from '../offline/outbox/runtime';
 import { EmptyState } from '../components/ui';
 import { colors, radius, spacing } from '../theme';
 import type { MessageThread, ThreadsResponse } from '../types';
+import { locale, t } from '../i18n';
 
 type Props = {
   token: string;
@@ -22,8 +23,8 @@ export function formatWhen(iso: string | null): string {
   const date = new Date(iso);
   const today = new Date();
   return date.toDateString() === today.toDateString()
-    ? date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
-    : date.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+    ? date.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
+    : date.toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
 }
 
 function ThreadRow({ thread, pinned, onPress }: { thread: MessageThread; pinned?: boolean; onPress: () => void }) {
@@ -39,7 +40,7 @@ function ThreadRow({ thread, pinned, onPress }: { thread: MessageThread; pinned?
         </View>
         <View style={styles.rowHead}>
           <Text numberOfLines={1} style={styles.preview}>
-            {thread.last_message ? `${thread.last_message.mine ? 'Tú: ' : ''}${thread.last_message.preview}` : pinned ? 'Sin avisos todavía.' : ''}
+            {thread.last_message ? `${thread.last_message.mine ? t('Tú: ') : ''}${thread.last_message.preview}` : pinned ? t('Sin avisos todavía.') : ''}
           </Text>
           {thread.unread > 0 ? <Text style={styles.badge}>{thread.unread > 99 ? '99+' : thread.unread}</Text> : null}
         </View>
@@ -65,7 +66,7 @@ export function MessagesScreen({ token, canCompose, onOpenThread, onCompose, pus
       setFromCache(result.fromCache);
       setError('');
     } catch {
-      setError('No pudimos cargar tus mensajes. Conéctate para sincronizarlos.');
+      setError(t('No pudimos cargar tus mensajes. Conéctate para sincronizarlos.'));
     } finally {
       setLoading(false);
     }
@@ -80,21 +81,21 @@ export function MessagesScreen({ token, canCompose, onOpenThread, onCompose, pus
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mensajes</Text>
+        <Text style={styles.title}>{t('Mensajes')}</Text>
         {canCompose ? (
           <Pressable accessibilityRole="button" onPress={onCompose} style={styles.compose}>
             <Ionicons name="create-outline" size={18} color={colors.white} />
-            <Text style={styles.composeText}>Escribir</Text>
+            <Text style={styles.composeText}>{t('Escribir')}</Text>
           </Pressable>
         ) : null}
       </View>
-      {fromCache && syncedAt ? <Text style={styles.sync}>Sin conexión · actualizado el {new Date(syncedAt).toLocaleString('es')}</Text> : null}
+      {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {pushPrompt}
       {data ? <ThreadRow thread={data.avisos} pinned onPress={() => onOpenThread(data.avisos)} /> : null}
       {data?.threads.map((thread) => <ThreadRow key={thread.id} thread={thread} onPress={() => onOpenThread(thread)} />)}
       {data && !data.threads.length ? (
-        <EmptyState icon="chatbubbles-outline" title="Sin conversaciones" description={canCompose ? 'Escribe a tus docentes con el botón Escribir.' : 'Las conversaciones con tus estudiantes aparecerán aquí.'} />
+        <EmptyState icon="chatbubbles-outline" title={t('Sin conversaciones')} description={canCompose ? t('Escribe a tus docentes con el botón Escribir.') : t('Las conversaciones con tus estudiantes aparecerán aquí.')} />
       ) : null}
     </ScrollView>
   );

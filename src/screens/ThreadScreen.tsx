@@ -8,6 +8,7 @@ import { useNetworkState } from '../hooks/useNetworkState';
 import { colors, radius, spacing } from '../theme';
 import type { InboxMessage, InternalLink, MessageThread } from '../types';
 import { formatWhen } from './MessagesScreen';
+import { locale, t } from '../i18n';
 
 type Props = {
   token: string;
@@ -49,7 +50,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
         void markThreadRead(threadId, token).catch(() => undefined);
       }
     } catch {
-      setError('No pudimos abrir la conversación. Conéctate para verla por primera vez.');
+      setError(t('No pudimos abrir la conversación. Conéctate para verla por primera vez.'));
     } finally {
       setLoading(false);
     }
@@ -104,15 +105,15 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
           {item.body ? <Text style={[styles.bubbleBody, mine && styles.mineText]}>{item.body}</Text> : null}
           {item.link ? (
             <Pressable accessibilityRole="button" onPress={() => onOpenLink(item.link as InternalLink)} style={styles.linkButton}>
-              <Text style={styles.linkText}>{item.link.type === 'assignment' ? 'Ver tarea' : item.link.type === 'quiz' ? 'Abrir evaluación' : item.link.type === 'course' ? 'Ver curso' : 'Abrir lección'}</Text>
+              <Text style={styles.linkText}>{item.link.type === 'assignment' ? t('Ver tarea') : item.link.type === 'quiz' ? t('Abrir evaluación') : item.link.type === 'course' ? t('Ver curso') : t('Abrir lección')}</Text>
             </Pressable>
           ) : null}
           <Text style={[styles.meta, mine && styles.mineMeta]}>
-            {item.state === 'pending' ? 'Pendiente · se enviará al tener conexión' : item.state === 'failed' ? `No se envió${item.error ? `: ${item.error}` : ''}` : formatWhen(item.created_at)}
+            {item.state === 'pending' ? t('Pendiente · se enviará al tener conexión') : item.state === 'failed' ? `${t('No se envió')}${item.error ? `: ${item.error}` : ''}` : formatWhen(item.created_at)}
           </Text>
           {item.state === 'failed' && item.client_event_id ? (
             <Pressable accessibilityRole="button" onPress={() => void dismissOutboxEvent(item.client_event_id as string).then(load)}>
-              <Text style={styles.discard}>Descartar</Text>
+              <Text style={styles.discard}>{t('Descartar')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -123,10 +124,10 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
       <View style={styles.top}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Volver" onPress={onBack} hitSlop={12}><Ionicons name="arrow-back" size={22} color={colors.primary} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}><Ionicons name="arrow-back" size={22} color={colors.primary} /></Pressable>
         <Text numberOfLines={1} style={styles.heading}>{heading}</Text>
       </View>
-      {fromCache && syncedAt ? <Text style={styles.sync}>Sin conexión · actualizado el {new Date(syncedAt).toLocaleString('es')}</Text> : null}
+      {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator style={styles.flex} color={colors.primary} /> : (
         <FlatList
@@ -137,22 +138,22 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
           contentContainerStyle={styles.list}
           onEndReached={() => void loadOlder()}
           onEndReachedThreshold={0.3}
-          ListEmptyComponent={<Text style={styles.empty}>{thread?.type === 'system' ? 'Sin avisos todavía.' : 'Escribe el primer mensaje.'}</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{thread?.type === 'system' ? t('Sin avisos todavía.') : t('Escribe el primer mensaje.')}</Text>}
         />
       )}
       {canReply ? (
         <View style={styles.composer}>
           <TextInput
-            accessibilityLabel="Escribe un mensaje"
+            accessibilityLabel={t('Escribe un mensaje')}
             multiline
             maxLength={4000}
             onChangeText={setText}
-            placeholder={network.offline ? 'Sin conexión: se enviará al volver' : 'Escribe un mensaje'}
+            placeholder={network.offline ? t('Sin conexión: se enviará al volver') : t('Escribe un mensaje')}
             placeholderTextColor={colors.textMuted}
             style={styles.input}
             value={text}
           />
-          <Pressable accessibilityRole="button" accessibilityLabel="Enviar" disabled={!text.trim()} onPress={() => void send()} style={[styles.send, !text.trim() && styles.sendDisabled]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('Enviar')} disabled={!text.trim()} onPress={() => void send()} style={[styles.send, !text.trim() && styles.sendDisabled]}>
             <Ionicons name="send" size={18} color={colors.white} />
           </Pressable>
         </View>

@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { downloadCertificate, listCertificates, type StoredCertificate } from '../api/certificates';
+import { getServerCapabilities } from '../api/discovery';
 import { colors, spacing } from '../theme';
+import { t, tk } from '../i18n';
 
 type Props = {
   token: string;
   onBack: () => void;
-  onOpen: (title: string, localUri: string) => void;
+  onOpen: (title: string, localUri: string, format: 'pdf' | 'html') => void;
 };
 
-const STATUS: Record<StoredCertificate['status'], string> = { issued: 'Emitido', available: 'Disponible', revoked: 'Revocado' };
+const STATUS: Record<StoredCertificate['status'], string> = { issued: tk('Emitido'), available: tk('Disponible'), revoked: tk('Revocado') };
 
 /** Certificados (0.5.0): se descargan al teléfono y se abren después sin conexión. */
 export function CertificatesScreen({ token, onBack, onOpen }: Props) {
@@ -26,7 +28,7 @@ export function CertificatesScreen({ token, onBack, onOpen }: Props) {
       setItems(result.items);
       setFromCache(result.fromCache);
     } catch {
-      setNotice('No pudimos cargar tus certificados.');
+      setNotice(t('No pudimos cargar tus certificados.'));
       setItems((current) => current ?? []);
     } finally {
       setLoading(false);
@@ -40,11 +42,12 @@ export function CertificatesScreen({ token, onBack, onOpen }: Props) {
     setBusy(id);
     setNotice('');
     try {
-      const saved = await downloadCertificate(item, token);
+      const caps = await getServerCapabilities().catch(() => ({} as { certificate_pdf?: boolean }));
+      const saved = await downloadCertificate(item, token, Boolean(caps.certificate_pdf));
       setItems((current) => (current ?? []).map((c) => (c.type === saved.type && c.id === saved.id ? saved : c)));
-      if (saved.localUri) onOpen(saved.title, saved.localUri);
+      if (saved.localUri) onOpen(saved.title, saved.localUri, saved.format ?? 'html');
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : 'No se pudo descargar el certificado.');
+      setNotice(reason instanceof Error ? reason.message : t('No se pudo descargar el certificado.'));
     } finally {
       setBusy('');
     }
@@ -54,10 +57,10 @@ export function CertificatesScreen({ token, onBack, onOpen }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>← Volver</Text></Pressable>
-      <Text style={styles.title}>Certificados</Text>
-      <Text style={styles.meta}>Formato provisional. {fromCache ? 'Sin conexión: se muestran los guardados.' : 'Los descargados se abren sin conexión.'}</Text>
-      {!items.length ? <Text style={styles.meta}>Todavía no tienes certificados.</Text> : null}
+      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Text style={styles.title}>{t('Certificados')}</Text>
+      <Text style={styles.meta}>{fromCache ? t('Sin conexión: se muestran los guardados.') : t('Los descargados se abren sin conexión.')}</Text>
+      {!items.length ? <Text style={styles.meta}>{t('Todavía no tienes certificados.')}</Text> : null}
       {items.map((item) => {
         const id = `${item.type}-${item.id}`;
         const revoked = item.status === 'revoked';
@@ -65,19 +68,19 @@ export function CertificatesScreen({ token, onBack, onOpen }: Props) {
           <View key={id} style={styles.card}>
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={[styles.meta, revoked && styles.revoked]}>
-              {STATUS[item.status] ?? item.status}{item.type === 'program' ? ' · Programa' : ''}{item.certificate_code ? ` · ${item.certificate_code}` : ''}
+              {STATUS[item.status] ? t(STATUS[item.status]) : item.status}{item.type === 'program' ? ` · ${t('Programa')}` : ''}{item.certificate_code ? ` · ${item.certificate_code}` : ''}
             </Text>
             <View style={styles.actions}>
               {busy === id ? <ActivityIndicator color={colors.blue} /> : (
                 <>
                   {item.localUri ? (
-                    <Pressable accessibilityRole="button" onPress={() => onOpen(item.title, item.localUri as string)} style={styles.primary}>
-                      <Text style={styles.primaryText}>Ver</Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t('Ver certificado de {title}', { title: item.title })} onPress={() => onOpen(item.title, item.localUri as string, item.format ?? 'html')} style={styles.primary} testID={`certificate-open-${id}`}>
+                      <Text style={styles.primaryText}>{t('Ver')}</Text>
                     </Pressable>
                   ) : null}
                   {!revoked && !fromCache ? (
-                    <Pressable accessibilityRole="button" onPress={() => void download(item)} style={styles.secondary}>
-                      <Text style={styles.secondaryText}>{item.localUri ? 'Actualizar' : 'Descargar'}</Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t('Descargar certificado de {title}', { title: item.title })} onPress={() => void download(item)} style={styles.secondary} testID={`certificate-download-${id}`}>
+                      <Text style={styles.secondaryText}>{item.localUri ? t('Actualizar') : t('Descargar')}</Text>
                     </Pressable>
                   ) : null}
                 </>

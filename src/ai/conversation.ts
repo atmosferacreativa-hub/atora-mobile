@@ -1,3 +1,4 @@
+import { locale, t } from '../i18n/core';
 /**
  * Asistente del estudiante (0.9.0, plugin 6.32.0). Módulo puro, para Jest.
  *
@@ -33,14 +34,14 @@ export function historyFor(turns: Turn[]): Turn[] {
 
 /** Mensaje del límite diario o del tope mensual (429), con la hora de reinicio. */
 export function limitMessage(serverMessage: string, resetAt: unknown, now = new Date()): string {
-  if (/se reinicia/i.test(serverMessage)) return serverMessage;
+  if (/se reinicia|resets/i.test(serverMessage)) return serverMessage;
   if (typeof resetAt !== 'string' || Number.isNaN(Date.parse(resetAt))) return serverMessage;
   const reset = new Date(resetAt);
   const sameDay = reset.toDateString() === now.toDateString();
-  const time = reset.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-  const when = sameDay ? `hoy a las ${time}` : `el ${reset.toLocaleDateString('es', { day: 'numeric', month: 'long' })} a las ${time}`;
-  return `${serverMessage} Se reinicia ${when}.`;
+  const time = reset.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
+  const when = sameDay ? t('hoy a las {time}', { time }) : t('el {date} a las {time}', { date: reset.toLocaleDateString(locale(), { day: 'numeric', month: 'long' }), time });
+  return t('{message} Se reinicia {when}.', { message: serverMessage, when });
 }
 
-export const AI_DISCLAIMER = 'Las respuestas las genera una IA y pueden contener errores. No compartas datos personales.';
-export const OFFLINE_MESSAGE = 'Necesitas conexión para usar el asistente';
+export const aiDisclaimer = (): string => t('Las respuestas las genera una IA y pueden contener errores. No compartas datos personales.');
+export const offlineMessage = (): string => t('Necesitas conexión para usar el asistente');

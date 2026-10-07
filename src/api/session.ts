@@ -9,6 +9,7 @@ import { purgeLocalThumbnails } from '../offline/thumbnailFiles';
 import { performLogout, revokePending } from './logoutFlow';
 import { clearConversations } from '../ai/conversation';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
+import { t } from '../i18n/core';
 
 const SESSION_KEY = 'atora.mobile.session.v1';
 // Fuera de los prefijos que se purgan al cerrar sesión: tiene que sobrevivir hasta el próximo inicio con red.
@@ -75,7 +76,7 @@ async function persist(session: StoredSession): Promise<void> {
     );
   } catch {
     throw new ApiError(
-      'Tus datos fueron aceptados, pero Android no pudo guardar la sesión segura. Reinicia Expo Go e inténtalo otra vez.',
+      t('Tus datos fueron aceptados, pero el teléfono no pudo guardar la sesión segura. Cierra la app y vuelve a intentarlo.'),
       0,
       'secure_storage_error',
     );

@@ -24,10 +24,13 @@ import { AppNavigator, navigationRef, openDestination } from './src/navigation/A
 import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/navigation/roles';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { initRuntimeConfig } from './src/runtimeConfig';
+import { initLanguage, useLanguage } from './src/i18n';
 import { colors, spacing } from './src/theme';
 import type { ServerCapabilities, StudentHome } from './src/types';
 
 function AppShell() {
+  // Al cambiar de idioma, se vuelve a dibujar todo.
+  useLanguage();
   const [token, setToken] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<StudentHome | null>(null);
   const [mode, setMode] = useState<AppMode>('student');
@@ -90,6 +93,8 @@ function AppShell() {
     let active = true;
     (async () => {
       await initRuntimeConfig();
+      // 1.0.0: idioma elegido en Yo o el del teléfono, antes de dibujar nada.
+      await initLanguage().catch(() => undefined);
       // Antes de restaurar la sesión: si el token ya no sirve, la restauración purga el almacenamiento.
       await migrateLegacyStorage().catch(() => undefined);
       void loadServerCapabilities();
@@ -251,6 +256,7 @@ function AppShell() {
             push: Boolean(capabilities?.push_notifications),
             teacher: Boolean(capabilities?.teacher),
             grading: Boolean(capabilities?.teacher_grading),
+            accountDeletion: Boolean(capabilities?.account_deletion),
           },
           unreadMessages,
           newGradeCourses,

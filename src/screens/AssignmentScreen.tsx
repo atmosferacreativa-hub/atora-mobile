@@ -16,6 +16,7 @@ import { dismissOutboxEvent, flushOutbox, listOutbox, subscribeOutbox } from '..
 import type { OutboxEvent } from '../offline/outbox/types';
 import { colors, spacing } from '../theme';
 import type { AssignmentResponse, AssignmentSubmission } from '../types';
+import { locale, t } from '../i18n';
 
 type Props = { lessonId: number; token: string; onBack: () => void };
 
@@ -29,7 +30,7 @@ function fromServer(value: string | null): Date | null {
 }
 
 function formatDate(date: Date | null): string {
-  return date ? date.toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  return date ? date.toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '';
 }
 
 function htmlToText(html: string): string {
@@ -44,11 +45,11 @@ function htmlToText(html: string): string {
 }
 
 function serverStatus(submission: AssignmentSubmission): { label: string; tone: 'ok' | 'late' | 'graded' } {
-  if (submission.grade !== null && submission.grade !== undefined) return { label: `Calificada · ${submission.grade}`, tone: 'graded' };
+  if (submission.grade !== null && submission.grade !== undefined) return { label: `${t('Calificada')} · ${submission.grade}`, tone: 'graded' };
   // 6.29.0: guardada por el docente pero no liberada: no hay nota que mostrar.
-  if (submission.in_review) return { label: 'En revisión', tone: 'ok' };
-  if (submission.is_late) return { label: 'Tardía', tone: 'late' };
-  return { label: 'Entregada', tone: 'ok' };
+  if (submission.in_review) return { label: t('En revisión'), tone: 'ok' };
+  if (submission.is_late) return { label: t('Tardía'), tone: 'late' };
+  return { label: t('Entregada'), tone: 'ok' };
 }
 
 function uploadProgress(event: LocalEvent): number | null {
@@ -76,7 +77,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
       setData(await fetchAssignment(lessonId, token));
       setError('');
     } catch (reason) {
-      setError(reason instanceof ApiError ? reason.message : 'No pudimos cargar la tarea.');
+      setError(reason instanceof ApiError ? reason.message : t('No pudimos cargar la tarea.'));
     }
   }, [lessonId, token]);
 
@@ -122,7 +123,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
     if (!data) return;
     setFormError('');
     if (!text.trim() && !files.length) {
-      setFormError('Escribe una respuesta o adjunta un archivo.');
+      setFormError(t('Escribe una respuesta o adjunta un archivo.'));
       return;
     }
     const problem = validateAttachments(data.assignment.accepted_files, files);
@@ -139,7 +140,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
       await loadLocal();
       if (!network.offline) void flushOutbox(token).catch(() => undefined);
     } catch {
-      setFormError('No pudimos guardar la entrega en el teléfono. Revisa el espacio disponible.');
+      setFormError(t('No pudimos guardar la entrega en el teléfono. Revisa el espacio disponible.'));
     } finally {
       setBusy(false);
     }
@@ -158,30 +159,30 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Pressable onPress={onBack}><Text style={styles.back}>← Volver a la lección</Text></Pressable>
+      <Pressable onPress={onBack}><Text style={styles.back}>{t('← Volver a la lección')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {assignment ? (
         <>
-          <Text style={styles.eyebrow}>TAREA</Text>
+          <Text style={styles.eyebrow}>{t('TAREA')}</Text>
           <Text style={styles.title}>{assignment.title}</Text>
           <View style={styles.facts}>
-            <Text style={styles.fact}>{due ? `Fecha límite: ${formatDate(due)}` : 'Sin fecha límite'}</Text>
+            <Text style={styles.fact}>{due ? t('Fecha límite: {date}', { date: formatDate(due) }) : t('Sin fecha límite')}</Text>
             <Text style={styles.fact}>
-              Intentos usados: {used}
-              {remaining === null ? ' · sin límite' : ` · restantes: ${remaining}`}
+              {t('Intentos usados: {count}', { count: used })}
+              {remaining === null ? ` · ${t('sin límite')}` : ` · ${t('restantes: {count}', { count: remaining })}`}
             </Text>
           </View>
           {assignment.instructions_html ? <Text style={styles.body}>{htmlToText(assignment.instructions_html)}</Text> : null}
 
           {assignment.group_mode ? (
-            <Text style={styles.notice}>Esta es una tarea grupal: entrégala desde la web.</Text>
+            <Text style={styles.notice}>{t('Esta es una tarea grupal: entrégala desde la web.')}</Text>
           ) : canSubmit ? (
             <Card>
-              <Text style={styles.heading}>Tu entrega</Text>
+              <Text style={styles.heading}>{t('Tu entrega')}</Text>
               <TextInput
                 multiline
                 onChangeText={setText}
-                placeholder="Escribe tu respuesta (opcional si adjuntas archivos)"
+                placeholder={t('Escribe tu respuesta (opcional si adjuntas archivos)')}
                 style={styles.input}
                 value={text}
               />
@@ -189,53 +190,52 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
                 <View key={`${file.uri}-${index}`} style={styles.fileRow}>
                   <Text numberOfLines={1} style={styles.fileName}>{file.name}</Text>
                   <Pressable onPress={() => setFiles(files.filter((_, i) => i !== index))}>
-                    <Text style={styles.link}>Quitar</Text>
+                    <Text style={styles.link}>{t('Quitar')}</Text>
                   </Pressable>
                 </View>
               ))}
               <Text style={styles.help}>
-                Formatos: {assignment.accepted_files.extensions.join(', ')} · hasta {(assignment.accepted_files.max_bytes / (1024 * 1024)).toFixed(0)} MB
-                · máximo {assignment.accepted_files.max_files} archivo(s).
+                {t('Formatos: {formats} · hasta {mb} MB · máximo {count} archivo(s).', { formats: assignment.accepted_files.extensions.join(', '), mb: (assignment.accepted_files.max_bytes / (1024 * 1024)).toFixed(0), count: assignment.accepted_files.max_files })}
               </Text>
-              <Button disabled={busy} label="Adjuntar archivo" onPress={() => void pick()} variant="secondary" />
+              <Button disabled={busy} label={t('Adjuntar archivo')} onPress={() => void pick()} variant="secondary" />
               {formError ? <Text style={styles.error}>{formError}</Text> : null}
-              <Button busy={busy} label="Entregar" onPress={() => void submit()} />
+              <Button busy={busy} label={t('Entregar')} onPress={() => void submit()} />
             </Card>
           ) : (
-            <Text style={styles.notice}>Ya no quedan intentos para esta tarea.</Text>
+            <Text style={styles.notice}>{t('Ya no quedan intentos para esta tarea.')}</Text>
           )}
 
           {/* Solo mientras siga en la cola: al confirmarse, el historial muestra el intento. */}
           {saved && local.pending.length ? (
             <View style={styles.savedBox} accessibilityRole="alert">
-              <Text style={styles.savedTitle}>Guardada. Se enviará cuando tengas conexión.</Text>
-              <Text style={styles.help}>La hiciste el {formatDate(saved)}. La academia decide si llegó a tiempo según cuándo la recibe.</Text>
+              <Text style={styles.savedTitle}>{t('Guardada. Se enviará cuando tengas conexión.')}</Text>
+              <Text style={styles.help}>{t('La hiciste el {date}. La academia decide si llegó a tiempo según cuándo la recibe.', { date: formatDate(saved) })}</Text>
             </View>
           ) : null}
 
-          <Text style={styles.heading}>Historial</Text>
+          <Text style={styles.heading}>{t('Historial')}</Text>
           {!local.pending.length && !local.failed.length && !submissions.length ? (
-            <Text style={styles.help}>Todavía no entregaste esta tarea.</Text>
+            <Text style={styles.help}>{t('Todavía no entregaste esta tarea.')}</Text>
           ) : null}
 
           {local.pending.map((event) => {
             const progress = uploadProgress(event);
             return (
               <View key={event.id} style={styles.historyItem}>
-                <Text style={[styles.badge, styles.badgeQueued]}>{progress !== null ? `Subiendo · ${progress}%` : 'En cola'}</Text>
-                <Text style={styles.help}>Hecha el {formatDate(new Date(event.payload.clientSubmittedAt))}</Text>
-                <Text style={styles.help}>Guardada. Se enviará cuando tengas conexión.</Text>
-                {event.lastError ? <Text style={styles.help}>Último intento: {event.lastError}</Text> : null}
+                <Text style={[styles.badge, styles.badgeQueued]}>{progress !== null ? t('Subiendo · {percent}%', { percent: progress }) : t('En cola')}</Text>
+                <Text style={styles.help}>{t('Hecha el {date}', { date: formatDate(new Date(event.payload.clientSubmittedAt)) })}</Text>
+                <Text style={styles.help}>{t('Guardada. Se enviará cuando tengas conexión.')}</Text>
+                {event.lastError ? <Text style={styles.help}>{t('Último intento: {error}', { error: event.lastError })}</Text> : null}
               </View>
             );
           })}
 
           {local.failed.map((event) => (
             <View key={event.id} style={styles.historyItem}>
-              <Text style={[styles.badge, styles.badgeFailed]}>No se pudo enviar</Text>
-              <Text style={styles.help}>Hecha el {formatDate(new Date(event.payload.clientSubmittedAt))}</Text>
+              <Text style={[styles.badge, styles.badgeFailed]}>{t('No se pudo enviar')}</Text>
+              <Text style={styles.help}>{t('Hecha el {date}', { date: formatDate(new Date(event.payload.clientSubmittedAt)) })}</Text>
               <Text style={styles.errorSmall}>{event.lastError}</Text>
-              <Pressable onPress={() => void dismissOutboxEvent(event.id)}><Text style={styles.link}>Descartar</Text></Pressable>
+              <Pressable onPress={() => void dismissOutboxEvent(event.id)}><Text style={styles.link}>{t('Descartar')}</Text></Pressable>
             </View>
           ))}
 
@@ -249,19 +249,19 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
                     status.tone === 'graded' ? styles.badgeGraded : status.tone === 'late' ? styles.badgeLate : styles.badgeOk,
                   ]}
                 >
-                  Intento {submission.attempt} · {status.label}
+                  {t('Intento {n}', { n: submission.attempt })} · {status.label}
                 </Text>
                 {submission.client_submitted_at ? (
-                  <Text style={styles.help}>Hecha el {formatDate(fromServer(submission.client_submitted_at))}</Text>
+                  <Text style={styles.help}>{t('Hecha el {date}', { date: formatDate(fromServer(submission.client_submitted_at)) })}</Text>
                 ) : null}
-                <Text style={styles.help}>Recibida el {formatDate(fromServer(submission.server_received_at))}</Text>
+                <Text style={styles.help}>{t('Recibida el {date}', { date: formatDate(fromServer(submission.server_received_at)) })}</Text>
                 {submission.files.length ? (
-                  <Text style={styles.help}>Archivos: {submission.files.map((file) => file.filename).join(', ')}</Text>
+                  <Text style={styles.help}>{t('Archivos: {files}', { files: submission.files.map((file) => file.filename).join(', ') })}</Text>
                 ) : null}
                 {submission.feedback ? <Text style={styles.feedback}>“{submission.feedback}”</Text> : null}
                 {submission.rubric?.rows?.length ? (
                   <View style={styles.rubric}>
-                    <Text style={styles.rubricTitle}>Rúbrica</Text>
+                    <Text style={styles.rubricTitle}>{t('Rúbrica')}</Text>
                     {submission.rubric.rows.map((row, index) => (
                       <View key={`${row.name}-${index}`} style={styles.rubricRow}>
                         <View style={styles.rubricHead}>
@@ -271,14 +271,14 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
                         <View style={styles.rubricTrack}>
                           <View style={[styles.rubricFill, { width: `${Math.max(0, Math.min(100, (row.score / Math.max(1, row.max)) * 100))}%` }]} />
                         </View>
-                        {row.level ? <Text style={styles.rubricLevel}>Nivel: {row.level}</Text> : null}
-                        {row.competency ? <Text style={styles.help}>Competencia: {row.competency}</Text> : null}
+                        {row.level ? <Text style={styles.rubricLevel}>{t('Nivel: {level}', { level: row.level })}</Text> : null}
+                        {row.competency ? <Text style={styles.help}>{t('Competencia: {name}', { name: row.competency })}</Text> : null}
                         {row.feedback ? <Text style={styles.feedback}>“{row.feedback}”</Text> : null}
                       </View>
                     ))}
-                    {submission.rubric.strengths.length ? <Text style={styles.help}>Fortalezas: {submission.rubric.strengths.join(', ')}</Text> : null}
-                    {submission.rubric.reinforce.length ? <Text style={styles.help}>Para reforzar: {submission.rubric.reinforce.join(', ')}</Text> : null}
-                    {submission.rubric.recommendation ? <Text style={styles.help}>Sugerencia: {submission.rubric.recommendation}</Text> : null}
+                    {submission.rubric.strengths.length ? <Text style={styles.help}>{t('Fortalezas: {list}', { list: submission.rubric.strengths.join(', ') })}</Text> : null}
+                    {submission.rubric.reinforce.length ? <Text style={styles.help}>{t('Para reforzar: {list}', { list: submission.rubric.reinforce.join(', ') })}</Text> : null}
+                    {submission.rubric.recommendation ? <Text style={styles.help}>{t('Sugerencia: {text}', { text: submission.rubric.recommendation })}</Text> : null}
                   </View>
                 ) : null}
               </View>

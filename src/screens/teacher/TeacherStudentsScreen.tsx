@@ -5,6 +5,7 @@ import { fetchCourseStudents } from '../../api/teacher';
 import { RiskBadge } from '../../components/RiskBadge';
 import { colors, radius, spacing } from '../../theme';
 import type { StudentRow } from '../../teacher/types';
+import { locale, t } from '../../i18n';
 
 type Props = {
   token: string;
@@ -33,7 +34,7 @@ export function TeacherStudentsScreen({ token, courseId, title, onBack, onOpenSt
       setFromCache(result.fromCache);
       setError('');
     } catch {
-      setError(search ? 'La búsqueda necesita conexión.' : 'No pudimos cargar los estudiantes. Conéctate para sincronizar.');
+      setError(search ? t('La búsqueda necesita conexión.') : t('No pudimos cargar los estudiantes. Conéctate para sincronizar.'));
     } finally {
       setLoading(false);
     }
@@ -47,39 +48,39 @@ export function TeacherStudentsScreen({ token, courseId, title, onBack, onOpenSt
   return (
     <View style={styles.page}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Volver" onPress={onBack} hitSlop={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.primaryStrong} />
         </Pressable>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
       </View>
       <Pressable accessibilityRole="button" onPress={onAnnounce} style={styles.announce} testID="teacher-announce">
         <Ionicons name="megaphone-outline" size={18} color={colors.white} />
-        <Text style={styles.announceText}>Aviso al grupo</Text>
+        <Text style={styles.announceText}>{t('Aviso al grupo')}</Text>
       </Pressable>
       <TextInput
-        accessibilityLabel="Buscar estudiante por nombre"
+        accessibilityLabel={t('Buscar estudiante por nombre')}
         autoCorrect={false}
         onChangeText={setQuery}
-        placeholder="Buscar por nombre"
+        placeholder={t('Buscar por nombre')}
         style={styles.search}
         testID="teacher-student-search"
         value={query}
       />
-      {fromCache ? <Text style={styles.sync}>Sin conexión · lo último sincronizado</Text> : null}
+      {fromCache ? <Text style={styles.sync}>{t('Sin conexión · lo último sincronizado')}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       <FlatList
         contentContainerStyle={styles.list}
         data={items}
         keyExtractor={(item) => String(item.id)}
         onEndReached={() => { if (next && !loading) void load(next, query.trim()); }}
-        ListEmptyComponent={loading ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.empty}>Sin estudiantes{query ? ' con ese nombre' : ''}.</Text>}
+        ListEmptyComponent={loading ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.empty}>{query ? t('Sin estudiantes con ese nombre.') : t('Sin estudiantes.')}</Text>}
         renderItem={({ item }) => (
           <Pressable accessibilityRole="button" onPress={() => onOpenStudent(item)} style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.meta}>
-                Avance {item.progress}% · {item.final_grade === null ? 'Sin calificaciones' : `Nota ${item.final_grade}`}
-                {item.last_access ? ` · Último acceso ${new Date(item.last_access).toLocaleDateString('es')}` : ''}
+                {t('Avance {percent}%', { percent: item.progress })} · {item.final_grade === null ? t('Sin calificaciones') : t('Nota {grade}', { grade: item.final_grade })}
+                {item.last_access ? ` · ${t('Último acceso {date}', { date: new Date(item.last_access).toLocaleDateString(locale()) })}` : ''}
               </Text>
               <RiskBadge risk={item.risk} />
             </View>

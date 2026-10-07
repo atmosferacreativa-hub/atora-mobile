@@ -11,27 +11,31 @@ import {
 import { ApiError, apiRequest } from '../api/client';
 import { getApiBaseUrlSync, normalizeApiBaseUrl, setApiBaseUrl } from '../runtimeConfig';
 import { colors, spacing } from '../theme';
+import { t } from '../i18n';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
 };
 
-const presets = [
-  { label: 'ATORA Lab (LAN)', value: 'http://192.168.1.16:8080' },
-  { label: 'Localhost (emulador)', value: 'http://localhost:8080' },
-];
+// Solo en desarrollo: en la app publicada no se ofrecen direcciones internas (1.0.0).
+const presets = __DEV__
+  ? [
+      { label: 'ATORA Lab (LAN)', value: 'http://192.168.1.16:8080' }, // i18n-ignore (solo desarrollo)
+      { label: 'Localhost (emulador)', value: 'http://localhost:8080' }, // i18n-ignore (solo desarrollo)
+    ]
+  : [];
 
 async function probeNamespace(): Promise<void> {
   // Validación: el namespace de ATORA Mobile debe existir y responder 200.
   const baseUrl = getApiBaseUrlSync();
   const response = await fetch(baseUrl, { method: 'GET', headers: { Accept: 'application/json' } });
   if (!response.ok) {
-    throw new ApiError('No pudimos validar el endpoint de la academia.', response.status, 'invalid_endpoint');
+    throw new ApiError(t('No pudimos validar el endpoint de la academia.'), response.status, 'invalid_endpoint');
   }
   const payload = await response.json().catch(() => null);
   if (!payload || typeof payload !== 'object' || (payload as { namespace?: string }).namespace === undefined) {
-    throw new ApiError('La academia respondió en un formato inesperado.', response.status, 'invalid_json');
+    throw new ApiError(t('La academia respondió en un formato inesperado.'), response.status, 'invalid_json');
   }
 }
 
@@ -63,7 +67,7 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
       if (reason instanceof ApiError) {
         setError(reason.code ? `${reason.message} [${reason.code}]` : reason.message);
       } else {
-        setError('No pudimos guardar la academia. Revisa la URL y tu red.');
+        setError(t('No pudimos guardar la academia. Revisa la URL y tu red.'));
       }
     } finally {
       setBusy(false);
@@ -75,14 +79,14 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>Configurar academia</Text>
+            <Text style={styles.title}>{t('Configurar academia')}</Text>
             <Pressable accessibilityRole="button" onPress={onClose}>
-              <Text style={styles.close}>Cerrar</Text>
+              <Text style={styles.close}>{t('Cerrar')}</Text>
             </Pressable>
           </View>
 
           <Text style={styles.help}>
-            Pega la URL del sitio (ej. `http://192.168.1.16:8080`) y la app completará el endpoint REST automáticamente.
+            {t('Pega la URL del sitio (ej. {example}) y la app completará el endpoint REST automáticamente.', { example: 'https://academia.ejemplo.com' })}
           </Text>
 
           <TextInput
@@ -90,11 +94,11 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
             autoCorrect={false}
             editable={!busy}
             onChangeText={setValue}
-            placeholder="http://tusitio.com"
+            placeholder="https://tuacademia.com"
             style={styles.input}
             value={value}
           />
-          <Text style={styles.preview}>Endpoint: {normalized || '—'}</Text>
+          <Text style={styles.preview}>{t('Endpoint: {url}', { url: normalized || '—' })}</Text>
 
           <View style={styles.presets}>
             {presets.map((item) => (
@@ -118,7 +122,7 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
             onPress={() => void save()}
             style={({ pressed }) => [styles.button, (pressed || busy) && styles.buttonPressed]}
           >
-            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Guardar</Text>}
+            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>{t('Guardar')}</Text>}
           </Pressable>
         </View>
       </View>

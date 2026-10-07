@@ -15,6 +15,7 @@
  * reintento se trata como baja.
  */
 import type { LocalIndex, SyncPlan } from './plan';
+import { t } from '../../i18n/core';
 
 export type ApplyDeps = {
   removeLesson(lessonId: number): Promise<void>;
@@ -43,7 +44,7 @@ export type ApplyResult = { index: LocalIndex; fetched: number; removed: number;
 
 export class SyncAllFailedError extends Error {
   constructor(readonly cause: unknown) {
-    super('No se pudo traer ningún cambio.');
+    super(t('No se pudo traer ningún cambio.'));
   }
 }
 

@@ -212,6 +212,9 @@ export type ServerCapabilities = {
   /** 6.32.0+ (Fase 5): solo si la academia las activó y hay proveedor de IA. */
   ai_assistant?: boolean;
   ai_grading_suggestion?: boolean;
+  /** 6.33.0+ (Fase 6): certificado en PDF y eliminación de cuenta. */
+  certificate_pdf?: boolean;
+  account_deletion?: boolean;
 };
 
 export type AssignmentInfo = {

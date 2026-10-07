@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { fetchTeacherCourses } from '../../api/teacher';
 import { colors, radius, spacing } from '../../theme';
 import type { TeacherCourse } from '../../teacher/types';
+import { t } from '../../i18n';
 
 type Props = { token: string; onOpenCourse: (course: TeacherCourse) => void };
 
@@ -23,7 +24,7 @@ export function TeacherCoursesScreen({ token, onOpenCourse }: Props) {
       setFromCache(result.fromCache);
       setError('');
     } catch {
-      setError('No pudimos cargar tus cursos. Conéctate para sincronizar.');
+      setError(t('No pudimos cargar tus cursos. Conéctate para sincronizar.'));
     } finally {
       setLoading(false);
     }
@@ -33,18 +34,18 @@ export function TeacherCoursesScreen({ token, onOpenCourse }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Text style={styles.eyebrow}>MIS CURSOS</Text>
-      {fromCache ? <Text style={styles.sync}>Sin conexión · lo último sincronizado</Text> : null}
+      <Text style={styles.eyebrow}>{t('MIS CURSOS')}</Text>
+      {fromCache ? <Text style={styles.sync}>{t('Sin conexión · lo último sincronizado')}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {!items && !error ? <ActivityIndicator color={colors.primary} /> : null}
-      {items && !items.length ? <Text style={styles.empty}>Todavía no tienes cursos asignados.</Text> : null}
+      {items && !items.length ? <Text style={styles.empty}>{t('Todavía no tienes cursos asignados.')}</Text> : null}
       {(items ?? []).map((course) => (
         <Pressable key={course.id} accessibilityRole="button" onPress={() => onOpenCourse(course)} style={styles.card}>
           <View style={styles.cardText}>
             <Text style={styles.title}>{course.title}</Text>
             <Text style={styles.meta}>
-              {course.students === 1 ? '1 estudiante' : `${course.students} estudiantes`}
-              {course.pending_submissions ? ` · ${course.pending_submissions} por calificar` : ''}
+              {course.students === 1 ? t('1 estudiante') : t('{count} estudiantes', { count: course.students })}
+              {course.pending_submissions ? ` · ${t('{count} por calificar', { count: course.pending_submissions })}` : ''}
             </Text>
             {course.sections.length ? <Text style={styles.meta}>{course.sections.map((section) => section.title).join(' · ')}</Text> : null}
           </View>

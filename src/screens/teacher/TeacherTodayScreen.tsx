@@ -6,6 +6,7 @@ import { fetchTeacherToday } from '../../api/teacher';
 import { RiskBadge } from '../../components/RiskBadge';
 import { colors, radius, spacing } from '../../theme';
 import type { TeacherToday } from '../../teacher/types';
+import { locale, t } from '../../i18n';
 
 type Props = {
   token: string;
@@ -32,7 +33,7 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
       setFromCache(result.fromCache);
       setError('');
     } catch {
-      setError('No pudimos cargar tu día. Conéctate para sincronizar.');
+      setError(t('No pudimos cargar tu día. Conéctate para sincronizar.'));
     } finally {
       setLoading(false);
     }
@@ -42,19 +43,19 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Text style={styles.eyebrow}>MI DÍA DOCENTE</Text>
-      <Text style={styles.title}>Hola, {name || 'Docente'}</Text>
-      {fromCache && syncedAt ? <Text style={styles.sync}>Sin conexión · actualizado el {new Date(syncedAt).toLocaleString('es')}</Text> : null}
+      <Text style={styles.eyebrow}>{t('MI DÍA DOCENTE')}</Text>
+      <Text style={styles.title}>{t('Hola, {name}', { name: name || t('Docente') })}</Text>
+      {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {!data && !error ? <ActivityIndicator color={colors.primary} /> : null}
 
       {data ? (
         <Pressable accessibilityRole="button" onPress={onOpenGrading} style={styles.hero} testID="teacher-to-grade">
-          <Text style={styles.heroEyebrow}>POR CALIFICAR</Text>
-          <Text style={styles.heroTitle}>{data.to_grade.count === 1 ? '1 entrega' : `${data.to_grade.count} entregas`}</Text>
+          <Text style={styles.heroEyebrow}>{t('POR CALIFICAR')}</Text>
+          <Text style={styles.heroTitle}>{data.to_grade.count === 1 ? t('1 entrega') : t('{count} entregas', { count: data.to_grade.count })}</Text>
           {data.to_grade.oldest.map((item) => (
             <Text key={item.id} style={styles.heroMeta} numberOfLines={1}>
-              {item.student.name} · {item.lesson.title}{item.is_late ? ' · Tardía' : ''}
+              {item.student.name} · {item.lesson.title}{item.is_late ? ` · ${t('Tardía')}` : ''}
             </Text>
           ))}
         </Pressable>
@@ -62,7 +63,7 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
 
       {data ? (
         <View style={styles.section}>
-          <Text style={styles.heading}>Estudiantes en riesgo</Text>
+          <Text style={styles.heading}>{t('Estudiantes en riesgo')}</Text>
           {data.at_risk.items.length ? data.at_risk.items.map((item) => (
             <Pressable
               key={`${item.course.id}-${item.student.id}`}
@@ -77,33 +78,33 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </Pressable>
-          )) : <Text style={styles.empty}>Nadie en riesgo por ahora.</Text>}
+          )) : <Text style={styles.empty}>{t('Nadie en riesgo por ahora.')}</Text>}
         </View>
       ) : null}
 
       {data ? (
         <View style={styles.section}>
-          <Text style={styles.heading}>Hoy en tus cursos</Text>
+          <Text style={styles.heading}>{t('Hoy en tus cursos')}</Text>
           {data.today.length ? data.today.map((item, index) => (
             <View key={`t-${index}`} style={styles.row}>
               <Ionicons name={item.type === 'live_class' ? 'videocam-outline' : item.type === 'event' ? 'calendar-outline' : 'time-outline'} size={20} color={colors.primary} />
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{item.title}</Text>
                 <Text style={styles.rowMeta}>
-                  {item.type === 'assignment_due' || item.type === 'quiz_due' ? 'Vence ' : ''}
-                  {new Date(item.starts_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                  {item.type === 'assignment_due' || item.type === 'quiz_due' ? `${t('Vence')} ` : ''}
+                  {new Date(item.starts_at).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })}
                   {item.course ? ` · ${item.course.title}` : ''}
                 </Text>
               </View>
             </View>
-          )) : <Text style={styles.empty}>Sin clases ni fechas límite hoy.</Text>}
+          )) : <Text style={styles.empty}>{t('Sin clases ni fechas límite hoy.')}</Text>}
         </View>
       ) : null}
 
       {data && data.unread_messages > 0 ? (
         <Pressable accessibilityRole="button" onPress={onOpenMessages} style={styles.row}>
           <Ionicons name="chatbubbles-outline" size={20} color={colors.primary} />
-          <Text style={[styles.rowTitle, styles.rowText]}>{data.unread_messages === 1 ? 'Tienes 1 mensaje sin leer' : `Tienes ${data.unread_messages} mensajes sin leer`}</Text>
+          <Text style={[styles.rowTitle, styles.rowText]}>{data.unread_messages === 1 ? t('Tienes 1 mensaje sin leer') : t('Tienes {count} mensajes sin leer', { count: data.unread_messages })}</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </Pressable>
       ) : null}

@@ -7,6 +7,7 @@ import { colors, spacing } from '../theme';
 import { PendingQuizNotice } from '../components/PendingQuizNotice';
 import { usePendingQuizzes } from '../hooks/usePendingQuizzes';
 import type { StudentHome } from '../types';
+import { t } from '../i18n';
 
 type Props = {
   data: StudentHome | null;
@@ -55,9 +56,9 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}
     >
-      <Text style={styles.eyebrow}>MI JORNADA</Text>
-      <Text style={styles.title}>Hola, {data?.user.display_name || 'Estudiante'}</Text>
-      <Text style={styles.subtitle}>Continúa aprendiendo donde lo dejaste.</Text>
+      <Text style={styles.eyebrow}>{t('MI JORNADA')}</Text>
+      <Text style={styles.title}>{t('Hola, {name}', { name: data?.user.display_name || t('Estudiante') })}</Text>
+      <Text style={styles.subtitle}>{t('Continúa aprendiendo donde lo dejaste.')}</Text>
 
       {onOpenQuiz ? pendingQuizzes.map((item) => (
         <PendingQuizNotice key={item.lessonId} item={item} onOpen={() => onOpenQuiz(item.lessonId)} />
@@ -65,40 +66,40 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
 
       <View style={styles.pending}>
         <Text style={styles.pendingNumber}>{data?.pending_activities ?? 0}</Text>
-        <Text style={styles.pendingText}>actividades pendientes</Text>
+        <Text style={styles.pendingText}>{t('actividades pendientes')}</Text>
       </View>
 
       {programId ? (
         <View style={styles.programCard}>
           <View style={styles.programCopy}>
-            <Text style={styles.programEyebrow}>PROGRAMA</Text>
-            <Text style={styles.programTitle}>Diplomado en Comunicación</Text>
-            <Text style={styles.programHelp}>Accede al programa completo desde el panel web mientras terminamos la vista nativa.</Text>
+            <Text style={styles.programEyebrow}>{t('PROGRAMA')}</Text>
+            <Text style={styles.programTitle}>{t('Tu programa')}</Text>
+            <Text style={styles.programHelp}>{t('Mira los cursos de tu programa y tu avance en cada uno.')}</Text>
           </View>
           <Pressable
             accessibilityRole="button"
             onPress={() => onOpenProgram(programId)}
             style={styles.programButton}
           >
-            <Text style={styles.programButtonText}>Abrir programa</Text>
+            <Text style={styles.programButtonText}>{t('Abrir programa')}</Text>
           </Pressable>
         </View>
       ) : null}
 
-      <Text style={styles.heading}>Cursos en progreso</Text>
+      <Text style={styles.heading}>{t('Cursos en progreso')}</Text>
       {!data?.courses.length ? (
-        <Text style={styles.empty}>Todavía no tienes cursos activos.</Text>
+        <Text style={styles.empty}>{t('Todavía no tienes cursos activos.')}</Text>
       ) : data.courses.map((course) => (
         <Pressable key={course.id} onPress={() => void continueCourse(course.id)} style={styles.card}>
           <MediaImage uri={course.thumbnail_url} />
           <Text style={styles.cardTitle}>{course.title}</Text>
-          <Text style={styles.next}>{course.completed_lessons} de {course.total_lessons} lecciones</Text>
+          <Text style={styles.next}>{t('{done} de {total} lecciones', { done: course.completed_lessons, total: course.total_lessons })}</Text>
           <View style={styles.track}>
             <View style={[styles.bar, { width: `${Math.min(100, course.progress)}%` }]} />
           </View>
           <View style={styles.cardFooter}>
-            <Text style={styles.progress}>{course.progress}% completado</Text>
-            <Text style={styles.cta}>{course.progress > 0 ? 'Continuar →' : 'Empezar →'}</Text>
+            <Text style={styles.progress}>{t('{percent}% completado', { percent: course.progress })}</Text>
+            <Text style={styles.cta}>{course.progress > 0 ? t('Continuar →') : t('Empezar →')}</Text>
           </View>
         </Pressable>
       ))}

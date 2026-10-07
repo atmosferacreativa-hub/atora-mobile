@@ -3,6 +3,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { PDFJS_LIB, PDFJS_VERSION, PDFJS_WORKER } from './pdfjs.generated';
+import { t } from '../i18n/core';
 
 /**
  * Visor de material dentro de la app (0.4.0).
@@ -13,6 +14,7 @@ import { PDFJS_LIB, PDFJS_VERSION, PDFJS_WORKER } from './pdfjs.generated';
  */
 
 const VIEWER_DIR = `${FileSystem.documentDirectory}viewer-pdfjs-${PDFJS_VERSION}-v1/`;
+const VIEWER_VERSION = `${PDFJS_VERSION}-1.0.0`;
 
 export type ViewerKind = 'pdf' | 'image' | 'system';
 
@@ -35,13 +37,16 @@ canvas{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 </style>
 <script src="pdf.worker.min.js"></script>
 <script src="pdf.min.js"></script>
-</head><body><div id="msg">Abriendo…</div><div id="pages"></div>
+</head><body><div id="msg"></div><div id="pages"></div>
 <script>
 (function () {
   function post(m) { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(m)); }
-  var file = new URLSearchParams(location.search).get('file');
+  var query = new URLSearchParams(location.search);
+  var file = query.get('file');
   var t0 = Date.now();
   var msg = document.getElementById('msg');
+  // 1.0.0: textos en el idioma de la app (vienen en la URL).
+  msg.textContent = query.get('opening') || '';
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
   pdfjsLib.getDocument({ url: file, isEvalSupported: false }).promise.then(function (pdf) {
     return pdf.getPage(1).then(function (first) {
@@ -78,7 +83,7 @@ canvas{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35)}
       canvases.forEach(function (c) { io.observe(c); });
     });
   }).catch(function (e) {
-    msg.textContent = 'No se pudo abrir el PDF.';
+    msg.textContent = query.get('failed') || '';
     post({ type: 'error', message: String((e && e.message) || e) });
   });
 })();
@@ -100,13 +105,15 @@ export function ensureViewerFiles(): Promise<string> {
   if (!ready) {
     ready = (async () => {
       const marker = await FileSystem.getInfoAsync(`${VIEWER_DIR}ready`);
-      if (!marker.exists) {
+      // 1.0.0: la página del visor cambió (textos por idioma): se reescribe una vez.
+      const current = marker.exists ? await FileSystem.readAsStringAsync(`${VIEWER_DIR}ready`).catch(() => '') : '';
+      if (current !== VIEWER_VERSION) {
         await FileSystem.makeDirectoryAsync(VIEWER_DIR, { intermediates: true });
         await FileSystem.writeAsStringAsync(`${VIEWER_DIR}pdf.min.js`, PDFJS_LIB);
         await FileSystem.writeAsStringAsync(`${VIEWER_DIR}pdf.worker.min.js`, PDFJS_WORKER);
         await FileSystem.writeAsStringAsync(`${VIEWER_DIR}pdf.html`, PDF_HTML);
         await FileSystem.writeAsStringAsync(`${VIEWER_DIR}image.html`, IMAGE_HTML);
-        await FileSystem.writeAsStringAsync(`${VIEWER_DIR}ready`, PDFJS_VERSION);
+        await FileSystem.writeAsStringAsync(`${VIEWER_DIR}ready`, VIEWER_VERSION);
       }
       return VIEWER_DIR;
     })().catch((reason) => {
@@ -121,7 +128,8 @@ export async function viewerUrl(kind: 'pdf' | 'image' | 'html', localUri: string
   // 0.5.0: un documento HTML guardado (certificado provisional) se abre tal cual.
   if (kind === 'html') return localUri;
   const dir = await ensureViewerFiles();
-  return `${dir}${kind}.html?file=${encodeURIComponent(localUri)}`;
+  const texts = kind === 'pdf' ? `&opening=${encodeURIComponent(t('Abriendo…'))}&failed=${encodeURIComponent(t('No se pudo abrir el PDF.'))}` : '';
+  return `${dir}${kind}.html?file=${encodeURIComponent(localUri)}${texts}`;
 }
 
 /** Abre un archivo local con la app del sistema (Android: intent VIEW; iOS: hoja de compartir). */

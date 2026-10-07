@@ -11,6 +11,7 @@ import { colors, spacing } from '../theme';
 import { PendingQuizNotice } from '../components/PendingQuizNotice';
 import { usePendingQuizzes } from '../hooks/usePendingQuizzes';
 import type { CourseDetail } from '../types';
+import { t } from '../i18n';
 
 type Props = {
   courseId: number;
@@ -40,26 +41,26 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
 
   const downloadMaterial = async () => {
     if (!data || material) return;
-    setMaterial('Calculando…');
+    setMaterial(t('Calculando…'));
     const plan = await planCourseMaterial(data.curriculum.map((lesson) => lesson.id), token).catch(() => null);
     setMaterial('');
     if (!plan || !plan.items.length) {
-      Alert.alert('Material del curso', plan ? 'Todo el material descargable ya está en el teléfono.' : 'No se pudo revisar el material.');
+      Alert.alert(t('Material del curso'), plan ? t('Todo el material descargable ya está en el teléfono.') : t('No se pudo revisar el material.'));
       return;
     }
     const size = plan.totalBytes ? formatBytes(plan.totalBytes) : '';
-    const extra = plan.unknownSize ? ` (${plan.unknownSize} sin tamaño conocido)` : '';
+    const extra = plan.unknownSize ? ` (${t('{count} sin tamaño conocido', { count: plan.unknownSize })})` : '';
     Alert.alert(
-      'Descargar material del curso',
-      `${plan.items.length} archivo(s)${size ? ` · ${size}` : ''}${extra}. No incluye videos.`,
+      t('Descargar material del curso'),
+      `${t('{count} archivo(s)', { count: plan.items.length })}${size ? ` · ${size}` : ''}${extra}. ${t('No incluye videos.')}`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('Cancelar'), style: 'cancel' },
         {
-          text: 'Descargar',
+          text: t('Descargar'),
           onPress: () => void (async () => {
-            const result = await downloadCourseMaterial(plan, (done, total) => setMaterial(`Descargando ${Math.min(done + 1, total)} de ${total}…`));
+            const result = await downloadCourseMaterial(plan, (done, total) => setMaterial(t('Descargando {done} de {total}…', { done: Math.min(done + 1, total), total })));
             setMaterial('');
-            Alert.alert('Material del curso', result.error ? `${result.saved} guardado(s). ${result.error}` : `${result.saved} archivo(s) guardado(s) para usar sin conexión.`);
+            Alert.alert(t('Material del curso'), result.error ? `${t('{count} guardado(s).', { count: result.saved })} ${result.error}` : t('{count} archivo(s) guardado(s) para usar sin conexión.', { count: result.saved }));
           })(),
         },
       ],
@@ -78,7 +79,7 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
         );
         if (active) setLocalThumbs(Object.fromEntries(entries.filter(([, uri]) => uri)) as Record<number, string>);
       })
-      .catch(() => { if (active) setError('No pudimos cargar este curso.'); });
+      .catch(() => { if (active) setError(t('No pudimos cargar este curso.')); });
     return () => { active = false; };
   }, [courseId, token]);
 
@@ -94,7 +95,7 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable onPress={onBack}><Text style={styles.back}>← Mis cursos</Text></Pressable>
+      <Pressable onPress={onBack}><Text style={styles.back}>{t('← Mis cursos')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {data ? (
         <>
@@ -103,7 +104,7 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
           <View style={styles.progressCard}>
             <Text style={styles.progressValue}>{data.progress.progress_pct}%</Text>
             <Text style={styles.progressLabel}>
-              {data.progress.completed_lessons} de {data.progress.total_lessons} lecciones
+              {t('{done} de {total} lecciones', { done: data.progress.completed_lessons, total: data.progress.total_lessons })}
             </Text>
           </View>
           {onOpenQuiz ? pendingQuizzes
@@ -111,8 +112,8 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
             .map((item) => <PendingQuizNotice key={item.lessonId} item={item} onOpen={() => onOpenQuiz(item.lessonId)} />) : null}
           {onOpenGrades ? (
             <Pressable accessibilityRole="button" onPress={() => onOpenGrades(data.course.title)} style={styles.gradesButton}>
-              <Text style={styles.materialText}>Notas</Text>
-              {hasNewGrade ? <Text style={styles.newBadge}>Nota nueva</Text> : null}
+              <Text style={styles.materialText}>{t('Notas')}</Text>
+              {hasNewGrade ? <Text style={styles.newBadge}>{t('Nota nueva')}</Text> : null}
             </Pressable>
           ) : null}
           {materialSupported && data.curriculum.length ? (
@@ -120,13 +121,13 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
               {material ? (
                 <View style={styles.materialBusy}><ActivityIndicator color={colors.blue} /><Text style={styles.materialText}>{material}</Text></View>
               ) : (
-                <Text style={styles.materialText}>Descargar material del curso</Text>
+                <Text style={styles.materialText}>{t('Descargar material del curso')}</Text>
               )}
             </Pressable>
           ) : null}
-          <Text style={styles.heading}>Contenido</Text>
+          <Text style={styles.heading}>{t('Contenido')}</Text>
           {!data.curriculum.length ? (
-            <Text style={styles.empty}>Este curso todavía no tiene lecciones publicadas.</Text>
+            <Text style={styles.empty}>{t('Este curso todavía no tiene lecciones publicadas.')}</Text>
           ) : (
             Object.entries(sections).map(([section, lessons]) => (
               <View key={section} style={styles.section}>
@@ -135,7 +136,7 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
                   <ListRow
                     key={lesson.id}
                     onPress={() => onOpenLesson(lesson.id)}
-                    subtitle={`${lesson.type} · ${lesson.duration_min} min`}
+                    subtitle={`${lesson.type} · ${t('{count} min', { count: lesson.duration_min })}`}
                     title={lesson.title}
                     leading={lesson.has_video ? (
                       <View style={styles.thumbWrap}>
