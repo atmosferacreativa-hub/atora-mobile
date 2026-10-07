@@ -1,0 +1,60 @@
+appId: com.atmosferacreativa.atora
+name: docente-sugerencia-ia
+# Responde el proveedor simulado del WordPress temporal (ATORA_AI_FAKE): nunca uno real.
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Calificar"
+- extendedWaitUntil:
+    visible: "Estudiante Dos E2E"
+    timeout: 30000
+- tapOn: "Estudiante Dos E2E"
+- extendedWaitUntil:
+    visible: "Rúbrica.*"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "ai-suggestion-request"
+- takeScreenshot: capturas/docente-sugerencia-ia-01-boton
+- tapOn:
+    id: "ai-suggestion-request"
+# Asíncrona: la app consulta cada 3 s, hasta 2 minutos.
+- extendedWaitUntil:
+    visible:
+      id: "ai-suggestion-ready"
+    timeout: 130000
+- takeScreenshot: capturas/docente-sugerencia-ia-02-sugerencia
+- scrollUntilVisible:
+    element: "Indicio de texto generado por IA: Medio"
+- scrollUntilVisible:
+    element: "Indicio no concluyente. Verifica con el estudiante antes de decidir."
+- takeScreenshot: capturas/docente-sugerencia-ia-03-indicio
+- scrollUntilVisible:
+    element:
+      id: "ai-use-all"
+- tapOn:
+    id: "ai-use-all"
+# Solo rellena el borrador: marcado "Sugerido por IA", nada guardado.
+- scrollUntilVisible:
+    element:
+      id: "ai-mark-0"
+- assertVisible:
+    id: "score-0"
+    text: "8.5"
+- scrollUntilVisible:
+    element:
+      id: "ai-mark-1"
+- assertVisible:
+    id: "score-1"
+    text: "10"
+- takeScreenshot: capturas/docente-sugerencia-ia-04-usada
+- assertNotVisible:
+    id: "grading-saved"
+# Editar quita la marca.
+- tapOn:
+    id: "score-1"
+- eraseText: 4
+- inputText: "9"
+- hideKeyboard
+- assertNotVisible:
+    id: "ai-mark-1"
+- takeScreenshot: capturas/docente-sugerencia-ia-05-editada

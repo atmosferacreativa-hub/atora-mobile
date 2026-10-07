@@ -53,3 +53,13 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 28. [ ] **Conflicto entre dos docentes**: los dos abren la misma entrega y guardan; el segundo recibe "Otro docente calificó primero" y no pisa la nota del primero.
 29. [ ] **Calificación grupal con un ajuste individual**: la nota publicada llega a todos los integrantes, y el que tiene ajuste ve el suyo.
 30. [ ] **PDF y borrador local**: abrir una entrega con PDF, escribir la rúbrica, activar modo avión o cerrar la app; al volver, el borrador se recupera y el PDF se vuelve a abrir.
+
+## Fase 5 — IA (con la IA activada en ATORA LMS → Uso de IA y un proveedor configurado)
+
+31. [ ] El estudiante abre una lección, toca **Preguntar**, ve el aviso de IA la primera vez y recibe una respuesta sobre la lección. Si pide la respuesta de un quiz o tarea, el asistente da pistas, no la respuesta.
+32. [ ] Sin conexión, "Preguntar" queda deshabilitado con "Necesitas conexión para usar el asistente"; al volver la señal funciona. Al cerrar sesión y volver a entrar, la conversación ya no está.
+33. [ ] Con un límite bajo (p. ej. 2 preguntas por día), la tercera pregunta muestra el límite y la hora de reinicio.
+34. [ ] El docente abre una entrega de tarea, toca **Sugerencia de IA** y, en menos de 2 minutos, ve puntaje, nivel y justificación por criterio, devolución general y el indicio con su aviso.
+35. [ ] **Usar todo** rellena el borrador marcado "Sugerido por IA"; el estudiante no ve nada hasta que el docente guarda o publica. Al editar un puntaje, desaparece su marca.
+36. [ ] La misma entrega en **SpeedGrader web** muestra la sugerencia; "Usar sugerencia" rellena el formulario sin guardar.
+37. [ ] El estudiante, con la entrega calificada, no ve en ninguna pantalla el indicio ni que hubo sugerencia de IA. En ATORA LMS → Uso de IA aparecen las preguntas y la sugerencia del mes.

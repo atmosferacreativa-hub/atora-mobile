@@ -66,7 +66,7 @@ jobs:
             mysql:8.0
           docker run -d --name wp --network e2e -p 8080:80 \
             -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp \
-            -e WORDPRESS_CONFIG_EXTRA="define('WP_ENVIRONMENT_TYPE','local'); define('ATORA_E2E', true);" \
+            -e WORDPRESS_CONFIG_EXTRA="define('WP_ENVIRONMENT_TYPE','local'); define('ATORA_E2E', true); define('ATORA_AI_FAKE', true);" \
             -v "$PWD/_plugin:/var/www/html/wp-content/plugins/atora-lms" \
             wordpress:6.8-php8.1-apache
           for i in $(seq 1 60); do
@@ -90,6 +90,9 @@ jobs:
           docker exec wp chown -R 33:33 /var/www/html/e2e-media
           $WP atora seed-e2e --yes --video-dir=/var/www/html/e2e-media | tee seed.json
           curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
+          # La sugerencia de IA es asíncrona (cron). El sitio vive en otra URL (la del emulador) y el
+          # cron por petición no se dispara solo: se ejecuta dentro del contenedor cada 3 s.
+          docker exec -d wp bash -c 'while true; do php -r "@file_get_contents(\"http://localhost/wp-cron.php?doing_wp_cron\");"; sleep 3; done'
 
       - name: Concurrencia real al calificar (dos guardados a la vez por HTTP)
         run: |

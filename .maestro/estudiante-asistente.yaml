@@ -1,0 +1,44 @@
+appId: com.atmosferacreativa.atora
+name: estudiante-asistente
+# Responde el proveedor simulado del WordPress temporal (ATORA_AI_FAKE): nunca uno real.
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "Videos"
+- tapOn: "Videos"
+- scrollUntilVisible:
+    element:
+      id: "lesson-ask"
+- takeScreenshot: capturas/estudiante-asistente-01-preguntar
+- tapOn:
+    id: "lesson-ask"
+# Aviso de IA la primera vez.
+- extendedWaitUntil:
+    visible: "Las respuestas las genera una IA.*"
+    timeout: 30000
+- takeScreenshot: capturas/estudiante-asistente-02-aviso
+- tapOn: "Entendido"
+- tapOn:
+    id: "assistant-input"
+- inputText: "No entiendo el tema"
+- hideKeyboard
+- tapOn:
+    id: "assistant-send"
+- extendedWaitUntil:
+    visible: "Buena pregunta.*"
+    timeout: 60000
+- assertVisible:
+    id: "assistant-disclaimer"
+- takeScreenshot: capturas/estudiante-asistente-03-respuesta
+# Sin conexión: no se puede preguntar (no hay cola).
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible:
+      id: "assistant-offline"
+    timeout: 30000
+- assertVisible: "Buena pregunta.*"
+- takeScreenshot: capturas/estudiante-asistente-04-sin-conexion
+- setAirplaneMode: disabled

@@ -22,6 +22,8 @@ import {
 } from '../offline/mediaDownloads';
 import { formatBytes, resourceKey } from '../offline/downloadsMath';
 import { flushOutbox } from '../offline/outbox/runtime';
+import { useNetworkState } from '../hooks/useNetworkState';
+import { OFFLINE_MESSAGE } from '../ai/conversation';
 import { openWithSystem, viewerKind } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
@@ -36,6 +38,8 @@ type Props = {
   onOpenQuiz: () => void;
   onOpenAssignment: () => void;
   onOpenResource: (params: OpenResourceParams) => void;
+  /** 0.9.0: asistente de IA (solo si el servidor declara `ai_assistant`). */
+  onAsk?: (title: string) => void;
 };
 
 /** Menos de esto no vale la pena ofrecer "Continuar desde". */
@@ -251,6 +255,8 @@ function LessonContent({
   onResourcePress,
   onResourceDownload,
   onResourceRemove,
+  onAsk,
+  askOffline,
 }: {
   lesson: LessonDetail;
   videoArea: ReactNode;
@@ -264,6 +270,8 @@ function LessonContent({
   onResourcePress: (resource: LessonResource) => void;
   onResourceDownload: (resource: LessonResource) => void;
   onResourceRemove: (record: DownloadRecord) => void;
+  onAsk?: () => void;
+  askOffline: boolean;
 }) {
   const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
 
@@ -350,6 +358,18 @@ function LessonContent({
           </Pressable>
         </View>
       ) : null}
+      {onAsk ? (
+        <View style={styles.quizCard} testID="lesson-ask-card">
+          <View style={styles.quizCopy}>
+            <Text style={styles.quizEyebrow}>ASISTENTE</Text>
+            <Text style={styles.quizTitle}>¿Te quedó una duda?</Text>
+            <Text style={styles.quizHelp}>{askOffline ? OFFLINE_MESSAGE : 'Pregúntale al asistente sobre esta lección.'}</Text>
+          </View>
+          <Pressable accessibilityRole="button" disabled={askOffline} onPress={onAsk} style={[styles.quizButton, askOffline && { opacity: 0.5 }]} testID="lesson-ask">
+            <Text style={styles.quizButtonText}>Preguntar</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Pressable
         disabled={busy || lesson.completed}
         onPress={onComplete}
@@ -393,8 +413,10 @@ function toPlayable(lesson: LessonDetail, multi: boolean): PlayableVideo[] {
 
 const slot = (video: PlayableVideo) => video.key ?? `#${video.index}`;
 
-export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource }: Props) {
+export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource, onAsk }: Props) {
+  const { offline } = useNetworkState();
   const [assignmentsSupported, setAssignmentsSupported] = useState(false);
+  const [assistantSupported, setAssistantSupported] = useState(false);
   const [multiVideo, setMultiVideo] = useState(false);
   const [savedResources, setSavedResources] = useState<Record<string, DownloadRecord>>({});
   const [resourceBusy, setResourceBusy] = useState('');
@@ -437,6 +459,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       if (!active) return;
       setAssignmentsSupported(Boolean(caps.assignments));
       setMultiVideo(Boolean(caps.multi_video));
+      setAssistantSupported(Boolean(caps.ai_assistant));
     });
     return () => { active = false; };
   }, []);
@@ -659,6 +682,8 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
           onResourcePress={(resource) => void pressResource(resource)}
           onResourceDownload={(resource) => void downloadOne(resource)}
           onResourceRemove={(record) => void removeOne(record)}
+          onAsk={assistantSupported && onAsk ? () => onAsk(lesson.title) : undefined}
+          askOffline={offline}
         />
       ) : null}
       {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}

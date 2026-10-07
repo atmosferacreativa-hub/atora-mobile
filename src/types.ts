@@ -209,6 +209,9 @@ export type ServerCapabilities = {
   teacher?: boolean;
   teacher_grading?: boolean;
   group_assignments?: boolean;
+  /** 6.32.0+ (Fase 5): solo si la academia las activó y hay proveedor de IA. */
+  ai_assistant?: boolean;
+  ai_grading_suggestion?: boolean;
 };
 
 export type AssignmentInfo = {

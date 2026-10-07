@@ -96,6 +96,8 @@ export type SubmissionDetail = {
   rubric: { id: number; title: string; total_points: number; criteria: RubricCriterion[] } | null;
   group: { id: number; name: string; members: Person[]; submitted_by: Person | null } | null;
   moderated: boolean;
+  /** 6.32.0+: se puede pedir sugerencia de IA (función activa y tarea abierta). */
+  ai_suggestion_available?: boolean;
 };
 
 export type GradeRequest = {

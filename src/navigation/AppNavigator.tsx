@@ -11,6 +11,7 @@ import { CourseScreen } from '../screens/CourseScreen';
 import { CoursesScreen } from '../screens/CoursesScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LessonScreen } from '../screens/LessonScreen';
+import { AssistantScreen } from '../screens/AssistantScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ProgramScreen } from '../screens/ProgramScreen';
 import { QuizScreen } from '../screens/QuizScreen';
@@ -72,6 +73,8 @@ export type LearningStackParams = {
   Course: { courseId: number };
   Program: { programId: number };
   Lesson: { lessonId: number };
+  /** 0.9.0: asistente de IA de la lección. */
+  Assistant: { lessonId: number; title: string };
   Quiz: { lessonId: number };
   Assignment: { lessonId: number };
   Resource: { title: string; localUri: string; kind: 'pdf' | 'image' | 'html'; mime?: string };
@@ -195,7 +198,7 @@ function ProgramRoute({ route, navigation }: LearningProps<'Program'>) {
 }
 
 function LessonRoute({ route, navigation }: LearningProps<'Lesson'>) {
-  const { token, refresh } = useAppSession();
+  const { token, refresh, mode } = useAppSession();
   return (
     <LessonScreen
       lessonId={route.params.lessonId}
@@ -205,8 +208,14 @@ function LessonRoute({ route, navigation }: LearningProps<'Lesson'>) {
       onOpenQuiz={() => navigation.push('Quiz', { lessonId: route.params.lessonId })}
       onOpenAssignment={() => navigation.push('Assignment', { lessonId: route.params.lessonId })}
       onOpenResource={(params) => navigation.push('Resource', params)}
+      onAsk={mode === 'student' ? (title) => navigation.push('Assistant', { lessonId: route.params.lessonId, title }) : undefined}
     />
   );
+}
+
+function AssistantRoute({ route, navigation }: LearningProps<'Assistant'>) {
+  const { token } = useAppSession();
+  return <AssistantScreen token={token} lessonId={route.params.lessonId} title={route.params.title} onBack={() => navigation.goBack()} />;
 }
 
 function QuizRoute({ route, navigation }: LearningProps<'Quiz'>) {
@@ -444,6 +453,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Course" component={CourseRoute} />
         <Stack.Screen name="Program" component={ProgramRoute} />
         <Stack.Screen name="Lesson" component={LessonRoute} />
+        <Stack.Screen name="Assistant" component={AssistantRoute} />
         <Stack.Screen name="Quiz" component={QuizRoute} />
         <Stack.Screen name="Assignment" component={AssignmentRoute} />
         <Stack.Screen name="Resource" component={ResourceRoute} />
