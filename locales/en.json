@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "ATORA"
+  },
+  "android": {
+    "app_name": "ATORA"
+  }
+}

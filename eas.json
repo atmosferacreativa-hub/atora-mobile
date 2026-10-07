@@ -9,6 +9,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "preview": {
@@ -18,7 +21,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ATORA_API_URL": "https://demo.atora.studio/wp-json/atora-mobile/v1"
+        "EXPO_PUBLIC_ATORA_API_URL": "https://demo.atora.studio/wp-json/atora-mobile/v1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
@@ -26,6 +30,9 @@
       "android": {
         "autoIncrement": "versionCode",
         "buildType": "app-bundle"
+      },
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "e2e": {
@@ -35,7 +42,8 @@
       },
       "env": {
         "ATORA_E2E": "1",
-        "EXPO_PUBLIC_ATORA_API_URL": "http://10.0.2.2:8080/wp-json/atora-mobile/v1"
+        "EXPO_PUBLIC_ATORA_API_URL": "http://10.0.2.2:8080/wp-json/atora-mobile/v1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },

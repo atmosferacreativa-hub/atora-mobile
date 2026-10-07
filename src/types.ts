@@ -215,6 +215,8 @@ export type ServerCapabilities = {
   /** 6.33.0+ (Fase 6): certificado en PDF y eliminación de cuenta. */
   certificate_pdf?: boolean;
   account_deletion?: boolean;
+  /** La academia permite el reporte de cierres inesperados (sin datos personales). */
+  crash_reports?: boolean;
 };
 
 export type AssignmentInfo = {

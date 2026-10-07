@@ -25,6 +25,10 @@ import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/naviga
 import { LoginScreen } from './src/screens/LoginScreen';
 import { initRuntimeConfig } from './src/runtimeConfig';
 import { initLanguage, useLanguage } from './src/i18n';
+import { applyAcademyCrashPreference, initCrashReports, wrapRoot } from './src/errors';
+
+// 1.0.0: reporte de cierres inesperados (solo con DSN configurado y si la academia lo permite).
+initCrashReports();
 import { colors, spacing } from './src/theme';
 import type { ServerCapabilities, StudentHome } from './src/types';
 
@@ -47,6 +51,7 @@ function AppShell() {
   const refreshGradeBadges = useCallback(async (accessToken: string) => {
     const caps = await getServerCapabilities().catch(() => null);
     setCapabilities(caps);
+    applyAcademyCrashPreference(caps?.crash_reports);
     if (!caps?.grades) {
       setNewGradeCourses([]);
       return;
@@ -97,7 +102,7 @@ function AppShell() {
       await initLanguage().catch(() => undefined);
       // Antes de restaurar la sesión: si el token ya no sirve, la restauración purga el almacenamiento.
       await migrateLegacyStorage().catch(() => undefined);
-      void loadServerCapabilities();
+      void loadServerCapabilities().then((caps) => applyAcademyCrashPreference(caps.crash_reports));
       const restored = await restoreAccessToken();
       if (!active) return;
       setToken(restored);
@@ -267,7 +272,7 @@ function AppShell() {
   );
 }
 
-export default function App() {
+function App() {
   return (
     <SafeAreaProvider>
       <AppShell />
@@ -281,3 +286,5 @@ const styles = StyleSheet.create({
   safe: { backgroundColor: colors.surface, flex: 1 },
   loginSafe: { backgroundColor: colors.background, flex: 1 },
 });
+
+export default wrapRoot(App);

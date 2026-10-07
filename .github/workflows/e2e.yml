@@ -119,6 +119,7 @@ jobs:
         timeout-minutes: 40
         env:
           ATORA_E2E: '1'
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
           EXPO_PUBLIC_ATORA_API_URL: ${{ env.API_URL }}
           NODE_ENV: production
         run: |

@@ -10,3 +10,5 @@ web-build/
 
 # Generado en postinstall (scripts/vendor-pdfjs.js)
 src/viewer/pdfjs.generated.ts
+android/
+ios/
