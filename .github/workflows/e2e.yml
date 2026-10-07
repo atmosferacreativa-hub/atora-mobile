@@ -21,12 +21,15 @@ on:
       plugin_ref:
         description: 'Rama o etiqueta del plugin'
         default: main
+      modo:
+        description: 'pantallas (recorridos), gama-baja (2 GB de RAM, red lenta, mediciones) o tienda (capturas en alta resolución para las fichas)'
+        default: pantallas
 
 permissions:
   contents: read
 
 concurrency:
-  group: e2e-${{ github.ref }}
+  group: e2e-${{ github.ref }}-${{ inputs.modo || 'pantallas' }}
   cancel-in-progress: true
 
 env:
@@ -88,7 +91,7 @@ jobs:
           docker exec wp mkdir -p /var/www/html/e2e-media
           docker cp e2e/media/. wp:/var/www/html/e2e-media/
           docker exec wp chown -R 33:33 /var/www/html/e2e-media
-          $WP atora seed-e2e --yes --video-dir=/var/www/html/e2e-media | tee seed.json
+          $WP atora seed-e2e --yes --video-dir=/var/www/html/e2e-media ${{ inputs.modo == 'gama-baja' && '--perf' || '' }} | tee seed.json
           curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
           # La sugerencia de IA es asíncrona (cron). El sitio vive en otra URL (la del emulador) y el
           # cron por petición no se dispara solo: se ejecuta dentro del contenedor cada 3 s.
@@ -155,10 +158,12 @@ jobs:
           target: google_apis
           disable-animations: true
           # Con la memoria por defecto el sistema mataba los servicios de Google (y la app con ellos) al abrir el visor de PDF.
-          ram-size: 4096M
-          heap-size: 512M
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: bash scripts/e2e-run.sh "${{ steps.flows.outputs.list }}"
+          # 1.0.0: "gama-baja" simula un teléfono de 2 GB con red 3G; "tienda" usa una pantalla Pixel 6 (1080 × 2400).
+          ram-size: ${{ inputs.modo == 'gama-baja' && '2048M' || '4096M' }}
+          heap-size: ${{ inputs.modo == 'gama-baja' && '256M' || '512M' }}
+          profile: ${{ inputs.modo == 'tienda' && 'pixel_6' || '' }}
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim ${{ inputs.modo == 'gama-baja' && '-netdelay umts -netspeed hsdpa' || '' }}
+          script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
 
       - name: Capturas y registros
         if: always()

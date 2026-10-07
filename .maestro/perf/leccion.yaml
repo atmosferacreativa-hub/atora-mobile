@@ -1,0 +1,20 @@
+appId: com.atmosferacreativa.atora
+name: perf-leccion
+# Abre la lección con 3 videos (la app marca "[atora-perf] lesson <ms>").
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Cursos"
+    timeout: 60000
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 60000
+- tapOn: "Curso E2E"
+- scrollUntilVisible:
+    element: "Videos"
+- tapOn: "Videos"
+- extendedWaitUntil:
+    visible: "Video 1"
+    timeout: 60000
+- takeScreenshot: capturas/rendimiento-leccion

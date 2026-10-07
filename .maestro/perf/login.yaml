@@ -1,0 +1,5 @@
+appId: com.atmosferacreativa.atora
+name: perf-login
+# Deja la sesión iniciada para medir arranques en frío.
+---
+- runFlow: ../common/login-estudiante.yaml

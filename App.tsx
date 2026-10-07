@@ -26,6 +26,7 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { initRuntimeConfig } from './src/runtimeConfig';
 import { initLanguage, useLanguage } from './src/i18n';
 import { applyAcademyCrashPreference, initCrashReports, wrapRoot } from './src/errors';
+import { perfMark } from './src/perf';
 
 // 1.0.0: reporte de cierres inesperados (solo con DSN configurado y si la academia lo permite).
 initCrashReports();
@@ -75,6 +76,8 @@ function AppShell() {
       await flushOutbox(accessToken).catch(() => null);
       const data = await loadDashboard(accessToken);
       setDashboard(data);
+      // 1.0.0: arranque en frío: la app ya muestra datos (lo mide scripts/perf-run.sh).
+      perfMark('home');
       setMode(await resolveMode(data));
       setDashboardError('');
       // 0.4.0: al abrir (y al refrescar), traer solo lo que cambió desde la última vez.

@@ -1,0 +1,29 @@
+appId: com.atmosferacreativa.atora
+name: eliminar-cuenta
+# 1.0.0 (plugin 6.33.0): Yo → Eliminar mi cuenta, con confirmación; la solicitud queda registrada
+# (la cuenta sigue hasta que el administrador la procese) y se cierra la sesión.
+---
+- runFlow: common/login-estudiante.yaml
+- tapOn: "Yo"
+- scrollUntilVisible:
+    element:
+      id: "delete-account"
+- takeScreenshot: capturas/eliminar-cuenta-01-yo
+- tapOn:
+    id: "delete-account"
+- extendedWaitUntil:
+    visible: "¿Eliminar tu cuenta?"
+    timeout: 15000
+- takeScreenshot: capturas/eliminar-cuenta-02-confirmacion
+- tapOn:
+    text: "Eliminar mi cuenta"
+    index: 0
+- extendedWaitUntil:
+    visible: "Solicitud registrada"
+    timeout: 30000
+- assertVisible: ".*Recibimos tu solicitud.*"
+- takeScreenshot: capturas/eliminar-cuenta-03-registrada
+- tapOn: "Entendido"
+- extendedWaitUntil:
+    visible: "Ingresar a tu academia"
+    timeout: 30000

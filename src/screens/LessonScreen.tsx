@@ -23,6 +23,7 @@ import {
 import { formatBytes, resourceKey } from '../offline/downloadsMath';
 import { flushOutbox } from '../offline/outbox/runtime';
 import { useNetworkState } from '../hooks/useNetworkState';
+import { perfMark, perfNow } from '../perf';
 import { offlineMessage } from '../ai/conversation';
 import { openWithSystem, viewerKind } from '../viewer/files';
 import { colors, spacing } from '../theme';
@@ -467,6 +468,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 
   useEffect(() => {
     let active = true;
+    const started = perfNow();
     Promise.all([fetchLesson(lessonId, token), getServerCapabilities()])
       .then(async ([value, caps]) => {
         const list = toPlayable(value, Boolean(caps.multi_video));
@@ -482,6 +484,8 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
         }
         if (!active) return;
         setLesson(value);
+        // 1.0.0: apertura de la lección (con sus videos) en milisegundos.
+        perfMark('lesson', perfNow() - started, false);
         setVideoDownloads(downloads);
         setResumes(positions);
         void reconcileLessonResources(value).catch(() => undefined).then(() => (active ? loadSavedResources(value.id) : undefined));
