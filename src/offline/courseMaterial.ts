@@ -2,6 +2,7 @@ import { cachedLesson, fetchLesson } from '../api/courses';
 import { resourceKey } from './downloadsMath';
 import { downloadResource, listResourceDownloads } from './mediaDownloads';
 import type { LessonDetail, LessonResource } from '../types';
+import { t } from '../i18n/core';
 
 /**
  * "Descargar material del curso" (0.4.0): todo el material descargable de las
@@ -43,7 +44,7 @@ export async function downloadCourseMaterial(
       await downloadResource(lesson, resource);
       saved += 1;
     } catch (reason) {
-      error ||= reason instanceof Error ? reason.message : 'No se pudo descargar un archivo.';
+      error ||= reason instanceof Error ? reason.message : t('No se pudo descargar un archivo.');
       // Sin red o sin Wi-Fi: no tiene sentido seguir intentando el resto.
       if (/conexión|Wi-Fi|espacio/i.test(error)) break;
     }

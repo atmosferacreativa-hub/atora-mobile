@@ -6,6 +6,7 @@ import { pendingAnnouncements, sendAnnouncement } from '../../api/teacher';
 import { pendingFor } from '../../teacher/announcements';
 import { useNetworkState } from '../../hooks/useNetworkState';
 import { colors, radius, spacing } from '../../theme';
+import { t } from '../../i18n';
 
 type Props = { token: string; courseId: number; title: string; sections: { id: number; title: string }[]; onBack: () => void };
 type Pending = Awaited<ReturnType<typeof pendingAnnouncements>>[number];
@@ -31,12 +32,12 @@ export function AnnouncementScreen({ token, courseId, title, sections, onBack }:
   const send = async () => {
     const id = await sendAnnouncement(courseId, subject, body, section);
     if (!id) {
-      setNotice('Escribe el aviso antes de enviarlo.');
+      setNotice(t('Escribe el aviso antes de enviarlo.'));
       return;
     }
     setSubject('');
     setBody('');
-    setNotice(offline ? 'Guardado. Se enviará cuando tengas conexión.' : 'Enviando…');
+    setNotice(offline ? t('Guardado. Se enviará cuando tengas conexión.') : t('Enviando…'));
     refreshPending();
     if (!offline) void flushOutbox(token).finally(refreshPending);
   };
@@ -44,18 +45,18 @@ export function AnnouncementScreen({ token, courseId, title, sections, onBack }:
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Volver" onPress={onBack} hitSlop={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.primaryStrong} />
         </Pressable>
         <View style={styles.flex}>
-          <Text style={styles.eyebrow}>AVISO AL GRUPO</Text>
+          <Text style={styles.eyebrow}>{t('AVISO AL GRUPO')}</Text>
           <Text style={styles.title} numberOfLines={2}>{title}</Text>
         </View>
       </View>
       {sections.length > 1 ? (
         <View style={styles.chips}>
           <Pressable accessibilityRole="button" onPress={() => setSection(undefined)} style={[styles.chip, section === undefined && styles.chipOn]}>
-            <Text style={[styles.chipText, section === undefined && styles.chipTextOn]}>Todo el curso</Text>
+            <Text style={[styles.chipText, section === undefined && styles.chipTextOn]}>{t('Todo el curso')}</Text>
           </Pressable>
           {sections.map((item) => (
             <Pressable key={item.id} accessibilityRole="button" onPress={() => setSection(item.id)} style={[styles.chip, section === item.id && styles.chipOn]}>
@@ -64,17 +65,17 @@ export function AnnouncementScreen({ token, courseId, title, sections, onBack }:
           ))}
         </View>
       ) : null}
-      <TextInput accessibilityLabel="Asunto" onChangeText={setSubject} placeholder="Asunto (opcional)" style={styles.input} testID="announcement-title" value={subject} maxLength={120} />
-      <TextInput accessibilityLabel="Aviso" multiline onChangeText={setBody} placeholder="Escribe el aviso para tus estudiantes" style={[styles.input, styles.body]} testID="announcement-body" value={body} />
+      <TextInput accessibilityLabel={t('Asunto')} onChangeText={setSubject} placeholder={t('Asunto (opcional)')} style={styles.input} testID="announcement-title" value={subject} maxLength={120} />
+      <TextInput accessibilityLabel={t('Aviso')} multiline onChangeText={setBody} placeholder={t('Escribe el aviso para tus estudiantes')} style={[styles.input, styles.body]} testID="announcement-body" value={body} />
       <Pressable accessibilityRole="button" onPress={() => void send()} style={styles.send} testID="announcement-send">
         <Ionicons name="send" size={18} color={colors.white} />
-        <Text style={styles.sendText}>Enviar aviso</Text>
+        <Text style={styles.sendText}>{t('Enviar aviso')}</Text>
       </Pressable>
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       {pending.map((event) => (
         <View key={event.id} style={styles.pending}>
-          <Text style={styles.pendingTitle}>{event.payload.title || 'Aviso'}</Text>
-          <Text style={styles.pendingMeta}>{event.status === 'failed' ? `No se envió: ${event.lastError}` : 'Pendiente · se enviará al tener conexión'}</Text>
+          <Text style={styles.pendingTitle}>{event.payload.title || t('Aviso')}</Text>
+          <Text style={styles.pendingMeta}>{event.status === 'failed' ? `${t('No se envió')}: ${event.lastError}` : t('Pendiente · se enviará al tener conexión')}</Text>
         </View>
       ))}
     </ScrollView>
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   title: { color: colors.text, fontSize: 22, fontWeight: '900' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  chip: { minHeight: 44, justifyContent: 'center', borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.text, fontWeight: '700' },
   chipTextOn: { color: colors.white },

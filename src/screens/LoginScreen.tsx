@@ -13,6 +13,7 @@ import { ApiError } from '../api/client';
 import { AcademyEndpointModal } from '../components/AcademyEndpointModal';
 import { getApiBaseUrlSync } from '../runtimeConfig';
 import { colors, spacing } from '../theme';
+import { t } from '../i18n';
 
 type Props = {
   onLogin: (login: string, password: string) => Promise<void>;
@@ -28,7 +29,7 @@ export function LoginScreen({ onLogin }: Props) {
 
   const submit = async () => {
     if (!login.trim() || !password) {
-      setError('Escribe tu usuario y contraseña.');
+      setError(t('Escribe tu usuario y contraseña.'));
       return;
     }
     setBusy(true);
@@ -43,9 +44,9 @@ export function LoginScreen({ onLogin }: Props) {
         }
         setError(reason.code ? `${reason.message} [${reason.code}]` : reason.message);
       } else if (reason instanceof Error) {
-        setError(`Error interno: ${reason.name}: ${reason.message}`);
+        setError(t('Error interno: {detail}', { detail: `${reason.name}: ${reason.message}` }));
       } else {
-        setError('Error interno desconocido al iniciar sesión.');
+        setError(t('Error interno desconocido al iniciar sesión.'));
       }
     } finally {
       setBusy(false);
@@ -60,14 +61,14 @@ export function LoginScreen({ onLogin }: Props) {
       <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <View style={styles.brandBlock}>
         <Text style={styles.brand}>ATORA</Text>
-        <Text style={styles.tagline}>Tu aprendizaje, siempre contigo.</Text>
+        <Text style={styles.tagline}>{t('Tu aprendizaje, siempre contigo.')}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.title}>Ingresar a tu academia</Text>
+        <Text style={styles.title}>{t('Ingresar a tu academia')}</Text>
         <Pressable accessibilityRole="button" onPress={() => setSetupOpen(true)} style={styles.setup}>
-          <Text style={styles.setupTitle}>Academia</Text>
+          <Text style={styles.setupTitle}>{t('Academia')}</Text>
           <Text style={styles.setupValue} numberOfLines={1}>
-            {apiBaseUrl ? apiBaseUrl : 'Configura la URL del entorno (ATORA Lab)'}
+            {apiBaseUrl ? apiBaseUrl : t('Configura la URL de tu academia')}
           </Text>
         </Pressable>
         <TextInput
@@ -75,7 +76,7 @@ export function LoginScreen({ onLogin }: Props) {
           autoComplete="username"
           editable={!busy}
           onChangeText={setLogin}
-          placeholder="Correo o usuario"
+          placeholder={t('Correo o usuario')}
           style={styles.input}
           testID="login-user"
           value={login}
@@ -86,7 +87,7 @@ export function LoginScreen({ onLogin }: Props) {
           editable={!busy}
           onChangeText={setPassword}
           onSubmitEditing={submit}
-          placeholder="Contraseña"
+          placeholder={t('Contraseña')}
           secureTextEntry
           style={styles.input}
           testID="login-password"
@@ -100,9 +101,9 @@ export function LoginScreen({ onLogin }: Props) {
           style={({ pressed }) => [styles.button, (pressed || busy) && styles.buttonPressed]}
           testID="login-submit"
         >
-          {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Entrar</Text>}
+          {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>{t('Entrar')}</Text>}
         </Pressable>
-        <Text style={styles.security}>Sesión protegida y revocable. Tu contraseña no se guarda.</Text>
+        <Text style={styles.security}>{t('Sesión protegida y revocable. Tu contraseña no se guarda.')}</Text>
       </View>
     </KeyboardAvoidingView>
   );

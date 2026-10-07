@@ -23,10 +23,12 @@ import {
 import { formatBytes, resourceKey } from '../offline/downloadsMath';
 import { flushOutbox } from '../offline/outbox/runtime';
 import { useNetworkState } from '../hooks/useNetworkState';
-import { OFFLINE_MESSAGE } from '../ai/conversation';
+import { perfMark, perfNow } from '../perf';
+import { offlineMessage } from '../ai/conversation';
 import { openWithSystem, viewerKind } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
+import { t } from '../i18n';
 
 export type OpenResourceParams = { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 
@@ -133,16 +135,16 @@ function VideoBlock({
   };
   const cover = (
     <>
-      <Pressable accessibilityLabel="Reproducir video" accessibilityRole="button" onPress={() => (external ? void Linking.openURL(video.url) : play(offerResume ? resumeAt : 0))}>
+      <Pressable hitSlop={12} accessibilityLabel={t('Reproducir video')} accessibilityRole="button" onPress={() => (external ? void Linking.openURL(video.url) : play(offerResume ? resumeAt : 0))}>
         <MediaImage play uri={video.thumbnail} badge={durationBadge} />
       </Pressable>
       {offerResume ? (
         <View style={styles.resumeRow}>
           <Pressable accessibilityRole="button" onPress={() => play(resumeAt)} style={[styles.resumeButton, styles.resumePrimary]}>
-            <Text style={styles.resumePrimaryText}>Continuar desde {formatClock(resumeAt)}</Text>
+            <Text style={styles.resumePrimaryText}>{t('Continuar desde {time}', { time: formatClock(resumeAt) })}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={() => play(0)} style={styles.resumeButton}>
-            <Text style={styles.resumeText}>Empezar de nuevo</Text>
+            <Text style={styles.resumeText}>{t('Empezar de nuevo')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -158,9 +160,9 @@ function VideoBlock({
       {external ? (
         <>
           {cover}
-          <Text style={styles.onlineOnly}>Solo con conexión · {video.provider === 'vimeo' ? 'Vimeo' : 'YouTube'}</Text>
+          <Text style={styles.onlineOnly}>{t('Solo con conexión')} · {video.provider === 'vimeo' ? 'Vimeo' : 'YouTube'}</Text>
           <Pressable accessibilityRole="button" onPress={() => void Linking.openURL(video.url)} style={styles.embedButton}>
-            <Text style={styles.embedButtonText}>Abrir video</Text>
+            <Text style={styles.embedButtonText}>{t('Abrir video')}</Text>
           </Pressable>
         </>
       ) : (video.embedUrl || mediaUri) && !started ? (
@@ -189,17 +191,17 @@ function VideoBlock({
               </View>
             ) : null}
           </View>
-          <Text style={styles.onlineOnly}>Solo con conexión · Google Drive</Text>
+          <Text style={styles.onlineOnly}>{t('Solo con conexión · Google Drive')}</Text>
           <View style={styles.embedActions}>
             <Pressable
               accessibilityRole="button"
               onPress={() => void Linking.openURL(video.embedUrl)}
               style={styles.embedButton}
             >
-              <Text style={styles.embedButtonText}>Abrir video en el navegador</Text>
+              <Text style={styles.embedButtonText}>{t('Abrir video en el navegador')}</Text>
             </Pressable>
             {embedFailed ? (
-              <Text style={styles.embedHint}>Si el video no carga aquí, el navegador suele funcionar mejor.</Text>
+              <Text style={styles.embedHint}>{t('Si el video no carga aquí, el navegador suele funcionar mejor.')}</Text>
             ) : null}
           </View>
         </>
@@ -213,11 +215,11 @@ function VideoBlock({
             style={styles.video}
           />
           {videoOnlineOnly ? (
-            <Text style={styles.onlineOnly}>Solo con conexión</Text>
+            <Text style={styles.onlineOnly}>{t('Solo con conexión')}</Text>
           ) : (
             <>
               <Text style={styles.source}>
-                {downloaded ? 'Disponible sin conexión' : `Reproducción en línea${video.bytes ? ` · ${formatBytes(video.bytes)}` : ''}`}
+                {downloaded ? t('Disponible sin conexión') : `${t('Reproducción en línea')}${video.bytes ? ` · ${formatBytes(video.bytes)}` : ''}`}
               </Text>
               <Pressable
                 disabled={downloadBusy}
@@ -226,7 +228,7 @@ function VideoBlock({
               >
                 {downloadBusy ? <ActivityIndicator color={colors.blue} /> : (
                   <Text style={styles.downloadText}>
-                    {downloaded ? 'Eliminar descarga' : 'Guardar para usar sin conexión'}
+                    {downloaded ? t('Eliminar descarga') : t('Guardar para usar sin conexión')}
                   </Text>
                 )}
               </Pressable>
@@ -235,7 +237,7 @@ function VideoBlock({
         </>
       ) : (
         <View style={styles.mediaUnavailable}>
-          <Text style={styles.mediaUnavailableText}>Esta lección no tiene un video compatible configurado.</Text>
+          <Text style={styles.mediaUnavailableText}>{t('Esta lección no tiene un video compatible configurado.')}</Text>
         </View>
       )}
     </>
@@ -278,13 +280,13 @@ function LessonContent({
   return (
     <>
       <Text style={styles.title}>{lesson.title}</Text>
-      <Text style={styles.meta}>{lesson.duration_min} minutos · {lesson.type}</Text>
+      <Text style={styles.meta}>{t('{count} minutos', { count: lesson.duration_min })} · {lesson.type}</Text>
       {videoArea}
-      <Text style={styles.body}>{lesson.content_text || 'Esta lección no contiene texto adicional.'}</Text>
+      <Text style={styles.body}>{lesson.content_text || t('Esta lección no contiene texto adicional.')}</Text>
       {resources.length ? (
         <View style={styles.resources}>
-          <Text style={styles.sectionTitle}>Materiales</Text>
-          <Text style={styles.sectionHint}>Guías, enlaces y archivos. Lo descargado se abre sin conexión.</Text>
+          <Text style={styles.sectionTitle}>{t('Materiales')}</Text>
+          <Text style={styles.sectionHint}>{t('Guías, enlaces y archivos. Lo descargado se abre sin conexión.')}</Text>
           <View style={styles.resourceList}>
             {resources.map((resource, index) => {
               const key = resourceKey(lesson.id, resource);
@@ -300,9 +302,9 @@ function LessonContent({
                     <Text style={styles.resourceType}>
                       {(RESOURCE_LABELS[resource.type] ?? resource.type ?? 'Recurso').toUpperCase()}{size ? ` · ${size}` : ''}
                     </Text>
-                    <Text style={styles.resourceTitle} numberOfLines={2}>{resource.title}</Text>
+                    <Text style={styles.resourceTitle}>{resource.title}</Text>
                     {resource.description ? (
-                      <Text style={styles.resourceDescription} numberOfLines={2}>{resource.description}</Text>
+                      <Text style={styles.resourceDescription} numberOfLines={4}>{resource.description}</Text>
                     ) : null}
                     <Text style={[styles.resourceStatus, saved && !saved.updateAvailable ? styles.resourceStatusOk : null]}>{status}</Text>
                   </Pressable>
@@ -310,21 +312,21 @@ function LessonContent({
                     {busyHere ? <ActivityIndicator color={colors.blue} /> : saved ? (
                       <>
                         {saved.updateAvailable ? (
-                          <Pressable accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
-                            <Text style={styles.resourceAction}>Actualizar</Text>
+                          <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
+                            <Text style={styles.resourceAction}>{t('Actualizar')}</Text>
                           </Pressable>
                         ) : null}
-                        <Pressable accessibilityRole="button" onPress={() => onResourceRemove(saved)}>
-                          <Text style={styles.resourceRemove}>Eliminar</Text>
+                        <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceRemove(saved)}>
+                          <Text style={styles.resourceRemove}>{t('Eliminar')}</Text>
                         </Pressable>
                       </>
                     ) : resource.downloadable ? (
-                      <Pressable accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
-                        <Text style={styles.resourceAction}>Descargar</Text>
+                      <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
+                        <Text style={styles.resourceAction}>{t('Descargar')}</Text>
                       </Pressable>
                     ) : (
-                      <Pressable accessibilityRole="button" onPress={() => onResourcePress(resource)}>
-                        <Text style={styles.resourceAction}>Abrir</Text>
+                      <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourcePress(resource)}>
+                        <Text style={styles.resourceAction}>{t('Abrir')}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -337,36 +339,36 @@ function LessonContent({
       {lesson.quiz_available ? (
         <View style={styles.quizCard}>
           <View style={styles.quizCopy}>
-            <Text style={styles.quizEyebrow}>EVALUACIÓN</Text>
-            <Text style={styles.quizTitle}>Comprueba lo aprendido</Text>
-            <Text style={styles.quizHelp}>Responde con calma en una interfaz clara, una pregunta a la vez.</Text>
+            <Text style={styles.quizEyebrow}>{t('EVALUACIÓN')}</Text>
+            <Text style={styles.quizTitle}>{t('Comprueba lo aprendido')}</Text>
+            <Text style={styles.quizHelp}>{t('Responde con calma en una interfaz clara, una pregunta a la vez.')}</Text>
           </View>
           <Pressable accessibilityRole="button" onPress={onOpenQuiz} style={styles.quizButton}>
-            <Text style={styles.quizButtonText}>Comenzar evaluación</Text>
+            <Text style={styles.quizButtonText}>{t('Comenzar evaluación')}</Text>
           </Pressable>
         </View>
       ) : null}
       {showAssignment ? (
         <View style={styles.quizCard}>
           <View style={styles.quizCopy}>
-            <Text style={styles.quizEyebrow}>TAREA</Text>
-            <Text style={styles.quizTitle}>Entrega tu trabajo</Text>
-            <Text style={styles.quizHelp}>Puedes prepararla sin conexión: se enviará sola cuando vuelvas a tenerla.</Text>
+            <Text style={styles.quizEyebrow}>{t('TAREA')}</Text>
+            <Text style={styles.quizTitle}>{t('Entrega tu trabajo')}</Text>
+            <Text style={styles.quizHelp}>{t('Puedes prepararla sin conexión: se enviará sola cuando vuelvas a tenerla.')}</Text>
           </View>
           <Pressable accessibilityRole="button" onPress={onOpenAssignment} style={styles.quizButton}>
-            <Text style={styles.quizButtonText}>Ver tarea</Text>
+            <Text style={styles.quizButtonText}>{t('Ver tarea')}</Text>
           </Pressable>
         </View>
       ) : null}
       {onAsk ? (
         <View style={styles.quizCard} testID="lesson-ask-card">
           <View style={styles.quizCopy}>
-            <Text style={styles.quizEyebrow}>ASISTENTE</Text>
-            <Text style={styles.quizTitle}>¿Te quedó una duda?</Text>
-            <Text style={styles.quizHelp}>{askOffline ? OFFLINE_MESSAGE : 'Pregúntale al asistente sobre esta lección.'}</Text>
+            <Text style={styles.quizEyebrow}>{t('ASISTENTE')}</Text>
+            <Text style={styles.quizTitle}>{t('¿Te quedó una duda?')}</Text>
+            <Text style={styles.quizHelp}>{askOffline ? offlineMessage() : t('Pregúntale al asistente sobre esta lección.')}</Text>
           </View>
           <Pressable accessibilityRole="button" disabled={askOffline} onPress={onAsk} style={[styles.quizButton, askOffline && { opacity: 0.5 }]} testID="lesson-ask">
-            <Text style={styles.quizButtonText}>Preguntar</Text>
+            <Text style={styles.quizButtonText}>{t('Preguntar')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -376,7 +378,7 @@ function LessonContent({
         style={[styles.button, lesson.completed && styles.doneButton]}
       >
         {busy ? <ActivityIndicator color={colors.white} /> : (
-          <Text style={styles.buttonText}>{lesson.completed ? 'Lección completada' : 'Marcar como completada'}</Text>
+          <Text style={styles.buttonText}>{lesson.completed ? t('Lección completada') : t('Marcar como completada')}</Text>
         )}
       </Pressable>
     </>
@@ -466,6 +468,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 
   useEffect(() => {
     let active = true;
+    const started = perfNow();
     Promise.all([fetchLesson(lessonId, token), getServerCapabilities()])
       .then(async ([value, caps]) => {
         const list = toPlayable(value, Boolean(caps.multi_video));
@@ -481,6 +484,8 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
         }
         if (!active) return;
         setLesson(value);
+        // 1.0.0: apertura de la lección (con sus videos) en milisegundos.
+        perfMark('lesson', perfNow() - started, false);
         setVideoDownloads(downloads);
         setResumes(positions);
         void reconcileLessonResources(value).catch(() => undefined).then(() => (active ? loadSavedResources(value.id) : undefined));
@@ -494,14 +499,14 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
           if (active && generated) setLocalThumb(generated);
         }
       })
-      .catch(() => { if (active) setNotice('No pudimos cargar la lección.'); });
+      .catch(() => { if (active) setNotice(t('No pudimos cargar la lección.')); });
     return () => { active = false; };
   }, [lessonId, token, loadSavedResources]);
 
   const openLocal = async (record: DownloadRecord, title: string) => {
     const kind = viewerKind(record.mime, record.localUri);
     if (kind === 'system') {
-      await openWithSystem(record.localUri, record.mime).catch(() => setNotice('No hay una app en el teléfono para abrir este archivo.'));
+      await openWithSystem(record.localUri, record.mime).catch(() => setNotice(t('No hay una app en el teléfono para abrir este archivo.')));
       return;
     }
     onOpenResource({ title, localUri: record.localUri, kind, mime: record.mime });
@@ -519,7 +524,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     try {
       await Linking.openURL(target);
     } catch {
-      setNotice('No se pudo abrir el enlace.');
+      setNotice(t('No se pudo abrir el enlace.'));
     }
   };
 
@@ -531,9 +536,9 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     try {
       await downloadResource(lesson, resource);
       await loadSavedResources(lesson.id);
-      setNotice('Material guardado: se abre sin conexión.');
+      setNotice(t('Material guardado: se abre sin conexión.'));
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : 'No fue posible descargar el material.');
+      setNotice(reason instanceof Error ? reason.message : t('No fue posible descargar el material.'));
     } finally {
       setResourceBusy('');
     }
@@ -560,9 +565,9 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
         isFirstVideo: current.index === 0,
       });
       setVideoDownloads((prev) => ({ ...prev, [currentSlot]: saved }));
-      setNotice('Video guardado y listo para usar sin conexión.');
+      setNotice(t('Video guardado y listo para usar sin conexión.'));
     } catch (reason) {
-      setNotice(reason instanceof Error ? reason.message : 'No fue posible descargar el video.');
+      setNotice(reason instanceof Error ? reason.message : t('No fue posible descargar el video.'));
     } finally {
       setDownloadBusy(false);
     }
@@ -571,11 +576,11 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
   const deleteDownload = () => {
     if (!lesson) return;
     Alert.alert(
-      '¿Eliminar descarga?',
-      'El video dejará de estar disponible sin conexión. Podrás volver a descargarlo cuando tengas Wi-Fi.',
+      t('¿Eliminar descarga?'),
+      t('El video dejará de estar disponible sin conexión. Podrás volver a descargarlo cuando tengas Wi-Fi.'),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => void confirmDeleteDownload() },
+        { text: t('Cancelar'), style: 'cancel' },
+        { text: t('Eliminar'), style: 'destructive', onPress: () => void confirmDeleteDownload() },
       ],
     );
   };
@@ -587,9 +592,9 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       if (current.key) await removeVideoDownload(lesson.id, current.key, current.index === 0);
       else await removeLessonDownload(lesson.id);
       setVideoDownloads((prev) => ({ ...prev, [currentSlot]: null }));
-      setNotice('Descarga eliminada. El video seguirá disponible en línea.');
+      setNotice(t('Descarga eliminada. El video seguirá disponible en línea.'));
     } catch {
-      setNotice('No fue posible eliminar la descarga.');
+      setNotice(t('No fue posible eliminar la descarga.'));
     } finally {
       setDownloadBusy(false);
     }
@@ -602,10 +607,10 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     try {
       const result = await completeLesson(lesson.id, token);
       setLesson({ ...lesson, completed: true });
-      setNotice(result.queued ? 'Progreso guardado: se sincronizará al recuperar conexión.' : 'Progreso actualizado.');
+      setNotice(result.queued ? t('Progreso guardado: se sincronizará al recuperar conexión.') : t('Progreso actualizado.'));
       onCompleted();
     } catch {
-      setNotice('No fue posible actualizar el progreso.');
+      setNotice(t('No fue posible actualizar el progreso.'));
     } finally {
       setBusy(false);
     }
@@ -629,7 +634,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       />
       {videos.length > 1 ? (
         <View style={styles.videoList}>
-          <Text style={styles.sectionTitle}>Videos de la lección</Text>
+          <Text style={styles.sectionTitle}>{t('Videos de la lección')}</Text>
           {videos.map((video) => {
             const id = slot(video);
             const isCurrent = id === currentSlot;
@@ -648,10 +653,10 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
               >
                 <MediaImage play uri={thumbnailFor(video)} style={styles.videoThumb} />
                 <View style={styles.videoMeta}>
-                  <Text numberOfLines={2} style={styles.videoTitle}>{video.title}</Text>
+                  <Text style={styles.videoTitle}>{video.title}</Text>
                   <Text style={[styles.resourceStatus, saved && styles.resourceStatusOk]}>{status}</Text>
-                  {isCurrent ? <Text style={styles.videoBadge}>En el reproductor</Text>
-                    : seen > 0 || watched[id] ? <Text style={styles.videoSeen}>Visto{seen > 0 ? ` hasta ${formatClock(seen)}` : ''}</Text> : null}
+                  {isCurrent ? <Text style={styles.videoBadge}>{t('En el reproductor')}</Text>
+                    : seen > 0 || watched[id] ? <Text style={styles.videoSeen}>{seen > 0 ? t('Visto hasta {time}', { time: formatClock(seen) }) : t('Visto')}</Text> : null}
                 </View>
               </Pressable>
             );
@@ -661,13 +666,13 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     </>
   ) : (
     <View style={styles.mediaUnavailable}>
-      <Text style={styles.mediaUnavailableText}>Esta lección no tiene un video compatible configurado.</Text>
+      <Text style={styles.mediaUnavailableText}>{t('Esta lección no tiene un video compatible configurado.')}</Text>
     </View>
   );
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable onPress={onBack}><Text style={styles.back}>← Volver al curso</Text></Pressable>
+      <Pressable hitSlop={12} onPress={onBack}><Text style={styles.back}>{t('← Volver al curso')}</Text></Pressable>
       {lesson ? (
         <LessonContent
           lesson={lesson}
@@ -693,7 +698,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 
 const styles = StyleSheet.create({
   videoList: { gap: spacing.sm },
-  videoRow: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: 'transparent', borderRadius: 14, borderWidth: 2, flexDirection: 'row', gap: spacing.md, padding: spacing.sm },
+  videoRow: { minHeight: 44, alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: 'transparent', borderRadius: 14, borderWidth: 2, flexDirection: 'row', gap: spacing.md, padding: spacing.sm },
   videoRowCurrent: { borderColor: colors.blue },
   videoThumb: { borderRadius: 8, width: 112 },
   videoMeta: { flex: 1, gap: 2 },
@@ -723,7 +728,7 @@ const styles = StyleSheet.create({
   sectionHint: { color: colors.muted, lineHeight: 20 },
   resourceList: { gap: spacing.sm },
   resourceCard: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: 16, flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between', padding: spacing.md },
-  resourceMeta: { flex: 1, gap: 4 },
+  resourceMeta: { minHeight: 44, justifyContent: 'center', flex: 1, gap: 4 },
   resourceType: { color: colors.muted, fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   resourceTitle: { color: colors.navy, fontSize: 16, fontWeight: '900' },
   resourceDescription: { color: colors.ink, lineHeight: 19, opacity: 0.85 },

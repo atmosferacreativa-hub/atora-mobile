@@ -6,6 +6,7 @@ import { ANNOUNCEMENT_SEND, announcementDedupeKey, cleanAnnouncement, type Annou
 import * as FileSystem from 'expo-file-system/legacy';
 import { refreshAccessToken } from './session';
 import type { GradeOutcome, GradeRequest, QueuePage, StudentFile, StudentsPage, SubmissionDetail, SubmissionFileRef, TeacherCourse, TeacherToday } from '../teacher/types';
+import { t } from '../i18n/core';
 
 /**
  * Docente (0.7.0, plugin 6.31.0). Lecturas con respaldo sin conexión (lo último
@@ -133,7 +134,7 @@ const FILES_DIR = `${FileSystem.cacheDirectory ?? ''}grading-files/`;
 
 /** Descarga un archivo de la entrega (enlace firmado y temporal + token del docente) para verlo. */
 export async function downloadSubmissionFile(token: string, submissionId: number, file: SubmissionFileRef): Promise<string> {
-  if (!file.url) throw new Error('Este archivo no se puede abrir.');
+  if (!file.url) throw new Error(t('Este archivo no se puede abrir.'));
   await FileSystem.makeDirectoryAsync(FILES_DIR, { intermediates: true });
   const safe = file.filename.replace(/[^A-Za-z0-9._-]+/g, '_') || `archivo-${file.id}`;
   const destination = `${FILES_DIR}${submissionId}-${file.id}-${safe}`;
@@ -144,7 +145,7 @@ export async function downloadSubmissionFile(token: string, submissionId: number
   }
   if (result.status < 200 || result.status >= 300) {
     await FileSystem.deleteAsync(destination, { idempotent: true });
-    throw new Error(result.status === 403 ? 'El enlace venció: vuelve a abrir la entrega.' : 'No se pudo descargar el archivo.');
+    throw new Error(result.status === 403 ? t('El enlace venció: vuelve a abrir la entrega.') : t('No se pudo descargar el archivo.'));
   }
   return result.uri;
 }

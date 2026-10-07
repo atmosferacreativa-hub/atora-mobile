@@ -7,6 +7,7 @@ import { PendingQuizNotice } from '../components/PendingQuizNotice';
 import { usePendingQuizzes } from '../hooks/usePendingQuizzes';
 import { colors, radius, spacing } from '../theme';
 import type { AgendaItem, InternalLink, TodayStudent } from '../types';
+import { locale, t } from '../i18n';
 
 type Props = {
   token: string;
@@ -27,7 +28,7 @@ function Deadline({ item, late, onOpen }: { item: AgendaItem; late?: boolean; on
       <View style={styles.rowText}>
         <Text style={styles.rowTitle}>{item.title}</Text>
         <Text style={[styles.rowMeta, late && styles.lateText]}>
-          {late ? 'Venció' : 'Vence'} {when.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })} {when.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+          {t(late ? 'Venció el {date}' : 'Vence el {date}', { date: `${when.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' })} ${when.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })}` })}
           {item.course ? ` · ${item.course.title}` : ''}
         </Text>
       </View>
@@ -54,7 +55,7 @@ export function TodayScreen({ token, name, newGradeCourses, onOpenLesson, onOpen
       setFromCache(result.fromCache);
       setError('');
     } catch {
-      setError('No pudimos cargar tu día. Conéctate para sincronizar.');
+      setError(t('No pudimos cargar tu día. Conéctate para sincronizar.'));
     } finally {
       setLoading(false);
     }
@@ -66,9 +67,9 @@ export function TodayScreen({ token, name, newGradeCourses, onOpenLesson, onOpen
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Text style={styles.eyebrow}>MI JORNADA</Text>
-      <Text style={styles.title}>Hola, {name || 'Estudiante'}</Text>
-      {fromCache && syncedAt ? <Text style={styles.sync}>Sin conexión · actualizado el {new Date(syncedAt).toLocaleString('es')}</Text> : null}
+      <Text style={styles.eyebrow}>{t('MI JORNADA')}</Text>
+      <Text style={styles.title}>{t('Hola, {name}', { name: name || t('Estudiante') })}</Text>
+      {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
 
       {pendingQuizzes.map((item) => <PendingQuizNotice key={item.lessonId} item={item} onOpen={() => onOpenQuiz(item.lessonId)} />)}
@@ -77,45 +78,45 @@ export function TodayScreen({ token, name, newGradeCourses, onOpenLesson, onOpen
 
       {data?.continue ? (
         <Pressable accessibilityRole="button" onPress={() => onOpenLesson(data.continue!.lesson.id)} style={styles.continue}>
-          <Text style={styles.continueEyebrow}>CONTINUAR</Text>
+          <Text style={styles.continueEyebrow}>{t('CONTINUAR')}</Text>
           <Text style={styles.continueTitle}>{data.continue.lesson.title}</Text>
-          <Text style={styles.continueMeta}>{data.continue.course.title} · {data.continue.progress}% del curso</Text>
+          <Text style={styles.continueMeta}>{data.continue.course.title} · {t('{percent}% del curso', { percent: data.continue.progress })}</Text>
           <View style={styles.track}><View style={[styles.fill, { width: `${Math.max(0, Math.min(100, data.continue.progress))}%` }]} /></View>
         </Pressable>
       ) : null}
 
       {data?.overdue.length ? (
         <View style={styles.section}>
-          <Text style={styles.heading}>Vencidas sin entregar</Text>
+          <Text style={styles.heading}>{t('Vencidas sin entregar')}</Text>
           {data.overdue.map((item, index) => <Deadline key={`o-${index}`} item={item} late onOpen={() => item.link && onOpenLink(item.link)} />)}
         </View>
       ) : null}
 
       {data ? (
         <View style={styles.section}>
-          <Text style={styles.heading}>Próximos 7 días</Text>
+          <Text style={styles.heading}>{t('Próximos 7 días')}</Text>
           {data.upcoming.length
             ? data.upcoming.map((item, index) => <Deadline key={`u-${index}`} item={item} onOpen={() => item.link && onOpenLink(item.link)} />)
-            : <Text style={styles.empty}>Nada por entregar esta semana.</Text>}
+            : <Text style={styles.empty}>{t('Nada por entregar esta semana.')}</Text>}
         </View>
       ) : null}
 
       {data && data.unread_messages > 0 ? (
         <Pressable accessibilityRole="button" onPress={onOpenMessages} style={styles.row}>
           <Ionicons name="chatbubbles-outline" size={20} color={colors.primary} />
-          <Text style={[styles.rowTitle, styles.rowText]}>{data.unread_messages === 1 ? 'Tienes 1 mensaje sin leer' : `Tienes ${data.unread_messages} mensajes sin leer`}</Text>
+          <Text style={[styles.rowTitle, styles.rowText]}>{data.unread_messages === 1 ? t('Tienes 1 mensaje sin leer') : t('Tienes {count} mensajes sin leer', { count: data.unread_messages })}</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </Pressable>
       ) : null}
 
       {grades.length ? (
         <View style={styles.section}>
-          <Text style={styles.heading}>Notas nuevas</Text>
+          <Text style={styles.heading}>{t('Notas nuevas')}</Text>
           {grades.map((grade) => (
             <Pressable key={grade.course_id} accessibilityRole="button" onPress={() => onOpenCourseGrades(grade.course_id, grade.title)} style={styles.row}>
               <Ionicons name="ribbon-outline" size={20} color={colors.accentText} />
               <Text style={[styles.rowTitle, styles.rowText]}>{grade.title}</Text>
-              <Text style={styles.newBadge}>Nota nueva</Text>
+              <Text style={styles.newBadge}>{t('Nota nueva')}</Text>
             </Pressable>
           ))}
         </View>

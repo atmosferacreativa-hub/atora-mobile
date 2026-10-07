@@ -5,6 +5,7 @@ import { fetchPrograms } from '../api/programs';
 import { MediaImage } from '../components/MediaImage';
 import { colors, spacing } from '../theme';
 import type { CourseSummary, ProgramSummary } from '../types';
+import { t } from '../i18n';
 
 type Props = {
   courses: CourseSummary[];
@@ -50,18 +51,18 @@ export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOp
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.title}>Mis cursos</Text>
-      <Text style={styles.subtitle}>Contenido nativo disponible desde tu academia.</Text>
+      <Text style={styles.title}>{t('Mis cursos')}</Text>
+      <Text style={styles.subtitle}>{t('Contenido nativo disponible desde tu academia.')}</Text>
       {programs.length ? (
         <View style={styles.programWrap}>
-          <Text style={styles.programHeading}>Programas</Text>
+          <Text style={styles.programHeading}>{t('Programas')}</Text>
           {programs.map((program) => (
             <Pressable key={program.id} onPress={() => onOpenProgram(program.id)} style={styles.programCard}>
               <MediaImage style={styles.programThumb} uri={program.thumbnail_url} />
               <View style={styles.programCopy}>
                 <Text style={styles.programTitle}>{program.title}</Text>
-                <Text numberOfLines={2} style={styles.programText}>{program.subtitle || program.excerpt || 'Programa académico'}</Text>
-                <Text style={styles.programCta}>Abrir programa →</Text>
+                <Text numberOfLines={2} style={styles.programText}>{program.subtitle || program.excerpt || t('Programa académico')}</Text>
+                <Text style={styles.programCta}>{t('Abrir programa →')}</Text>
               </View>
             </Pressable>
           ))}
@@ -74,7 +75,7 @@ export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOp
             <Text style={styles.cardTitle}>{course.title}</Text>
             <Text style={styles.percent}>{course.progress}%</Text>
           </View>
-          <Text numberOfLines={2} style={styles.excerpt}>{course.excerpt || 'Continúa tu recorrido formativo.'}</Text>
+          <Text numberOfLines={2} style={styles.excerpt}>{course.excerpt || t('Continúa tu recorrido formativo.')}</Text>
           <View style={styles.track}><View style={[styles.bar, { width: `${course.progress}%` }]} /></View>
           <View style={styles.actions}>
             <Pressable
@@ -85,16 +86,16 @@ export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOp
               {continuingId === course.id ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.primaryText}>{course.progress > 0 ? 'Continuar' : 'Empezar'}</Text>
+                <Text style={styles.primaryText}>{course.progress > 0 ? t('Continuar') : t('Empezar')}</Text>
               )}
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => onOpenCourse(course.id)} style={styles.secondary}>
-              <Text style={styles.secondaryText}>Ver temario</Text>
+              <Text style={styles.secondaryText}>{t('Ver temario')}</Text>
             </Pressable>
           </View>
         </Pressable>
       ))}
-      {!courses.length ? <Text style={styles.empty}>No hay cursos activos.</Text> : null}
+      {!courses.length ? <Text style={styles.empty}>{t('No hay cursos activos.')}</Text> : null}
     </ScrollView>
   );
 }
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   empty: { color: colors.muted, textAlign: 'center' },
   programWrap: { gap: spacing.sm },
   programHeading: { color: colors.navy, fontSize: 18, fontWeight: '900', marginTop: spacing.sm },
-  programCard: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: spacing.md, overflow: 'hidden' },
+  programCard: { minHeight: 44, backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: spacing.md, overflow: 'hidden' },
   programThumb: { borderRadius: 0, width: 140 },
   programCopy: { flex: 1, gap: 4, padding: spacing.md },
   programTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },

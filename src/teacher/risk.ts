@@ -3,6 +3,7 @@
  * nunca solo color. El texto es la etiqueta del servidor con su motivo.
  */
 import type { Risk, RiskLevel } from './types';
+import { t } from '../i18n/core';
 
 export type RiskBadge = { text: string; detail: string; icon: 'alert-circle' | 'warning' | 'checkmark-circle'; tone: 'danger' | 'warning' | 'ok' };
 
@@ -12,15 +13,16 @@ const TONES: Record<RiskLevel, Pick<RiskBadge, 'icon' | 'tone'>> = {
   bajo: { icon: 'checkmark-circle', tone: 'ok' },
 };
 
-const FALLBACK_LABELS: Record<RiskLevel, string> = { alto: 'Riesgo alto', medio: 'Riesgo medio', bajo: 'Sin riesgo' };
+const LABELS: Record<RiskLevel, string> = { alto: 'Riesgo alto', medio: 'Riesgo medio', bajo: 'Sin riesgo' };
 
 export function riskBadge(risk: Risk | null | undefined): RiskBadge {
   const level: RiskLevel = risk && risk.level in TONES ? risk.level : 'bajo';
   const reasons = (risk?.reasons ?? []).filter(Boolean);
   return {
     ...TONES[level],
-    text: risk?.label || FALLBACK_LABELS[level],
-    detail: reasons.length ? reasons.join(' · ') : level === 'bajo' ? 'Al día' : '',
+    // 1.0.0: la etiqueta sale del catálogo (el motivo llega del servidor, en el idioma de la academia).
+    text: t(LABELS[level]),
+    detail: reasons.length ? reasons.join(' · ') : level === 'bajo' ? t('Al día') : '',
   };
 }
 

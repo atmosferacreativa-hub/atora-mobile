@@ -5,6 +5,8 @@ module.exports = ({ config }) => {
   return {
     ...config,
     updates: { ...config.updates, enabled: false },
+    // 1.0.0: el emulador del CI está en inglés; con "idioma del teléfono" la app de pruebas usa español.
+    extra: { ...config.extra, e2e: true },
     plugins: [...(config.plugins ?? []), './plugins/withE2ECleartext'],
   };
 };

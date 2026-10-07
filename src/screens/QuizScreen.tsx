@@ -17,6 +17,7 @@ import { sqliteQuizDraftStore } from '../offline/quizDraftStore';
 import { afterSubmitFailure, answersPayload, discardDraft, newDraft, remainingSeconds, restoreDraft, saveDraft, type QuizDraft } from '../offline/quizDrafts';
 import { colors, spacing } from '../theme';
 import type { QuizAnswer, QuizPayload, QuizQuestion, QuizResult } from '../types';
+import { t } from '../i18n';
 
 type Props = {
   lessonId: number;
@@ -66,11 +67,11 @@ function QuestionInput({
   if (question.type === 'text' || question.type === 'textarea' || question.type === 'number') {
     return (
       <TextInput
-        accessibilityLabel="Tu respuesta"
+        accessibilityLabel={t('Tu respuesta')}
         keyboardType={question.type === 'number' ? 'numeric' : 'default'}
         multiline={question.type === 'textarea'}
         onChangeText={onChange}
-        placeholder={question.type === 'textarea' ? 'Escribe aquí tu respuesta…' : 'Tu respuesta'}
+        placeholder={question.type === 'textarea' ? t('Escribe aquí tu respuesta…') : t('Tu respuesta')}
         style={[styles.input, question.type === 'textarea' && styles.textarea]}
         value={Array.isArray(answer) ? '' : String(answer ?? '')}
       />
@@ -145,8 +146,8 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
     })().catch((reason) => {
       if (!active) return;
       setError(reason instanceof ApiError && reason.status === 0
-        ? 'Necesitas conexión para iniciar la evaluación.'
-        : reason instanceof Error ? reason.message : 'No pudimos abrir la evaluación.');
+        ? t('Necesitas conexión para iniciar la evaluación.')
+        : reason instanceof Error ? reason.message : t('No pudimos abrir la evaluación.'));
     });
     return () => { active = false; };
   }, [lessonId, token]);
@@ -193,7 +194,7 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
         // El servidor cerró el intento (vencido, intentos agotados…): su motivo, tal cual.
         await discardDraft(sqliteQuizDraftStore, userId.current, lessonId).catch(() => undefined);
       }
-      setError(reason instanceof Error ? reason.message : 'No fue posible entregar la evaluación.');
+      setError(reason instanceof Error ? reason.message : t('No fue posible entregar la evaluación.'));
     } finally {
       setBusy(false);
     }
@@ -202,13 +203,13 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
   const confirmSubmit = () => {
     const unanswered = total - answered;
     Alert.alert(
-      '¿Entregar evaluación?',
+      t('¿Entregar evaluación?'),
       unanswered > 0
-        ? `Quedan ${unanswered} preguntas sin responder. Puedes volver y revisarlas.`
-        : 'Tus respuestas quedarán registradas. Revisa antes de confirmar.',
+        ? t('Quedan {count} preguntas sin responder. Puedes volver y revisarlas.', { count: unanswered })
+        : t('Tus respuestas quedarán registradas. Revisa antes de confirmar.'),
       [
-        { text: 'Seguir revisando', style: 'cancel' },
-        { text: 'Entregar ahora', onPress: () => void performSubmit() },
+        { text: t('Seguir revisando'), style: 'cancel' },
+        { text: t('Entregar ahora'), onPress: () => void performSubmit() },
       ],
     );
   };
@@ -219,13 +220,13 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
     return (
       <ScrollView contentContainerStyle={styles.resultPage}>
         <View style={styles.resultCard}>
-          <Text style={styles.resultEyebrow}>EVALUACIÓN ENTREGADA</Text>
+          <Text style={styles.resultEyebrow}>{t('EVALUACIÓN ENTREGADA')}</Text>
           <Text style={styles.score}>{result.score}%</Text>
-          <Text style={styles.resultTitle}>Resultado del intento {result.attempt}</Text>
-          <Text style={styles.message}>{result.student_message || 'Tu resultado quedó registrado correctamente.'}</Text>
-          {result.best_score !== result.score ? <Text style={styles.best}>Mejor resultado: {result.best_score}%</Text> : null}
+          <Text style={styles.resultTitle}>{t('Resultado del intento {n}', { n: result.attempt })}</Text>
+          <Text style={styles.message}>{result.student_message || t('Tu resultado quedó registrado correctamente.')}</Text>
+          {result.best_score !== result.score ? <Text style={styles.best}>{t('Mejor resultado: {score}%', { score: result.best_score })}</Text> : null}
           <Pressable onPress={onBack} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>Volver a la lección</Text>
+            <Text style={styles.primaryText}>{t('Volver a la lección')}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -235,8 +236,8 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
   if (!quiz || !question) {
     return (
       <View style={styles.center}>
-        <Text accessibilityRole="alert" style={styles.error}>{error || 'Esta evaluación no tiene preguntas disponibles.'}</Text>
-        <Pressable onPress={onBack} style={styles.secondaryButton}><Text style={styles.secondaryText}>Volver</Text></Pressable>
+        <Text accessibilityRole="alert" style={styles.error}>{error || t('Esta evaluación no tiene preguntas disponibles.')}</Text>
+        <Pressable onPress={onBack} style={styles.secondaryButton}><Text style={styles.secondaryText}>{t('Volver')}</Text></Pressable>
       </View>
     );
   }
@@ -244,7 +245,7 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
   return (
     <View style={styles.page}>
       <View style={styles.topbar}>
-        <Pressable onPress={onBack} hitSlop={12}><Text style={styles.back}>← Salir</Text></Pressable>
+        <Pressable onPress={onBack} hitSlop={12}><Text style={styles.back}>{t('← Salir')}</Text></Pressable>
         {quiz.remaining_seconds > 0 ? (
           <View style={[styles.timer, urgent && styles.timerUrgent]}>
             <Text style={[styles.timerText, urgent && styles.timerUrgentText]}>{formatTime(remaining)}</Text>
@@ -252,15 +253,15 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
         ) : null}
       </View>
       <View style={styles.progressHeader}>
-        <Text style={styles.progressLabel}>Pregunta {index + 1} de {total}</Text>
-        <Text style={styles.answered}>{answered} respondidas</Text>
+        <Text style={styles.progressLabel}>{t('Pregunta {n} de {total}', { n: index + 1, total })}</Text>
+        <Text style={styles.answered}>{t('{count} respondidas', { count: answered })}</Text>
       </View>
       <View style={styles.track}><View style={[styles.progress, { width: `${((index + 1) / total) * 100}%` }]} /></View>
 
       <ScrollView contentContainerStyle={styles.questionScroll} keyboardShouldPersistTaps="handled">
         <View style={styles.questionCard}>
           <Text style={styles.questionText}>{question.question}</Text>
-          {question.type === 'multiple' ? <Text style={styles.hint}>Puedes seleccionar varias opciones.</Text> : null}
+          {question.type === 'multiple' ? <Text style={styles.hint}>{t('Puedes seleccionar varias opciones.')}</Text> : null}
           <QuestionInput
             question={question}
             answer={answers[question.id]}
@@ -268,11 +269,11 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
           />
         </View>
         {remaining === 0 && quiz.remaining_seconds > 0 ? (
-          <Text accessibilityRole="alert" style={styles.error}>El tiempo terminó. Intenta entregar tus respuestas.</Text>
+          <Text accessibilityRole="alert" style={styles.error}>{t('El tiempo terminó. Intenta entregar tus respuestas.')}</Text>
         ) : null}
-        {resumed ? <Text style={styles.hint}>Retomaste la evaluación donde la dejaste.</Text> : null}
+        {resumed ? <Text style={styles.hint}>{t('Retomaste la evaluación donde la dejaste.')}</Text> : null}
         {network.offline ? (
-          <Text accessibilityRole="alert" style={styles.offline}>Necesitas conexión para entregar. Tus respuestas están guardadas.</Text>
+          <Text accessibilityRole="alert" style={styles.offline}>{t('Necesitas conexión para entregar. Tus respuestas están guardadas.')}</Text>
         ) : null}
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       </ScrollView>
@@ -283,7 +284,7 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
           onPress={() => setIndex((value) => value - 1)}
           style={[styles.navButton, index === 0 && styles.disabled]}
         >
-          <Text style={styles.navText}>Anterior</Text>
+          <Text style={styles.navText}>{t('Anterior')}</Text>
         </Pressable>
         {index < total - 1 ? (
           <Pressable
@@ -291,11 +292,11 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
             onPress={() => setIndex((value) => value + 1)}
             style={styles.primaryButton}
           >
-            <Text style={styles.primaryText}>Siguiente</Text>
+            <Text style={styles.primaryText}>{t('Siguiente')}</Text>
           </Pressable>
         ) : (
           <Pressable disabled={busy || network.offline} onPress={confirmSubmit} style={[styles.submitButton, network.offline && styles.disabled]}>
-            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>Revisar y entregar</Text>}
+            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>{t('Revisar y entregar')}</Text>}
           </Pressable>
         )}
       </View>

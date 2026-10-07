@@ -6,6 +6,7 @@
  * sugerencia queda marcado "sugerido por IA" hasta que el docente lo edita.
  */
 import type { CriterionDraft } from '../grading/drafts';
+import { t, tk } from '../i18n/core';
 
 export type SuggestedCriterion = {
   index: number;
@@ -97,10 +98,10 @@ export async function pollSuggestion(jobId: string, deps: PollDeps): Promise<Pol
     if (deps.cancelled?.()) return { kind: 'cancelled' };
     const job = await deps.fetch(jobId);
     if (job.status === 'done' && job.suggestion) return { kind: 'done', suggestion: job.suggestion };
-    if (job.status === 'failed') return { kind: 'failed', message: job.error || 'La IA no pudo generar la sugerencia. Intenta más tarde.' };
+    if (job.status === 'failed') return { kind: 'failed', message: job.error || t('La IA no pudo generar la sugerencia. Intenta más tarde.') };
     if (deps.now() - started + POLL_INTERVAL_MS > POLL_TIMEOUT_MS) return { kind: 'timeout' };
     await deps.sleep(POLL_INTERVAL_MS);
   }
 }
 
-export const LIKELIHOOD_LABEL: Record<GradingSuggestion['ai_likelihood'], string> = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto' };
+export const LIKELIHOOD_LABEL: Record<GradingSuggestion['ai_likelihood'], string> = { bajo: tk('Bajo'), medio: tk('Medio'), alto: tk('Alto') };

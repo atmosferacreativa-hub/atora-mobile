@@ -16,6 +16,7 @@ import { useNetworkState } from '../../hooks/useNetworkState';
 import { viewerKind } from '../../viewer/files';
 import { colors, radius, spacing } from '../../theme';
 import type { SubmissionDetail, SubmissionFileRef } from '../../teacher/types';
+import { locale, t } from '../../i18n';
 
 type Props = {
   token: string;
@@ -37,7 +38,7 @@ function formFrom(detail: SubmissionDetail): Form {
   return { attempt: detail.graded_attempt || last, scores, feedback: detail.feedback ?? '', grade: detail.grade === null ? '' : String(detail.grade) };
 }
 
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
 /** Calificar una entrega (0.8.0): visor, intentos, rúbrica táctil con decimales, borrador o publicar. */
 export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile, onOpenWithSystem, onNext }: Props) {
@@ -76,12 +77,12 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       const recovered = userId.current ? await recoverDraft(sqliteGradingDraftStore, userId.current, submissionId, data.revision).catch(() => null) : null;
       if (recovered) {
         Alert.alert(
-          'Borrador guardado en el teléfono',
-          `${recovered.staleRevision ? 'Otro docente guardó esta entrega después de que empezaste. ' : ''}¿Recuperar lo que escribiste el ${new Date(recovered.draft.savedAt).toLocaleString('es')}?`,
+          t('Borrador guardado en el teléfono'),
+          `${recovered.staleRevision ? `${t('Otro docente guardó esta entrega después de que empezaste.')} ` : ''}${t('¿Recuperar lo que escribiste el {date}?', { date: new Date(recovered.draft.savedAt).toLocaleString(locale()) })}`,
           [
-            { text: 'Descartar', style: 'destructive', onPress: () => void discardDraft(sqliteGradingDraftStore, userId.current!, submissionId) },
+            { text: t('Descartar'), style: 'destructive', onPress: () => void discardDraft(sqliteGradingDraftStore, userId.current!, submissionId) },
             {
-              text: 'Recuperar',
+              text: t('Recuperar'),
               onPress: () => {
                 setForm({ attempt: recovered.draft.attempt, scores: recovered.draft.scores, feedback: recovered.draft.feedback, grade: recovered.draft.grade });
                 // El borrador conserva su revisión: guardar sin confirmar provoca el 409 en vez de pisar la otra nota.
@@ -93,7 +94,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         );
       }
     } catch {
-      setError(offline ? 'Calificar necesita conexión. Lo que escribas se guarda en el teléfono.' : 'No pudimos abrir la entrega.');
+      setError(offline ? t('Calificar necesita conexión. Lo que escribas se guarda en el teléfono.') : t('No pudimos abrir la entrega.'));
     }
   }, [token, submissionId, offline]);
 
@@ -118,7 +119,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
 
   const askSuggestion = async () => {
     if (offline) {
-      Alert.alert('Sin conexión', 'La sugerencia de IA necesita conexión.');
+      Alert.alert(t('Sin conexión'), t('La sugerencia de IA necesita conexión.'));
       return;
     }
     setAi({ state: 'loading' });
@@ -156,7 +157,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       if (kind === 'system') onOpenWithSystem(localUri, file.mime_type);
       else onOpenFile({ title: file.filename, localUri, kind, mime: file.mime_type });
     } catch (reason) {
-      Alert.alert('No se pudo abrir', reason instanceof Error ? reason.message : 'Inténtalo otra vez.');
+      Alert.alert(t('No se pudo abrir'), reason instanceof Error ? reason.message : t('Inténtalo otra vez.'));
     } finally {
       setOpening(0);
     }
@@ -166,16 +167,16 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
     if (!form || !detail) return;
     const invalid = checks.find((check) => !check.ok);
     if (invalid && !invalid.ok) {
-      Alert.alert('Revisa la rúbrica', invalid.error);
+      Alert.alert(t('Revisa la rúbrica'), invalid.error);
       return;
     }
     const grade = parseFinalGrade(form.grade);
     if (!grade.ok) {
-      Alert.alert('Revisa la nota final', grade.error);
+      Alert.alert(t('Revisa la nota final'), grade.error);
       return;
     }
     if (offline) {
-      Alert.alert('Sin conexión', 'Calificar necesita conexión. Tu borrador sigue guardado en el teléfono.');
+      Alert.alert(t('Sin conexión'), t('Calificar necesita conexión. Tu borrador sigue guardado en el teléfono.'));
       return;
     }
     setBusy(true);
@@ -199,23 +200,23 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       setRevision(outcome.submission.revision);
       setSaved(publish ? 'published' : 'draft');
     } catch (reason) {
-      Alert.alert('No se guardó', reason instanceof Error ? reason.message : 'Inténtalo otra vez. Tu borrador sigue en el teléfono.');
+      Alert.alert(t('No se guardó'), reason instanceof Error ? reason.message : t('Inténtalo otra vez. Tu borrador sigue en el teléfono.'));
     } finally {
       setBusy(false);
     }
   };
 
   const confirmPublish = () =>
-    Alert.alert('¿Publicar la calificación?', detail?.group ? 'El estudiante verá la nota y recibirá un aviso. La nota se aplica a todos los integrantes del grupo.' : 'El estudiante verá la nota y los comentarios, y recibirá un aviso.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Publicar', onPress: () => void submit(true) },
+    Alert.alert(t('¿Publicar la calificación?'), detail?.group ? t('El estudiante verá la nota y recibirá un aviso. La nota se aplica a todos los integrantes del grupo.') : t('El estudiante verá la nota y los comentarios, y recibirá un aviso.'), [
+      { text: t('Cancelar'), style: 'cancel' },
+      { text: t('Publicar'), onPress: () => void submit(true) },
     ]);
 
   if (!detail || !form) {
     return (
       <View style={styles.center}>
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : <ActivityIndicator color={colors.primary} />}
-        <Pressable accessibilityRole="button" onPress={onBack} style={styles.link}><Text style={styles.linkText}>Volver</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={onBack} style={styles.link}><Text style={styles.linkText}>{t('Volver')}</Text></Pressable>
       </View>
     );
   }
@@ -223,7 +224,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Volver" onPress={onBack} hitSlop={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.primaryStrong} />
         </Pressable>
         <View style={styles.flex}>
@@ -237,30 +238,30 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         <View style={styles.group} testID="grading-group">
           <Ionicons name="people" size={18} color={colors.primaryStrong} />
           <Text style={styles.groupText}>
-            Entrega grupal · {detail.group.name}: la nota se aplica a todos los integrantes ({detail.group.members.map((m) => m.name).join(', ')}).
+            {t('Entrega grupal · {group}: la nota se aplica a todos los integrantes ({members}).', { group: detail.group.name, members: detail.group.members.map((m) => m.name).join(', ') })}
           </Text>
         </View>
       ) : null}
 
       {otherVersion ? (
         <View style={styles.theirs} testID="grading-other-version">
-          <Text style={styles.criterion}>Otro docente guardó esta entrega después de tu borrador</Text>
-          <Text style={styles.meta}>Su versión · Estado: {otherVersion.status === 'graded' ? 'Publicada' : 'Borrador'} · Nota: {otherVersion.grade ?? 'sin nota'}</Text>
+          <Text style={styles.criterion}>{t('Otro docente guardó esta entrega después de tu borrador')}</Text>
+          <Text style={styles.meta}>{t('Su versión · Estado: {status} · Nota: {grade}', { status: otherVersion.status === 'graded' ? t('Publicada') : t('Borrador'), grade: otherVersion.grade ?? t('sin nota') })}</Text>
           {(otherVersion.rubric?.criteria ?? []).map((c) => (
             <Text key={c.index} style={styles.meta}>{c.name}: {c.score ?? '—'}{c.level ? ` (${c.level})` : ''}</Text>
           ))}
           {otherVersion.feedback ? <Text style={styles.meta}>“{otherVersion.feedback}”</Text> : null}
-          <Text style={styles.meta}>Abajo está tu borrador. Al guardar se te pedirá confirmar si quieres reemplazar su versión.</Text>
+          <Text style={styles.meta}>{t('Abajo está tu borrador. Al guardar se te pedirá confirmar si quieres reemplazar su versión.')}</Text>
         </View>
       ) : null}
 
-      {offline ? <Text style={styles.offline}>Sin conexión: calificar necesita conexión. Lo que escribas queda guardado en el teléfono.</Text> : null}
+      {offline ? <Text style={styles.offline}>{t('Sin conexión: calificar necesita conexión. Lo que escribas queda guardado en el teléfono.')}</Text> : null}
 
       {detail.attempts.length > 1 ? (
         <View style={styles.chips}>
           {detail.attempts.map((item) => (
             <Pressable key={item.attempt} accessibilityRole="button" onPress={() => setForm({ ...form, attempt: item.attempt })} style={[styles.chip, form.attempt === item.attempt && styles.chipOn]}>
-              <Text style={[styles.chipText, form.attempt === item.attempt && styles.chipTextOn]}>Intento {item.attempt}</Text>
+              <Text style={[styles.chipText, form.attempt === item.attempt && styles.chipTextOn]}>{t('Intento {n}', { n: item.attempt })}</Text>
             </Pressable>
           ))}
         </View>
@@ -268,14 +269,14 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
 
       {attempt ? (
         <View style={styles.card}>
-          <Text style={styles.heading}>Intento {attempt.attempt}{attempt.is_late ? ' · Tardía' : ''}</Text>
-          <Text style={styles.meta}>Entregada el {when(attempt.server_received_at)} · {attempt.source === 'mobile' ? 'App' : 'Web'}</Text>
-          {attempt.client_submitted_at ? <Text style={styles.meta}>Realizada sin conexión el {when(attempt.client_submitted_at)}</Text> : null}
+          <Text style={styles.heading}>{t('Intento {n}', { n: attempt.attempt })}{attempt.is_late ? ` · ${t('Tardía')}` : ''}</Text>
+          <Text style={styles.meta}>{t('Entregada el {date}', { date: when(attempt.server_received_at) })} · {attempt.source === 'mobile' ? t('App') : t('Web')}</Text>
+          {attempt.client_submitted_at ? <Text style={styles.meta}>{t('Realizada sin conexión el {date}', { date: when(attempt.client_submitted_at) })}</Text> : null}
           {attempt.body_text ? <Text style={styles.body}>{attempt.body_text}</Text> : null}
           {attempt.files.map((file) => (
             <Pressable key={file.id} accessibilityRole="button" onPress={() => void openFile(file)} style={styles.file} testID={`grading-file-${file.id}`}>
               <Ionicons name={viewerKind(file.mime_type, file.filename) === 'pdf' ? 'document-text-outline' : viewerKind(file.mime_type, file.filename) === 'image' ? 'image-outline' : 'attach-outline'} size={20} color={colors.primary} />
-              <Text style={[styles.fileName, styles.flex]} numberOfLines={1}>{file.filename || 'Archivo'}</Text>
+              <Text style={[styles.fileName, styles.flex]} numberOfLines={2} ellipsizeMode="middle">{file.filename || t('Archivo')}</Text>
               {opening === file.id ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="open-outline" size={18} color={colors.textMuted} />}
             </Pressable>
           ))}
@@ -286,16 +287,16 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         <View style={styles.aiCard} testID="ai-suggestion">
           <View style={styles.scoreRow}>
             <Ionicons name="sparkles-outline" size={20} color={colors.primaryStrong} />
-            <Text style={[styles.heading, styles.flex]}>Sugerencia de IA</Text>
+            <Text style={[styles.heading, styles.flex]}>{t('Sugerencia de IA')}</Text>
           </View>
-          <Text style={styles.meta}>La IA sugiere; tú decides. Usarla solo rellena tu borrador: nada se guarda ni se publica hasta que tú lo hagas.</Text>
+          <Text style={styles.meta}>{t('La IA sugiere; tú decides. Usarla solo rellena tu borrador: nada se guarda ni se publica hasta que tú lo hagas.')}</Text>
           {ai.state === 'idle' || ai.state === 'error' ? (
             <Pressable accessibilityRole="button" disabled={offline} onPress={() => void askSuggestion()} style={[styles.copy, offline && styles.disabled]} testID="ai-suggestion-request">
-              <Text style={styles.copyText}>{ai.state === 'error' ? 'Pedir otra vez' : 'Sugerencia de IA'}</Text>
+              <Text style={styles.copyText}>{ai.state === 'error' ? t('Pedir otra vez') : t('Sugerencia de IA')}</Text>
             </Pressable>
           ) : null}
           {ai.state === 'loading' ? (
-            <View style={styles.scoreRow}><ActivityIndicator color={colors.primary} /><Text style={styles.meta}>Generando la sugerencia…</Text></View>
+            <View style={styles.scoreRow}><ActivityIndicator color={colors.primary} /><Text style={styles.meta}>{t('Generando la sugerencia…')}</Text></View>
           ) : null}
           {ai.state === 'error' ? <Text style={styles.error} testID="ai-suggestion-error">{ai.message}</Text> : null}
           {ai.state === 'ready' && ai.suggestion ? (
@@ -303,28 +304,28 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
               {ai.suggestion.criteria.map((row) => (
                 <View key={row.index} style={styles.aiRow}>
                   <View style={styles.flex}>
-                    <Text style={styles.criterion}>{row.name}: {row.score ?? '—'} de {row.max_points}{row.level ? ` · ${row.level}` : ''}</Text>
+                    <Text style={styles.criterion}>{row.name}: {t('{score} de {max}', { score: row.score ?? '—', max: row.max_points })}{row.level ? ` · ${row.level}` : ''}</Text>
                     <Text style={styles.meta}>{row.justification}</Text>
                   </View>
                   {row.score !== null ? (
-                    <Pressable accessibilityRole="button" accessibilityLabel={`Usar sugerencia para ${row.name}`} onPress={() => useSuggestion(row.index)} style={styles.copy} testID={`ai-use-${row.index}`}>
-                      <Text style={styles.copyText}>Usar</Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t('Usar sugerencia para {name}', { name: row.name })} onPress={() => useSuggestion(row.index)} style={styles.copy} testID={`ai-use-${row.index}`}>
+                      <Text style={styles.copyText}>{t('Usar')}</Text>
                     </Pressable>
                   ) : null}
                 </View>
               ))}
               {ai.suggestion.feedback ? <Text style={styles.body}>{ai.suggestion.feedback}</Text> : null}
               <View style={styles.likelihood} testID="ai-likelihood">
-                <Text style={styles.criterion}>Indicio de texto generado por IA: {LIKELIHOOD_LABEL[ai.suggestion.ai_likelihood]}</Text>
+                <Text style={styles.criterion}>{t('Indicio de texto generado por IA: {level}', { level: t(LIKELIHOOD_LABEL[ai.suggestion.ai_likelihood]) })}</Text>
                 {ai.suggestion.ai_likelihood_note ? <Text style={styles.meta}>{ai.suggestion.ai_likelihood_note}</Text> : null}
                 <Text style={styles.likelihoodNote}>{ai.suggestion.disclaimer}</Text>
               </View>
               <View style={styles.actions}>
                 <Pressable accessibilityRole="button" onPress={() => useSuggestion()} style={styles.secondary} testID="ai-use-all">
-                  <Text style={styles.secondaryText}>Usar todo</Text>
+                  <Text style={styles.secondaryText}>{t('Usar todo')}</Text>
                 </Pressable>
                 <Pressable accessibilityRole="button" onPress={() => void askSuggestion()} style={styles.secondary} testID="ai-suggestion-again">
-                  <Text style={styles.secondaryText}>Pedir otra</Text>
+                  <Text style={styles.secondaryText}>{t('Pedir otra')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -332,7 +333,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         </View>
       ) : null}
 
-      {criteria.length ? <Text style={styles.heading}>Rúbrica · {detail.rubric?.title}</Text> : null}
+      {criteria.length ? <Text style={styles.heading}>{t('Rúbrica')} · {detail.rubric?.title}</Text> : null}
       {criteria.map((criterion, i) => {
         const draft = form.scores[criterion.index] ?? { score: '', feedback: '' };
         const check = checks[i];
@@ -341,14 +342,14 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         return (
           <View key={criterion.index} style={styles.card} testID={`criterion-${criterion.index}`}>
             <Text style={styles.criterion}>{criterion.name}</Text>
-            {aiMarks.criteria.includes(criterion.index) ? <Text style={styles.aiMark} testID={`ai-mark-${criterion.index}`}>Sugerido por IA</Text> : null}
+            {aiMarks.criteria.includes(criterion.index) ? <Text style={styles.aiMark} testID={`ai-mark-${criterion.index}`}>{t('Sugerido por IA')}</Text> : null}
             {criterion.description ? <Text style={styles.meta}>{criterion.description}</Text> : null}
             <View style={styles.chips}>
               {criterion.levels.map((level) => (
                 <Pressable
                   key={`${level.label}-${level.points}`}
                   accessibilityRole="button"
-                  accessibilityLabel={`${level.label}, ${level.points} puntos`}
+                  accessibilityLabel={t('{level}, {points} puntos', { level: level.label, points: level.points })}
                   onPress={() => setScore(criterion.index, { score: String(level.points) })}
                   style={[styles.level, value !== null && value === level.points && styles.levelOn]}
                 >
@@ -359,23 +360,23 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
             </View>
             <View style={styles.scoreRow}>
               <TextInput
-                accessibilityLabel={`Puntaje de ${criterion.name}`}
+                accessibilityLabel={t('Puntaje de {name}', { name: criterion.name })}
                 keyboardType="decimal-pad"
                 onChangeText={(text) => setScore(criterion.index, { score: text })}
-                placeholder="Puntaje"
+                placeholder={t('Puntaje')}
                 style={[styles.input, styles.score]}
                 testID={`score-${criterion.index}`}
                 value={draft.score}
               />
-              <Text style={styles.meta}>de {criterion.max_points}</Text>
+              <Text style={styles.meta}>{t('de {max}', { max: criterion.max_points })}</Text>
               <Text style={[styles.band, styles.flex]} testID={`band-${criterion.index}`}>{value !== null ? describeScore(bands, value) : ''}</Text>
             </View>
             {check && !check.ok ? <Text style={styles.error}>{check.error}</Text> : null}
             <TextInput
-              accessibilityLabel={`Comentario de ${criterion.name}`}
+              accessibilityLabel={t('Comentario de {name}', { name: criterion.name })}
               multiline
               onChangeText={(text) => setScore(criterion.index, { feedback: text })}
-              placeholder="Comentario del criterio"
+              placeholder={t('Comentario del criterio')}
               style={styles.input}
               value={draft.feedback}
             />
@@ -385,41 +386,41 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
 
       {criteria.length ? (
         <View style={styles.totals}>
-          <Text style={styles.heading} testID="rubric-total">Total {total.earned} de {total.max}{total.percent !== null ? ` · ${total.percent} %` : ''}</Text>
+          <Text style={styles.heading} testID="rubric-total">{t('Total {earned} de {max}', { earned: total.earned, max: total.max })}{total.percent !== null ? ` · ${total.percent} %` : ''}</Text>
         </View>
       ) : null}
 
       <View style={styles.card}>
-        <Text style={styles.heading}>Nota final (0–100)</Text>
+        <Text style={styles.heading}>{t('Nota final (0–100)')}</Text>
         <View style={styles.scoreRow}>
-          <TextInput accessibilityLabel="Nota final" keyboardType="number-pad" onChangeText={(text) => setForm({ ...form, grade: text })} placeholder="Opcional" style={[styles.input, styles.score]} testID="final-grade" value={form.grade} />
+          <TextInput accessibilityLabel={t('Nota final')} keyboardType="number-pad" onChangeText={(text) => setForm({ ...form, grade: text })} placeholder={t('Opcional')} style={[styles.input, styles.score]} testID="final-grade" value={form.grade} />
           {total.percent !== null ? (
             <Pressable accessibilityRole="button" onPress={() => setForm({ ...form, grade: String(total.percent) })} style={styles.copy} testID="copy-rubric-percent">
-              <Text style={styles.copyText}>Copiar % de la rúbrica</Text>
+              <Text style={styles.copyText}>{t('Copiar % de la rúbrica')}</Text>
             </Pressable>
           ) : null}
         </View>
-        <Text style={styles.heading}>Comentario general</Text>
-        {aiMarks.feedback ? <Text style={styles.aiMark} testID="ai-mark-feedback">Sugerido por IA</Text> : null}
-        <TextInput accessibilityLabel="Comentario general" multiline onChangeText={(text) => { setAiMarks(unmarkFeedback); setForm({ ...form, feedback: text }); }} placeholder="Retroalimentación para el estudiante" style={[styles.input, styles.feedback]} testID="general-feedback" value={form.feedback} />
+        <Text style={styles.heading}>{t('Comentario general')}</Text>
+        {aiMarks.feedback ? <Text style={styles.aiMark} testID="ai-mark-feedback">{t('Sugerido por IA')}</Text> : null}
+        <TextInput accessibilityLabel={t('Comentario general')} multiline onChangeText={(text) => { setAiMarks(unmarkFeedback); setForm({ ...form, feedback: text }); }} placeholder={t('Retroalimentación para el estudiante')} style={[styles.input, styles.feedback]} testID="general-feedback" value={form.feedback} />
       </View>
 
       {saved ? (
         <View style={styles.saved} testID="grading-saved">
           <Ionicons name="checkmark-circle" size={20} color={colors.white} />
-          <Text style={styles.savedText}>{saved === 'published' ? 'Calificación publicada' : 'Borrador guardado: el estudiante todavía no la ve'}</Text>
+          <Text style={styles.savedText}>{saved === 'published' ? t('Calificación publicada') : t('Borrador guardado: el estudiante todavía no la ve')}</Text>
           <Pressable accessibilityRole="button" onPress={onNext} style={styles.next} testID="grading-next">
-            <Text style={styles.nextText}>Siguiente entrega</Text>
+            <Text style={styles.nextText}>{t('Siguiente entrega')}</Text>
           </Pressable>
         </View>
       ) : null}
       {saved === 'published' ? null : (
         <View style={styles.actions}>
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => void submit(false)} style={[styles.secondary, busy && styles.disabled]} testID="grading-save-draft">
-            <Text style={styles.secondaryText}>Guardar borrador</Text>
+            <Text style={styles.secondaryText}>{t('Guardar borrador')}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" disabled={busy} onPress={confirmPublish} style={[styles.primary, busy && styles.disabled]} testID="grading-publish">
-            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>Publicar</Text>}
+            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>{t('Publicar')}</Text>}
           </Pressable>
         </View>
       )}
@@ -427,12 +428,12 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       <Modal transparent visible={Boolean(conflict)} animationType="fade" onRequestClose={() => setConflict(null)}>
         <View style={styles.backdrop}>
           <View style={styles.modal} testID="grading-conflict">
-            <Text style={styles.heading}>Otro docente calificó primero</Text>
+            <Text style={styles.heading}>{t('Otro docente calificó primero')}</Text>
             <Text style={styles.meta}>{conflict?.message}</Text>
             {conflict ? (
               <View style={styles.theirs}>
-                <Text style={styles.criterion}>Su versión</Text>
-                <Text style={styles.meta}>Estado: {conflict.theirs.status === 'graded' ? 'Publicada' : 'Borrador'} · Nota: {conflict.theirs.grade ?? 'sin nota'}</Text>
+                <Text style={styles.criterion}>{t('Su versión')}</Text>
+                <Text style={styles.meta}>{t('Estado: {status} · Nota: {grade}', { status: conflict.theirs.status === 'graded' ? t('Publicada') : t('Borrador'), grade: conflict.theirs.grade ?? t('sin nota') })}</Text>
                 {(conflict.theirs.rubric?.criteria ?? []).map((c) => (
                   <Text key={c.index} style={styles.meta}>{c.name}: {c.score ?? '—'}{c.level ? ` (${c.level})` : ''}</Text>
                 ))}
@@ -453,7 +454,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
               style={[styles.primary, styles.modalButton]}
               testID="conflict-review"
             >
-              <Text style={styles.primaryText}>Revisar su versión</Text>
+              <Text style={styles.primaryText}>{t('Revisar su versión')}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -461,10 +462,10 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
                 if (!conflict) return;
                 const theirs = conflict.theirs;
                 setConflict(null);
-                Alert.alert('¿Reemplazar su calificación?', 'Se guardará tu versión sobre la del otro docente.', [
-                  { text: 'Cancelar', style: 'cancel' },
+                Alert.alert(t('¿Reemplazar su calificación?'), t('Se guardará tu versión sobre la del otro docente.'), [
+                  { text: t('Cancelar'), style: 'cancel' },
                   {
-                    text: 'Reemplazar',
+                    text: t('Reemplazar'),
                     style: 'destructive',
                     onPress: () => {
                       const current = expectedRevision(null, theirs.revision, true);
@@ -478,9 +479,9 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
               style={[styles.secondary, styles.modalButton]}
               testID="conflict-keep-mine"
             >
-              <Text style={styles.secondaryText}>Reemplazar con mi borrador</Text>
+              <Text style={styles.secondaryText}>{t('Reemplazar con mi borrador')}</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setConflict(null)} style={styles.link}><Text style={styles.linkText}>Cancelar</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => setConflict(null)} style={styles.link}><Text style={styles.linkText}>{t('Cancelar')}</Text></Pressable>
           </View>
         </View>
       </Modal>
@@ -503,15 +504,15 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
   heading: { color: colors.primaryStrong, fontSize: 16, fontWeight: '900' },
   body: { color: colors.text, fontSize: 15, lineHeight: 22 },
-  file: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
+  file: { minHeight: 44, alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
   fileName: { color: colors.text, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  chip: { minHeight: 44, justifyContent: 'center', borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.text, fontWeight: '700' },
   chipTextOn: { color: colors.white },
   criterion: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  level: { alignItems: 'center', borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, minWidth: 72, paddingHorizontal: spacing.sm, paddingVertical: 6 },
+  level: { minHeight: 44, justifyContent: 'center', alignItems: 'center', borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, minWidth: 72, paddingHorizontal: spacing.sm, paddingVertical: 6 },
   levelOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   levelLabel: { color: colors.text, fontSize: 12, fontWeight: '800' },
   levelPoints: { color: colors.textMuted, fontSize: 12 },
@@ -520,7 +521,7 @@ const styles = StyleSheet.create({
   score: { minWidth: 90 },
   band: { color: colors.primaryStrong, fontWeight: '800' },
   totals: { alignItems: 'flex-end' },
-  copy: { backgroundColor: colors.primarySoft, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  copy: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.primarySoft, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   copyText: { color: colors.primaryStrong, fontWeight: '800' },
   feedback: { minHeight: 100, textAlignVertical: 'top' },
   actions: { flexDirection: 'row', gap: spacing.sm },
@@ -529,16 +530,16 @@ const styles = StyleSheet.create({
   secondary: { alignItems: 'center', borderColor: colors.primary, borderRadius: radius.md, borderWidth: 2, flex: 1, justifyContent: 'center', minHeight: 50, padding: spacing.md },
   secondaryText: { color: colors.primary, fontSize: 16, fontWeight: '900' },
   disabled: { opacity: 0.6 },
-  saved: { alignItems: 'center', backgroundColor: '#1E8A5A', borderRadius: radius.md, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
+  saved: { alignItems: 'center', backgroundColor: '#17724A', borderRadius: radius.md, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
   savedText: { color: colors.white, flex: 1, fontWeight: '900' },
-  next: { backgroundColor: colors.white, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  nextText: { color: '#1E8A5A', fontWeight: '900' },
+  next: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.white, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  nextText: { color: '#17724A', fontWeight: '900' },
   backdrop: { backgroundColor: colors.backdrop, flex: 1, justifyContent: 'center', padding: spacing.lg },
   modal: { backgroundColor: colors.surface, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.lg },
   theirs: { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, gap: 4, padding: spacing.md },
   /** En el diálogo los botones van apilados: sin `flex: 1` (en columna los recortaba). */
   modalButton: { flex: 0 },
-  link: { alignItems: 'center', padding: spacing.sm },
+  link: { minHeight: 44, justifyContent: 'center', alignItems: 'center', padding: spacing.sm },
   aiCard: { backgroundColor: colors.primarySoft, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.md },
   aiBody: { gap: spacing.sm },
   aiRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },

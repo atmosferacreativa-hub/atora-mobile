@@ -1,5 +1,6 @@
 import { config } from '../config';
 import { getApiBaseUrlSync } from '../runtimeConfig';
+import { t } from '../i18n/core';
 
 export class ApiError extends Error {
   constructor(
@@ -32,7 +33,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const apiBaseUrl = getApiBaseUrlSync() || config.apiBaseUrl;
   if (!apiBaseUrl) {
-    throw new ApiError('La URL de la academia no está configurada.', 0, 'missing_api_url');
+    throw new ApiError(t('La URL de la academia no está configurada.'), 0, 'missing_api_url');
   }
 
   const controller = new AbortController();
@@ -55,7 +56,7 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       throw new ApiError(
-        payload?.message ?? `La academia respondió con el error ${response.status}.`,
+        payload?.message ?? t('La academia respondió con el error {status}.', { status: response.status }),
         response.status,
         payload?.code,
         payload?.data && typeof payload.data === 'object' ? (payload.data as Record<string, unknown>) : undefined,
@@ -64,7 +65,7 @@ export async function apiRequest<T>(
 
     if (payload === null) {
       throw new ApiError(
-        'La academia respondió en un formato no válido. Revisa la API REST y la caché del sitio.',
+        t('La academia respondió en un formato no válido. Revisa la API REST y la caché del sitio.'),
         response.status,
         'invalid_json',
       );
@@ -77,13 +78,13 @@ export async function apiRequest<T>(
     }
     if (reason instanceof Error && reason.name === 'AbortError') {
       throw new ApiError(
-        'La academia tardó demasiado en responder. Revisa la conexión e inténtalo otra vez.',
+        t('La academia tardó demasiado en responder. Revisa la conexión e inténtalo otra vez.'),
         0,
         'request_timeout',
       );
     }
     throw new ApiError(
-      'No pudimos conectar con la academia. Verifica la URL, Internet, HTTPS y el plugin ATORA LMS.',
+      t('No pudimos conectar con la academia. Verifica la URL, Internet, HTTPS y el plugin ATORA LMS.'),
       0,
       'network_error',
     );

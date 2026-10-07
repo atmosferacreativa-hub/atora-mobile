@@ -24,10 +24,18 @@ import { AppNavigator, navigationRef, openDestination } from './src/navigation/A
 import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/navigation/roles';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { initRuntimeConfig } from './src/runtimeConfig';
+import { initLanguage, useLanguage } from './src/i18n';
+import { applyAcademyCrashPreference, initCrashReports, wrapRoot } from './src/errors';
+import { perfMark } from './src/perf';
+
+// 1.0.0: reporte de cierres inesperados (solo con DSN configurado y si la academia lo permite).
+initCrashReports();
 import { colors, spacing } from './src/theme';
 import type { ServerCapabilities, StudentHome } from './src/types';
 
 function AppShell() {
+  // Al cambiar de idioma, se vuelve a dibujar todo.
+  useLanguage();
   const [token, setToken] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<StudentHome | null>(null);
   const [mode, setMode] = useState<AppMode>('student');
@@ -44,6 +52,7 @@ function AppShell() {
   const refreshGradeBadges = useCallback(async (accessToken: string) => {
     const caps = await getServerCapabilities().catch(() => null);
     setCapabilities(caps);
+    applyAcademyCrashPreference(caps?.crash_reports);
     if (!caps?.grades) {
       setNewGradeCourses([]);
       return;
@@ -67,6 +76,8 @@ function AppShell() {
       await flushOutbox(accessToken).catch(() => null);
       const data = await loadDashboard(accessToken);
       setDashboard(data);
+      // 1.0.0: arranque en frío: la app ya muestra datos (lo mide scripts/perf-run.sh).
+      perfMark('home');
       setMode(await resolveMode(data));
       setDashboardError('');
       // 0.4.0: al abrir (y al refrescar), traer solo lo que cambió desde la última vez.
@@ -90,9 +101,11 @@ function AppShell() {
     let active = true;
     (async () => {
       await initRuntimeConfig();
+      // 1.0.0: idioma elegido en Yo o el del teléfono, antes de dibujar nada.
+      await initLanguage().catch(() => undefined);
       // Antes de restaurar la sesión: si el token ya no sirve, la restauración purga el almacenamiento.
       await migrateLegacyStorage().catch(() => undefined);
-      void loadServerCapabilities();
+      void loadServerCapabilities().then((caps) => applyAcademyCrashPreference(caps.crash_reports));
       const restored = await restoreAccessToken();
       if (!active) return;
       setToken(restored);
@@ -251,6 +264,7 @@ function AppShell() {
             push: Boolean(capabilities?.push_notifications),
             teacher: Boolean(capabilities?.teacher),
             grading: Boolean(capabilities?.teacher_grading),
+            accountDeletion: Boolean(capabilities?.account_deletion),
           },
           unreadMessages,
           newGradeCourses,
@@ -261,7 +275,7 @@ function AppShell() {
   );
 }
 
-export default function App() {
+function App() {
   return (
     <SafeAreaProvider>
       <AppShell />
@@ -275,3 +289,5 @@ const styles = StyleSheet.create({
   safe: { backgroundColor: colors.surface, flex: 1 },
   loginSafe: { backgroundColor: colors.background, flex: 1 },
 });
+
+export default wrapRoot(App);

@@ -10,7 +10,9 @@ executionOrder:
     - estudiante-asistente
     - tarea
     - quiz
+    - certificado-pdf
     - mensajes
+    - cambio-idioma
     - sin-conexion
     - docente-hoy
     - docente-estudiantes
@@ -19,3 +21,4 @@ executionOrder:
     - docente-calificar
     - docente-calificar-409
     - docente-borrador-recuperado
+    - eliminar-cuenta

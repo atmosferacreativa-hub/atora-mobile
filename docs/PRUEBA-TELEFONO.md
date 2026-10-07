@@ -63,3 +63,13 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 35. [ ] **Usar todo** rellena el borrador marcado "Sugerido por IA"; el estudiante no ve nada hasta que el docente guarda o publica. Al editar un puntaje, desaparece su marca.
 36. [ ] La misma entrega en **SpeedGrader web** muestra la sugerencia; "Usar sugerencia" rellena el formulario sin guardar.
 37. [ ] El estudiante, con la entrega calificada, no ve en ninguna pantalla el indicio ni que hubo sugerencia de IA. En ATORA LMS → Uso de IA aparecen las preguntas y la sugerencia del mes.
+
+## Fase 6 — Publicación (compilación de producción instalada)
+
+38. [ ] Con el teléfono en inglés, la app aparece en inglés; en Yo → Idioma se cambia a español (y vuelve a inglés) sin salir de la pantalla.
+39. [ ] Con la letra grande del sistema, Hoy, una lección, una tarea y calificar se leen sin textos cortados; los botones se pueden tocar sin errar.
+40. [ ] Un certificado se descarga como PDF con logo y firmas; se abre en el visor, también en modo avión; su QR abre la verificación y dice "Válido".
+41. [ ] Yo → Eliminar mi cuenta registra la solicitud (muestra el plazo y cierra sesión) y el administrador la ve en ATORA LMS → Solicitudes de eliminación; "Anonimizar" es la acción por defecto.
+42. [ ] La compilación de producción, en un Android de gama baja, arranca y abre una lección sin trabarse.
+43. [ ] Las filas 1–37 (fases 0 a 5) siguen pasando.
+

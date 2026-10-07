@@ -28,7 +28,8 @@ name: docente-estudiantes
 - takeScreenshot: capturas/docente-estudiantes-03-ficha
 - scrollUntilVisible:
     element: "Alertas"
-- assertVisible: "2 entregas vencidas"
+- scrollUntilVisible:
+    element: "2 entregas vencidas"
 - takeScreenshot: capturas/docente-estudiantes-04-alertas
 - scrollUntilVisible:
     element:

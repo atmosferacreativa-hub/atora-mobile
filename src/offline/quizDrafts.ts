@@ -10,6 +10,7 @@
  * intentos agotados, sin acceso). Un fallo de red o del servidor lo conserva.
  */
 import type { QuizAnswer, QuizPayload } from '../types';
+import { t } from '../i18n/core';
 
 export type QuizDraft = {
   lessonId: number;
@@ -109,7 +110,7 @@ export function pendingQuizzes(drafts: QuizDraft[], now: number): PendingQuiz[] 
 /** Texto del tiempo en el aviso. */
 export function remainingLabel(seconds: number | null): string {
   if (seconds === null) return '';
-  if (seconds <= 0) return 'El tiempo terminó';
+  if (seconds <= 0) return t('El tiempo terminó');
   if (seconds < 60) return `Quedan ${seconds} s`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `Quedan ${minutes} min`;

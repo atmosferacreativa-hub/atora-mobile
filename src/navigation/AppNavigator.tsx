@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ComponentProps, type ReactElement } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ComponentProps, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NavigationContainer, DefaultTheme, createNavigationContainerRef, getFocusedRouteNameFromRoute, type RouteProp } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, type NavigationState, createNavigationContainerRef, getFocusedRouteNameFromRoute, type RouteProp } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NetworkBanner } from '../components/NetworkBanner';
@@ -12,6 +12,7 @@ import { CoursesScreen } from '../screens/CoursesScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { AssistantScreen } from '../screens/AssistantScreen';
+import { requestAccountDeletion } from '../api/account';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ProgramScreen } from '../screens/ProgramScreen';
 import { QuizScreen } from '../screens/QuizScreen';
@@ -39,6 +40,7 @@ import { openWithSystem } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import type { InternalLink, StudentHome } from '../types';
 import type { AppMode } from './roles';
+import { t, tk, useLanguage } from '../i18n';
 
 export type AppSessionValue = {
   token: string;
@@ -51,7 +53,7 @@ export type AppSessionValue = {
   logout: () => void;
   switchMode: (mode: AppMode) => void;
   /** Funciones que el servidor declara (0.5.0; 0.6.0 suma buzón, agenda, Hoy y avisos al teléfono). */
-  features: { grades: boolean; certificates: boolean; messages: boolean; agenda: boolean; today: boolean; push: boolean; teacher: boolean; grading: boolean };
+  features: { grades: boolean; certificates: boolean; messages: boolean; agenda: boolean; today: boolean; push: boolean; teacher: boolean; grading: boolean; accountDeletion: boolean };
   /** Contador único de no leídos (mensajes y avisos), 0.6.0. */
   unreadMessages: number;
   /** Cursos con una nota liberada que el estudiante todavía no vio. */
@@ -63,7 +65,7 @@ const AppSessionContext = createContext<AppSessionValue | null>(null);
 
 export function useAppSession(): AppSessionValue {
   const value = useContext(AppSessionContext);
-  if (!value) throw new Error('useAppSession fuera de AppNavigator');
+  if (!value) throw new Error('useAppSession fuera de AppNavigator'); // i18n-ignore (error de programación)
   return value;
 }
 
@@ -132,7 +134,7 @@ function ComposeRoute({ navigation }: LearningProps<'Compose'>) {
 function MessagesRoot({ navigation }: LearningProps<'Root'>) {
   const { token, mode, features } = useAppSession();
   if (!features.messages) {
-    return <ComingSoonScreen title="Mensajes" description="Actualiza ATORA LMS a la 6.30.0 para usar el buzón en la app." />;
+    return <ComingSoonScreen title={t('Mensajes')} description={t('Actualiza ATORA LMS a la 6.30.0 para usar el buzón en la app.')} />;
   }
   return (
     <MessagesScreen
@@ -148,7 +150,7 @@ function MessagesRoot({ navigation }: LearningProps<'Root'>) {
 function AgendaRoot({ navigation }: LearningProps<'Root'>) {
   const { token, features } = useAppSession();
   if (!features.agenda) {
-    return <ComingSoonScreen title="Agenda" description="Actualiza ATORA LMS a la 6.30.0 para ver tus fechas en la app." />;
+    return <ComingSoonScreen title={t('Agenda')} description={t('Actualiza ATORA LMS a la 6.30.0 para ver tus fechas en la app.')} />;
   }
   return <AgendaScreen token={token} onOpenLink={(link) => openLink(navigation, link)} />;
 }
@@ -355,7 +357,7 @@ function ProfileRoot({ navigation }: ProfileProps<'Root'>) {
   const student = mode === 'student';
   return (
     <ProfileScreen
-      displayName={dashboard?.user.display_name || 'Perfil'}
+      displayName={dashboard?.user.display_name || ''}
       email={dashboard?.user.email}
       onLogout={logout}
       mode={mode}
@@ -365,6 +367,7 @@ function ProfileRoot({ navigation }: ProfileProps<'Root'>) {
       newGrades={newGradeCourses.length}
       onOpenCertificates={features.certificates && student ? () => navigation.push('Certificates') : undefined}
       notificationSettings={features.push ? <PushPreferences token={token} /> : undefined}
+      onDeleteAccount={features.accountDeletion ? () => requestAccountDeletion(token) : undefined}
     />
   );
 }
@@ -406,7 +409,7 @@ function CertificatesRoute({ navigation }: ProfileProps<'Certificates'>) {
     <CertificatesScreen
       token={token}
       onBack={() => navigation.goBack()}
-      onOpen={(title, localUri) => navigation.push('Resource', { title, localUri, kind: 'html', mime: 'text/html' })}
+      onOpen={(title, localUri, format) => navigation.push('Resource', format === 'pdf' ? { title, localUri, kind: 'pdf', mime: 'application/pdf' } : { title, localUri, kind: 'html', mime: 'text/html' })}
     />
   );
 }
@@ -488,7 +491,7 @@ const MessagesStack = learningStack(MessagesRoot);
 function GradingRoot({ navigation }: LearningProps<'Root'>) {
   const { token, features } = useAppSession();
   if (!features.teacher) {
-    return <ComingSoonScreen title="Calificar" description="Actualiza ATORA LMS a la 6.31.0 para calificar desde el teléfono. Por ahora, califica desde la web." />;
+    return <ComingSoonScreen title={t('Calificar')} description={t('Actualiza ATORA LMS a la 6.31.0 para calificar desde el teléfono. Por ahora, califica desde la web.')} />;
   }
   return (
     <GradingQueueScreen
@@ -541,19 +544,19 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 type TabSpec = { name: string; label: string; icon: IconName; component: () => ReactElement };
 
 const STUDENT_TABS: TabSpec[] = [
-  { name: 'Today', label: 'Hoy', icon: 'today-outline', component: TodayStack },
-  { name: 'Courses', label: 'Cursos', icon: 'book-outline', component: CoursesStack },
-  { name: 'Agenda', label: 'Agenda', icon: 'calendar-outline', component: AgendaStack },
-  { name: 'Messages', label: 'Mensajes', icon: 'chatbubbles-outline', component: MessagesStack },
-  { name: 'Me', label: 'Yo', icon: 'person-circle-outline', component: ProfileStack },
+  { name: 'Today', label: tk('Hoy'), icon: 'today-outline', component: TodayStack },
+  { name: 'Courses', label: tk('Cursos'), icon: 'book-outline', component: CoursesStack },
+  { name: 'Agenda', label: tk('Agenda'), icon: 'calendar-outline', component: AgendaStack },
+  { name: 'Messages', label: tk('Mensajes'), icon: 'chatbubbles-outline', component: MessagesStack },
+  { name: 'Me', label: tk('Yo'), icon: 'person-circle-outline', component: ProfileStack },
 ];
 
 const TEACHER_TABS: TabSpec[] = [
-  { name: 'Today', label: 'Hoy', icon: 'today-outline', component: TodayStack },
-  { name: 'Courses', label: 'Cursos', icon: 'book-outline', component: CoursesStack },
-  { name: 'Grading', label: 'Calificar', icon: 'checkmark-done-outline', component: GradingStack },
-  { name: 'Messages', label: 'Mensajes', icon: 'chatbubbles-outline', component: MessagesStack },
-  { name: 'Me', label: 'Yo', icon: 'person-circle-outline', component: ProfileStack },
+  { name: 'Today', label: tk('Hoy'), icon: 'today-outline', component: TodayStack },
+  { name: 'Courses', label: tk('Cursos'), icon: 'book-outline', component: CoursesStack },
+  { name: 'Grading', label: tk('Calificar'), icon: 'checkmark-done-outline', component: GradingStack },
+  { name: 'Messages', label: tk('Mensajes'), icon: 'chatbubbles-outline', component: MessagesStack },
+  { name: 'Me', label: tk('Yo'), icon: 'person-circle-outline', component: ProfileStack },
 ];
 
 const Tabs = createBottomTabNavigator();
@@ -570,14 +573,14 @@ function BrandHeader() {
     <View style={styles.headerWrap}>
       <View style={styles.header}>
         <Text style={styles.brand}>ATORA</Text>
-        <Text style={styles.product}>{mode === 'teacher' ? 'Docente' : 'Aprendizaje móvil'}</Text>
+        <Text style={styles.product}>{mode === 'teacher' ? t('Docente') : t('Aprendizaje móvil')}</Text>
       </View>
       <NetworkBanner />
       {dashboardError ? (
         <View style={styles.dashboardError}>
           <Text accessibilityRole="alert" style={styles.dashboardErrorText}>{dashboardError}</Text>
           <Pressable accessibilityRole="button" onPress={refresh} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Reintentar</Text>
+            <Text style={styles.retryButtonText}>{t('Reintentar')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -586,12 +589,15 @@ function BrandHeader() {
 }
 
 export function AppNavigator({ session }: { session: AppSessionValue }) {
+  const language = useLanguage();
+  // Al cambiar de idioma se vuelve a montar la navegación en la misma pantalla.
+  const navState = useRef<NavigationState | undefined>(undefined);
   const tabs = session.mode === 'teacher' ? TEACHER_TABS : STUDENT_TABS;
   const meBadge = session.mode === 'student' && session.newGradeCourses.length ? session.newGradeCourses.length : undefined;
   const gradingCount = useQueueCount(session.token, session.mode === 'teacher' && session.features.teacher);
   return (
     <AppSessionContext.Provider value={session}>
-      <NavigationContainer ref={navigationRef} theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } }}>
+      <NavigationContainer key={language} ref={navigationRef} initialState={navState.current} onStateChange={(state) => { navState.current = state; }} theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } }}>
         <Tabs.Navigator
           // La clave fuerza un árbol nuevo al cambiar de modo: cada rol arranca en Hoy.
           key={session.mode}
@@ -610,7 +616,7 @@ export function AppNavigator({ session }: { session: AppSessionValue }) {
               name={tab.name}
               component={tab.component}
               options={{
-                title: tab.label,
+                title: t(tab.label),
                 tabBarBadge: tab.name === 'Me' ? meBadge
                   : tab.name === 'Messages' && session.unreadMessages > 0 ? (session.unreadMessages > 99 ? '99+' : session.unreadMessages)
                   : tab.name === 'Grading' && gradingCount > 0 ? (gradingCount > 99 ? '99+' : gradingCount)
@@ -633,6 +639,6 @@ const styles = StyleSheet.create({
   product: { color: colors.accentText, fontSize: 12, fontWeight: '700' },
   dashboardError: { alignItems: 'center', backgroundColor: colors.dangerSoft, borderBottomColor: colors.red, borderBottomWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   dashboardErrorText: { color: colors.red, flex: 1, fontSize: 14 },
-  retryButton: { backgroundColor: colors.red, borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  retryButton: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.red, borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   retryButtonText: { color: colors.white, fontSize: 13, fontWeight: '800' },
 });

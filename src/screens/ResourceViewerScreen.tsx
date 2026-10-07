@@ -3,6 +3,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 import { WebView } from 'react-native-webview';
 import { VIEWER_ROOT, viewerUrl } from '../viewer/files';
 import { colors, spacing } from '../theme';
+import { t } from '../i18n';
 
 type Props = {
   title: string;
@@ -16,6 +17,8 @@ type Props = {
 export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWithSystem }: Props) {
   const [source, setSource] = useState('');
   const [failed, setFailed] = useState(false);
+  // 1.0.0: la primera página ya se ve (lo esperan las pruebas de pantalla).
+  const [ready, setReady] = useState(kind !== 'pdf');
 
   useEffect(() => {
     let active = true;
@@ -29,15 +32,15 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
     <View style={styles.screen}>
       <View style={styles.bar}>
         <Pressable accessibilityRole="button" onPress={onBack} hitSlop={12}>
-          <Text style={styles.back}>← Volver</Text>
+          <Text style={styles.back}>{t('← Volver')}</Text>
         </Pressable>
         <Text numberOfLines={1} style={styles.title}>{title}</Text>
       </View>
       {failed ? (
         <View style={styles.center}>
-          <Text style={styles.error}>No se pudo abrir el archivo aquí.</Text>
+          <Text style={styles.error}>{t('No se pudo abrir el archivo aquí.')}</Text>
           <Pressable accessibilityRole="button" onPress={onOpenWithSystem} style={styles.button}>
-            <Text style={styles.buttonText}>Abrir con otra app</Text>
+            <Text style={styles.buttonText}>{t('Abrir con otra app')}</Text>
           </Pressable>
         </View>
       ) : source ? (
@@ -56,6 +59,7 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
             try {
               const message = JSON.parse(event.nativeEvent.data) as { type: string };
               if (message.type === 'error') setFailed(true);
+              if (message.type === 'first-page') setReady(true);
             } catch {
               // Mensaje ajeno.
             }
@@ -69,6 +73,7 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
           startInLoadingState
           renderLoading={() => <View style={styles.center}><ActivityIndicator color={colors.blue} /></View>}
           style={styles.web}
+          testID={ready ? 'resource-ready' : 'resource-loading'}
         />
       ) : (
         <View style={styles.center}><ActivityIndicator color={colors.blue} /></View>

@@ -5,6 +5,7 @@ import { fetchRecipients } from '../api/messages';
 import { EmptyState } from '../components/ui';
 import { colors, radius, spacing } from '../theme';
 import type { MessageRecipient } from '../types';
+import { t } from '../i18n';
 
 type Props = {
   token: string;
@@ -20,14 +21,14 @@ export function ComposeScreen({ token, onBack, onPick }: Props) {
   useEffect(() => {
     fetchRecipients(token).then(setItems).catch(() => {
       setItems([]);
-      setError('Necesitas conexión para empezar una conversación.');
+      setError(t('Necesitas conexión para empezar una conversación.'));
     });
   }, [token]);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>← Mensajes</Text></Pressable>
-      <Text style={styles.title}>Escribir a un docente</Text>
+      <Pressable hitSlop={12} accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Mensajes')}</Text></Pressable>
+      <Text style={styles.title}>{t('Escribir a un docente')}</Text>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {!items ? <ActivityIndicator color={colors.primary} /> : null}
       {items?.map((teacher) => (
@@ -42,7 +43,7 @@ export function ComposeScreen({ token, onBack, onPick }: Props) {
           ))}
         </View>
       ))}
-      {items && !items.length && !error ? <EmptyState icon="people-outline" title="Sin docentes" description="Cuando estés matriculado en un curso, aquí aparecerán sus docentes." /> : null}
+      {items && !items.length && !error ? <EmptyState icon="people-outline" title={t('Sin docentes')} description={t('Cuando estés matriculado en un curso, aquí aparecerán sus docentes.')} /> : null}
     </ScrollView>
   );
 }
@@ -54,6 +55,6 @@ const styles = StyleSheet.create({
   error: { color: colors.danger },
   card: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   name: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  course: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },
+  course: { minHeight: 44, alignItems: 'center', flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },
   courseText: { color: colors.text, flex: 1 },
 });

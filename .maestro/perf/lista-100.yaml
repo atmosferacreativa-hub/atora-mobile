@@ -1,0 +1,26 @@
+appId: com.atmosferacreativa.atora
+name: perf-lista-100
+# Recorre un curso de 100 lecciones de punta a punta (se miden los fotogramas lentos).
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Cursos"
+    timeout: 60000
+- tapOn: "Cursos"
+- scrollUntilVisible:
+    element: "Curso grande E2E"
+    timeout: 60000
+- tapOn: "Curso grande E2E"
+- extendedWaitUntil:
+    visible: "Lección 001"
+    timeout: 60000
+- scrollUntilVisible:
+    element: "Lección 100"
+    timeout: 120000
+    speed: 60
+- takeScreenshot: capturas/rendimiento-lista-100
+- scrollUntilVisible:
+    element: "Lección 001"
+    direction: UP
+    timeout: 120000
+    speed: 60

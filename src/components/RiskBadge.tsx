@@ -7,7 +7,7 @@ import { colors, spacing } from '../theme';
 const TONE = {
   danger: { fg: colors.danger, bg: colors.dangerSoft },
   warning: { fg: colors.accentText, bg: colors.accentSoft },
-  ok: { fg: '#1E8A5A', bg: colors.successSoft },
+  ok: { fg: '#17724A', bg: colors.successSoft },
 } as const;
 
 /** Riesgo del estudiante: ícono, color **y** texto con el motivo (nunca solo color). */

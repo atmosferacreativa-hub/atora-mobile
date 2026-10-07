@@ -1,0 +1,37 @@
+appId: com.atmosferacreativa.atora
+name: cambio-idioma
+# 1.0.0: la app cambia de idioma desde Yo, sin perder la pantalla, y vuelve al español.
+---
+- runFlow: common/login-estudiante.yaml
+- tapOn: "Yo"
+- scrollUntilVisible:
+    element:
+      id: "language-en"
+- takeScreenshot: capturas/cambio-idioma-01-espanol
+- tapOn:
+    id: "language-en"
+# Al redibujar, Yo vuelve arriba: las pestañas ya están en inglés.
+- extendedWaitUntil:
+    visible: "Courses"
+    timeout: 15000
+- assertVisible: "Me"
+- scrollUntilVisible:
+    element: "Language"
+- takeScreenshot: capturas/cambio-idioma-02-ingles
+# Otra pantalla en inglés.
+- tapOn: "Courses"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- takeScreenshot: capturas/cambio-idioma-03-cursos-ingles
+- tapOn: "Me"
+- scrollUntilVisible:
+    element:
+      id: "language-es"
+- tapOn:
+    id: "language-es"
+- extendedWaitUntil:
+    visible: "Cursos"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Idioma"

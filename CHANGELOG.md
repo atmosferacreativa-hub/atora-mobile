@@ -2,6 +2,23 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 1.0.0 (2026-10-07)
+
+Fase 6 — Publicación. Requiere **ATORA LMS 6.33.0** para el certificado en PDF y la eliminación de cuenta (con versiones anteriores se ocultan o siguen como antes). **Compilación de prueba (APK `preview`) y de producción (AAB) de la Fase 6.**
+
+- **Idiomas**: español e inglés completos (535 textos en un catálogo). Idioma del teléfono (español si el teléfono está en español; si no, inglés) o el elegido en **Yo → Idioma**; cambiarlo redibuja la app sin perder la pantalla. Fechas en el idioma activo. Los textos que envía la academia (títulos, motivos) llegan en su idioma.
+- **Certificado en PDF**: se descarga el PDF institucional (logo, firmas, QR de verificación) y se abre con el visor de PDF, también sin conexión.
+- **Eliminar mi cuenta** (Yo), con confirmación: registra la solicitud en la academia, muestra el plazo y cierra la sesión.
+- **Accesibilidad**: etiquetas para lector de pantalla en los botones sin texto (también en idioma), áreas táctiles de al menos 44 puntos (58 ajustadas), contraste AA en el tema (el verde de "Calificación publicada" se oscureció), títulos sin cortes con letra grande en Hoy, lección, tarea, calificar y mensajes.
+- **Rendimiento en gama baja**: medido en un emulador con 2 GB de RAM y red 3G simulada (arranque en frío, lección con 3 videos, lista de 100 lecciones). Ver `docs/ESTADO.md`.
+- **Reporte de cierres inesperados** (Sentry), sin datos personales (sin usuario, correos, tokens ni consultas de URL), solo si la academia lo permite (`crash_reports`); queda apagado hasta configurar la cuenta (`EXPO_PUBLIC_SENTRY_DSN`).
+- **Permisos**: se quitaron `READ/WRITE_EXTERNAL_STORAGE` y `SYSTEM_ALERT_WINDOW` (no se usan). iOS: cifrado exento declarado, solo teléfono (sin iPad).
+- **Compilación de producción**: perfil `production` con AAB e IPA, números de compilación automáticos en EAS (`appVersionSource: remote`), canal OTA `production` separado de `preview`.
+- Se quitaron restos de desarrollo: tarjeta de programa con un título fijo y direcciones internas en "Configurar academia".
+- **Documentos de tiendas**: `docs/POLITICA-PRIVACIDAD-APP.md`, `docs/TIENDAS-DATOS.md`, `docs/TIENDAS-REVISION.md`, `docs/TIENDAS-FICHA.md`.
+- **Recorridos de pantalla**: `cambio-idioma`, `certificado-pdf` (también sin conexión) y `eliminar-cuenta`; modos del CI `gama-baja` (mediciones) y `tienda` (capturas en 1080 × 2400).
+- **TESTS** (Jest): catálogo de idiomas (falla si una pantalla muestra un texto sin traducir o falta una traducción), accesibilidad (etiquetas y 44 puntos), contraste del tema, reporte de errores sin datos personales, pedido del certificado en PDF.
+
 ## 0.9.0 (2026-10-06)
 
 Fase 5 — IA (Bloque 2). Requiere **ATORA LMS 6.32.0** (`capabilities.ai_assistant`, `ai_grading_suggestion`); con versiones anteriores, o si la academia no activó la IA, no aparece nada nuevo. **Única APK `preview` de la Fase 5.**

@@ -39,6 +39,9 @@ name: docente-calificar
       id: "copy-rubric-percent"
 - tapOn:
     id: "copy-rubric-percent"
+- scrollUntilVisible:
+    element:
+      id: "general-feedback"
 - tapOn:
     id: "general-feedback"
 - inputText: "Buen trabajo, revisa la estructura."

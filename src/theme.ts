@@ -14,7 +14,7 @@ const palette = {
   line: '#DCE2F4',
   white: '#FFFFFF',
   red: '#C2362F',
-  green: '#1E8A5A',
+  green: '#17724A',
 } as const;
 
 export const colors = {

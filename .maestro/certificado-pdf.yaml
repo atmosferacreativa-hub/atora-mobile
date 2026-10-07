@@ -1,0 +1,37 @@
+appId: com.atmosferacreativa.atora
+name: certificado-pdf
+# 1.0.0 (plugin 6.33.0): el certificado se descarga en PDF, se abre en el visor y también sin conexión.
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runFlow: common/login-estudiante.yaml
+- tapOn: "Yo"
+- scrollUntilVisible:
+    element: "Mis certificados"
+- tapOn: "Mis certificados"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- takeScreenshot: capturas/certificado-pdf-01-lista
+- tapOn: "Descargar"
+# Se abre en el visor de PDF.
+- extendedWaitUntil:
+    visible:
+      id: "resource-ready"
+    timeout: 60000
+- assertNotVisible: "No se pudo abrir el archivo aquí."
+- takeScreenshot: capturas/certificado-pdf-02-visor
+- back
+- extendedWaitUntil:
+    visible: "Ver"
+    timeout: 15000
+# Sin conexión: el PDF guardado se abre igual.
+- setAirplaneMode: enabled
+- tapOn: "Ver"
+- extendedWaitUntil:
+    visible:
+      id: "resource-ready"
+    timeout: 30000
+- assertNotVisible: "No se pudo abrir el archivo aquí."
+- takeScreenshot: capturas/certificado-pdf-03-sin-conexion
+- setAirplaneMode: disabled

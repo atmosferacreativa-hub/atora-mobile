@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, t
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { colors, radius, spacing, type } from '../../theme';
+import { t } from '../../i18n';
 
 type ButtonProps = {
   label: string;
@@ -84,7 +85,7 @@ export function OfflineNotice({ message }: { message: string }) {
     <View accessibilityRole="alert" style={styles.offline}>
       <Ionicons color={colors.accentText} name="cloud-offline-outline" size={18} />
       <View style={styles.offlineText}>
-        <Text style={styles.offlineTitle}>Sin conexión</Text>
+        <Text style={styles.offlineTitle}>{t('Sin conexión')}</Text>
         <Text style={styles.offlineBody}>{message}</Text>
       </View>
     </View>

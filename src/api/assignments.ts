@@ -7,6 +7,7 @@ import { getDownloadSettings } from '../offline/mediaDownloads';
 import { copyAttachment, deleteEventFiles, fileExists, readRange } from '../offline/outboxFiles';
 import { OutboxDefinitiveError, enqueueEvent, newEventId, registerOutboxHandler } from '../offline/outbox/runtime';
 import type { AssignmentInfo, AssignmentResponse, AssignmentSubmission } from '../types';
+import { t } from '../i18n/core';
 
 /** Contrato: docs/CONTRATO-ENTREGAS-MOVIL.md del plugin (6.27.0). */
 export const ASSIGNMENT_SUBMISSION = 'assignment_submission';
@@ -59,15 +60,15 @@ export async function refreshAssignment(lessonId: number, token: string): Promis
 /** Valida contra lo que informa el servidor, antes de encolar. Devuelve el motivo del rechazo o null. */
 export function validateAttachments(accepted: AssignmentInfo['accepted_files'], files: PickedFile[]): string | null {
   if (files.length > accepted.max_files) {
-    return `Puedes adjuntar hasta ${accepted.max_files} archivo(s).`;
+    return t('Puedes adjuntar hasta {count} archivo(s).', { count: accepted.max_files });
   }
   for (const file of files) {
     const extension = (file.name.split('.').pop() ?? '').toLowerCase();
     if (!accepted.extensions.includes(extension)) {
-      return `"${file.name}" no tiene un formato permitido (${accepted.extensions.join(', ')}).`;
+      return t('"{name}" no tiene un formato permitido ({formats}).', { name: file.name, formats: accepted.extensions.join(', ') });
     }
     if (file.size > accepted.max_bytes) {
-      return `"${file.name}" supera el máximo de ${(accepted.max_bytes / (1024 * 1024)).toFixed(0)} MB.`;
+      return t('"{name}" supera el máximo de {mb} MB.', { name: file.name, mb: (accepted.max_bytes / (1024 * 1024)).toFixed(0) });
     }
   }
   return null;
@@ -91,7 +92,7 @@ export async function enqueueAssignmentSubmission(
     });
     const draft: AssignmentDraft = { lessonId, bodyText, clientSubmittedAt, files };
     const event = await enqueueEvent({ id: eventId, type: ASSIGNMENT_SUBMISSION, dedupeKey: eventId, payload: draft });
-    if (!event) throw new Error('Sin sesión activa.');
+    if (!event) throw new Error(t('Sin sesión activa.'));
     return { eventId, clientSubmittedAt };
   } catch (reason) {
     deleteEventFiles(eventId);
@@ -108,7 +109,7 @@ async function ensureUploadNetwork(draft: AssignmentDraft): Promise<void> {
   const network = await Network.getNetworkStateAsync();
   if (network.type !== Network.NetworkStateType.WIFI) {
     // Reintentable: se enviará al conectarse a Wi-Fi.
-    throw new ApiError('Esperando Wi-Fi para subir los adjuntos.', 0, 'waiting_wifi');
+    throw new ApiError(t('Esperando Wi-Fi para subir los adjuntos.'), 0, 'waiting_wifi');
   }
 }
 
@@ -125,7 +126,7 @@ async function uploadFile(
   let file = draft.files[index]!;
   if (file.completed) return;
   if (!fileExists(file.uri)) {
-    throw new OutboxDefinitiveError(`El adjunto "${file.name}" ya no está en el teléfono.`);
+    throw new OutboxDefinitiveError(t('El adjunto "{name}" ya no está en el teléfono.', { name: file.name }));
   }
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -187,7 +188,7 @@ async function uploadFile(
       throw reason;
     }
   }
-  throw new ApiError(`No se pudo completar la subida de "${file.name}".`, 0, 'upload_retry');
+  throw new ApiError(t('No se pudo completar la subida de "{name}".', { name: file.name }), 0, 'upload_retry');
 }
 
 registerOutboxHandler<AssignmentDraft>(ASSIGNMENT_SUBMISSION, async (event, { save, token }) => {
@@ -215,7 +216,7 @@ registerOutboxHandler<AssignmentDraft>(ASSIGNMENT_SUBMISSION, async (event, { sa
     if (reason instanceof ApiError && reason.status === 404 && reason.code === 'atora_mobile_upload_not_found') {
       // Las subidas caducaron antes de crear la entrega: se repiten desde cero, mismo client_event_id.
       await save({ ...draft, files: draft.files.map((file) => ({ ...file, uploadToken: undefined, received: 0, completed: false })) });
-      throw new ApiError('Las subidas caducaron; se volverán a enviar.', 0, 'upload_expired');
+      throw new ApiError(t('Las subidas caducaron; se volverán a enviar.'), 0, 'upload_expired');
     }
     throw reason;
   }

@@ -5,6 +5,7 @@ import { deleteEventFiles } from '../outboxFiles';
 import { classifyStatus, enqueue, failedEvents, pendingEvents, processQueue } from './engine';
 import { sqliteOutboxStore } from './sqliteStore';
 import type { EnqueueInput, ErrorClass, OutboxEvent, OutboxHandler, ProcessResult } from './types';
+import { t } from '../../i18n/core';
 
 /** Error local sin arreglo posible (p. ej. el archivo ya no existe): descarte visible. */
 export class OutboxDefinitiveError extends Error {}
@@ -77,7 +78,7 @@ export function flushOutbox(token: string): Promise<ProcessResult | null> {
     }
     try {
       return await processQueue(sqliteOutboxStore, userId, Date.now(), bound, classifyOutboxError, (reason) =>
-        reason instanceof Error ? reason.message : 'Error desconocido',
+        reason instanceof Error ? reason.message : t('Error desconocido'),
       );
     } finally {
       notify();

@@ -1,3 +1,4 @@
+import { t } from '../i18n/core';
 /**
  * Rúbrica al calificar (0.8.0). Módulo puro, para Jest.
  *
@@ -25,7 +26,7 @@ export function buildBands(levels: Level[], maxPoints: number): Band[] {
   const first = unique[0];
   if (!first) return [];
   if (first.pts > 0) {
-    bands.push({ min: 0, max: Math.max(0, first.pts - EPS), label: '', active_points: null, between: '', below: `por debajo de ${first.label || 'el primer nivel'}` });
+    bands.push({ min: 0, max: Math.max(0, first.pts - EPS), label: '', active_points: null, between: '', below: t('por debajo de {level}', { level: first.label || t('el primer nivel') }) });
   }
   bands.push({ min: first.pts, max: first.pts, label: first.label, active_points: first.pts, between: '', below: '' });
   for (let j = 1; j < unique.length; j++) {
@@ -33,7 +34,7 @@ export function buildBands(levels: Level[], maxPoints: number): Band[] {
     const cur = unique[j];
     if (!prev || !cur) continue;
     if (cur.pts - prev.pts > EPS) {
-      bands.push({ min: prev.pts + EPS, max: cur.pts - EPS, label: prev.label, active_points: prev.pts, between: `entre ${prev.label || 'nivel anterior'} y ${cur.label || 'nivel siguiente'}`, below: '' });
+      bands.push({ min: prev.pts + EPS, max: cur.pts - EPS, label: prev.label, active_points: prev.pts, between: t('entre {from} y {to}', { from: prev.label || t('nivel anterior'), to: cur.label || t('nivel siguiente') }), below: '' });
     }
     bands.push({ min: cur.pts, max: cur.pts, label: cur.label, active_points: cur.pts, between: '', below: '' });
   }
@@ -66,11 +67,11 @@ export type ScoreCheck = { ok: true; value: number | null } | { ok: false; error
 export function parseScore(raw: string, maxPoints: number, criterion = ''): ScoreCheck {
   const text = String(raw ?? '').trim().replace(',', '.');
   if (text === '') return { ok: true, value: null };
-  if (!/^-?\d+(\.\d+)?$/.test(text)) return { ok: false, error: `Puntaje inválido para el criterio "${criterion}": debe ser un número.` };
+  if (!/^-?\d+(\.\d+)?$/.test(text)) return { ok: false, error: t('Puntaje inválido para el criterio "{criterion}": debe ser un número.', { criterion }) };
   const decimals = text.includes('.') ? (text.split('.')[1] ?? '').length : 0;
-  if (decimals > 2) return { ok: false, error: `Puntaje inválido para el criterio "${criterion}": máximo 2 decimales.` };
+  if (decimals > 2) return { ok: false, error: t('Puntaje inválido para el criterio "{criterion}": máximo 2 decimales.', { criterion }) };
   const value = Number(text);
-  if (value < 0 || value > maxPoints) return { ok: false, error: `Puntaje fuera de rango para el criterio "${criterion}": debe estar entre 0 y ${maxPoints}.` };
+  if (value < 0 || value > maxPoints) return { ok: false, error: t('Puntaje fuera de rango para el criterio "{criterion}": debe estar entre 0 y {max}.', { criterion, max: maxPoints }) };
   return { ok: true, value: Math.round(value * 100) / 100 };
 }
 
@@ -89,6 +90,6 @@ export function rubricTotal(criteria: CriterionScore[]): { earned: number; max: 
 export function parseFinalGrade(raw: string): { ok: true; value: number | null } | { ok: false; error: string } {
   const text = String(raw ?? '').trim().replace(',', '.');
   if (text === '') return { ok: true, value: null };
-  if (!/^\d+(\.\d+)?$/.test(text)) return { ok: false, error: 'La nota debe ser numérica.' };
+  if (!/^\d+(\.\d+)?$/.test(text)) return { ok: false, error: t('La nota debe ser numérica.') };
   return { ok: true, value: Math.max(0, Math.min(100, Math.round(Number(text)))) };
 }
