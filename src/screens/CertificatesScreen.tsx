@@ -57,7 +57,7 @@ export function CertificatesScreen({ token, onBack, onOpen }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Pressable hitSlop={12} accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
       <Text style={styles.title}>{t('Certificados')}</Text>
       <Text style={styles.meta}>{fromCache ? t('Sin conexión: se muestran los guardados.') : t('Los descargados se abren sin conexión.')}</Text>
       {!items.length ? <Text style={styles.meta}>{t('Todavía no tienes certificados.')}</Text> : null}
@@ -104,9 +104,9 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
-  primary: { backgroundColor: colors.blue, borderRadius: 10, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  primary: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.blue, borderRadius: 10, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   primaryText: { color: colors.white, fontWeight: '900' },
-  secondary: { borderColor: colors.blue, borderRadius: 10, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  secondary: { minHeight: 44, justifyContent: 'center', borderColor: colors.blue, borderRadius: 10, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   secondaryText: { color: colors.blue, fontWeight: '800' },
   notice: { color: colors.muted, textAlign: 'center' },
 });

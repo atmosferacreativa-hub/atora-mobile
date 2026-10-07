@@ -200,7 +200,7 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
             <View key={event.id} style={styles.failedItem}>
               <Text style={styles.label}>{t('{what}: no se pudo enviar', { what: EVENT_LABELS[event.type] ? t(EVENT_LABELS[event.type]!) : t('Envío') })}</Text>
               <Text style={styles.help}>{event.lastError}</Text>
-              <Pressable accessibilityRole="button" onPress={() => void dismissOutboxEvent(event.id)}>
+              <Pressable hitSlop={12} accessibilityRole="button" onPress={() => void dismissOutboxEvent(event.id)}>
                 <Text style={styles.academyEdit}>{t('Descartar')}</Text>
               </Pressable>
             </View>

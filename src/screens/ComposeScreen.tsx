@@ -27,7 +27,7 @@ export function ComposeScreen({ token, onBack, onPick }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Mensajes')}</Text></Pressable>
+      <Pressable hitSlop={12} accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Mensajes')}</Text></Pressable>
       <Text style={styles.title}>{t('Escribir a un docente')}</Text>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {!items ? <ActivityIndicator color={colors.primary} /> : null}
@@ -55,6 +55,6 @@ const styles = StyleSheet.create({
   error: { color: colors.danger },
   card: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   name: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  course: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },
+  course: { minHeight: 44, alignItems: 'center', flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },
   courseText: { color: colors.text, flex: 1 },
 });

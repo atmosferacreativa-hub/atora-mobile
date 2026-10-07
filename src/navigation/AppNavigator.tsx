@@ -639,6 +639,6 @@ const styles = StyleSheet.create({
   product: { color: colors.accentText, fontSize: 12, fontWeight: '700' },
   dashboardError: { alignItems: 'center', backgroundColor: colors.dangerSoft, borderBottomColor: colors.red, borderBottomWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   dashboardErrorText: { color: colors.red, flex: 1, fontSize: 14 },
-  retryButton: { backgroundColor: colors.red, borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  retryButton: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.red, borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   retryButtonText: { color: colors.white, fontSize: 13, fontWeight: '800' },
 });

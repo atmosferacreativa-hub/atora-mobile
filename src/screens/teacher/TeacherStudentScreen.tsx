@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   content: { gap: spacing.sm, padding: spacing.lg },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
   title: { color: colors.text, flex: 1, fontSize: 24, fontWeight: '900' },
-  write: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.md, flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  write: { minHeight: 44, alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.md, flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   writeText: { color: colors.white, fontWeight: '800' },
   error: { color: colors.danger },
   card: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, gap: 6, padding: spacing.lg },

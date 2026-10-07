@@ -134,7 +134,7 @@ function VideoBlock({
   };
   const cover = (
     <>
-      <Pressable accessibilityLabel={t('Reproducir video')} accessibilityRole="button" onPress={() => (external ? void Linking.openURL(video.url) : play(offerResume ? resumeAt : 0))}>
+      <Pressable hitSlop={12} accessibilityLabel={t('Reproducir video')} accessibilityRole="button" onPress={() => (external ? void Linking.openURL(video.url) : play(offerResume ? resumeAt : 0))}>
         <MediaImage play uri={video.thumbnail} badge={durationBadge} />
       </Pressable>
       {offerResume ? (
@@ -301,9 +301,9 @@ function LessonContent({
                     <Text style={styles.resourceType}>
                       {(RESOURCE_LABELS[resource.type] ?? resource.type ?? 'Recurso').toUpperCase()}{size ? ` · ${size}` : ''}
                     </Text>
-                    <Text style={styles.resourceTitle} numberOfLines={2}>{resource.title}</Text>
+                    <Text style={styles.resourceTitle}>{resource.title}</Text>
                     {resource.description ? (
-                      <Text style={styles.resourceDescription} numberOfLines={2}>{resource.description}</Text>
+                      <Text style={styles.resourceDescription} numberOfLines={4}>{resource.description}</Text>
                     ) : null}
                     <Text style={[styles.resourceStatus, saved && !saved.updateAvailable ? styles.resourceStatusOk : null]}>{status}</Text>
                   </Pressable>
@@ -311,20 +311,20 @@ function LessonContent({
                     {busyHere ? <ActivityIndicator color={colors.blue} /> : saved ? (
                       <>
                         {saved.updateAvailable ? (
-                          <Pressable accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
+                          <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
                             <Text style={styles.resourceAction}>{t('Actualizar')}</Text>
                           </Pressable>
                         ) : null}
-                        <Pressable accessibilityRole="button" onPress={() => onResourceRemove(saved)}>
+                        <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceRemove(saved)}>
                           <Text style={styles.resourceRemove}>{t('Eliminar')}</Text>
                         </Pressable>
                       </>
                     ) : resource.downloadable ? (
-                      <Pressable accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
+                      <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
                         <Text style={styles.resourceAction}>{t('Descargar')}</Text>
                       </Pressable>
                     ) : (
-                      <Pressable accessibilityRole="button" onPress={() => onResourcePress(resource)}>
+                      <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourcePress(resource)}>
                         <Text style={styles.resourceAction}>{t('Abrir')}</Text>
                       </Pressable>
                     )}
@@ -649,7 +649,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
               >
                 <MediaImage play uri={thumbnailFor(video)} style={styles.videoThumb} />
                 <View style={styles.videoMeta}>
-                  <Text numberOfLines={2} style={styles.videoTitle}>{video.title}</Text>
+                  <Text style={styles.videoTitle}>{video.title}</Text>
                   <Text style={[styles.resourceStatus, saved && styles.resourceStatusOk]}>{status}</Text>
                   {isCurrent ? <Text style={styles.videoBadge}>{t('En el reproductor')}</Text>
                     : seen > 0 || watched[id] ? <Text style={styles.videoSeen}>{seen > 0 ? t('Visto hasta {time}', { time: formatClock(seen) }) : t('Visto')}</Text> : null}
@@ -668,7 +668,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable onPress={onBack}><Text style={styles.back}>{t('← Volver al curso')}</Text></Pressable>
+      <Pressable hitSlop={12} onPress={onBack}><Text style={styles.back}>{t('← Volver al curso')}</Text></Pressable>
       {lesson ? (
         <LessonContent
           lesson={lesson}
@@ -694,7 +694,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 
 const styles = StyleSheet.create({
   videoList: { gap: spacing.sm },
-  videoRow: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: 'transparent', borderRadius: 14, borderWidth: 2, flexDirection: 'row', gap: spacing.md, padding: spacing.sm },
+  videoRow: { minHeight: 44, alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: 'transparent', borderRadius: 14, borderWidth: 2, flexDirection: 'row', gap: spacing.md, padding: spacing.sm },
   videoRowCurrent: { borderColor: colors.blue },
   videoThumb: { borderRadius: 8, width: 112 },
   videoMeta: { flex: 1, gap: 2 },
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
   sectionHint: { color: colors.muted, lineHeight: 20 },
   resourceList: { gap: spacing.sm },
   resourceCard: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: 16, flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between', padding: spacing.md },
-  resourceMeta: { flex: 1, gap: 4 },
+  resourceMeta: { minHeight: 44, justifyContent: 'center', flex: 1, gap: 4 },
   resourceType: { color: colors.muted, fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   resourceTitle: { color: colors.navy, fontSize: 16, fontWeight: '900' },
   resourceDescription: { color: colors.ink, lineHeight: 19, opacity: 0.85 },

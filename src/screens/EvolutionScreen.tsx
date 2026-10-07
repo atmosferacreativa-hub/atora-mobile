@@ -78,7 +78,7 @@ export function EvolutionScreen({ token, newGradeCourses, onBack, onOpenCourseGr
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Pressable hitSlop={12} accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
       <Text style={styles.title}>{t('Mi evolución')}</Text>
       {syncedAt ? (
         <Text style={styles.sync}>{fromCache ? `${t('Sin conexión')} · ` : ''}{t('Actualizado el {date}', { date: formatSync(syncedAt) })}</Text>

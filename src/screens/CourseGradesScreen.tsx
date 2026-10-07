@@ -59,7 +59,7 @@ export function CourseGradesScreen({ courseId, title, token, onBack, onOpenAssig
 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Pressable hitSlop={12} accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
       <Text style={styles.title}>{t('Notas')} · {title}</Text>
       {syncedAt ? <Text style={styles.sync}>{fromCache ? `${t('Sin conexión')} · ` : ''}{t('Actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}

@@ -52,7 +52,7 @@ export function DownloadsScreen({ courses, onBack }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Pressable hitSlop={12} accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
       <Text style={styles.title}>{t('Descargas')}</Text>
       <View style={styles.quota}>
         <Text style={styles.quotaText}>{t('{used} de {max}', { used: formatBytes(usage.usedBytes) || '0 MB', max: formatBytes(usage.maxBytes) })}</Text>
@@ -66,7 +66,7 @@ export function DownloadsScreen({ courses, onBack }: Props) {
               <Text style={styles.courseTitle}>{courseTitle(course.courseId)}</Text>
               <Text style={styles.meta}>{formatBytes(course.bytes)}</Text>
             </View>
-            <Pressable
+            <Pressable hitSlop={12}
               accessibilityRole="button"
               onPress={() => confirm(t('¿Borrar todo el curso?'), t('Se liberan {size}. Seguirá disponible con conexión.', { size: formatBytes(course.bytes) }), () => removeCourseDownloads(course.courseId))}
             >
@@ -78,7 +78,7 @@ export function DownloadsScreen({ courses, onBack }: Props) {
               <View style={styles.lessonHead}>
                 <Text numberOfLines={2} style={styles.lessonTitle}>{lessonTitles[lesson.lessonId] ?? ''}</Text>
                 <Text style={styles.meta}>{formatBytes(lesson.bytes)}</Text>
-                <Pressable accessibilityRole="button" onPress={() => void removeLessonAll(lesson.lessonId).then(load)}>
+                <Pressable hitSlop={12} accessibilityRole="button" onPress={() => void removeLessonAll(lesson.lessonId).then(load)}>
                   <Text style={styles.remove}>{t('Borrar')}</Text>
                 </Pressable>
               </View>
@@ -91,7 +91,7 @@ export function DownloadsScreen({ courses, onBack }: Props) {
                     <Text numberOfLines={2} style={styles.itemTitle}>{kindOf(item) === 'video' ? (item.videoKey && item.title ? item.title : t('Video')) : item.title || t('Material')}</Text>
                     <Text style={styles.meta}>{formatBytes(item.size)}{item.updateAvailable ? ` · ${t('Actualización disponible')}` : ''}</Text>
                   </View>
-                  <Pressable accessibilityRole="button" onPress={() => void removeDownloadFile(item.localUri).then(load)}>
+                  <Pressable hitSlop={12} accessibilityRole="button" onPress={() => void removeDownloadFile(item.localUri).then(load)}>
                     <Text style={styles.remove}>{t('Eliminar')}</Text>
                   </Pressable>
                 </View>

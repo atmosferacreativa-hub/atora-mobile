@@ -28,6 +28,6 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 2 },
   title: { color: colors.navy, fontWeight: '900' },
   meta: { color: colors.muted, fontSize: 13, fontWeight: '700' },
-  button: { backgroundColor: colors.blue, borderRadius: 10, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  button: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.blue, borderRadius: 10, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   buttonText: { color: colors.white, fontWeight: '900' },
 });

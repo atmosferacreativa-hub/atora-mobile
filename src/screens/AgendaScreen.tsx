@@ -70,9 +70,9 @@ export function AgendaScreen({ token, onOpenLink }: Props) {
           ))}
         </View>
         <View style={styles.nav}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('Anterior')} onPress={() => step(-1)} hitSlop={10}><Ionicons name="chevron-back" size={22} color={colors.primary} /></Pressable>
-          <Pressable accessibilityRole="button" onPress={() => setDay(localDay(new Date()))}><Text style={styles.todayLink}>{t('Hoy')}</Text></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('Siguiente')} onPress={() => step(1)} hitSlop={10}><Ionicons name="chevron-forward" size={22} color={colors.primary} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('Anterior')} onPress={() => step(-1)} hitSlop={12}><Ionicons name="chevron-back" size={22} color={colors.primary} /></Pressable>
+          <Pressable hitSlop={12} accessibilityRole="button" onPress={() => setDay(localDay(new Date()))}><Text style={styles.todayLink}>{t('Hoy')}</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('Siguiente')} onPress={() => step(1)} hitSlop={12}><Ionicons name="chevron-forward" size={22} color={colors.primary} /></Pressable>
         </View>
       </View>
       {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 26, fontWeight: '900' },
   toolbar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   segment: { backgroundColor: colors.surfaceMuted, borderRadius: radius.pill, flexDirection: 'row', padding: 3 },
-  segmentItem: { borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  segmentItem: { minHeight: 44, justifyContent: 'center', borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 6 },
   segmentActive: { backgroundColor: colors.primary },
   segmentText: { color: colors.text, fontWeight: '700' },
   segmentTextActive: { color: colors.white },
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   day: { gap: spacing.xs },
   dayTitle: { color: colors.primaryStrong, fontSize: 15, fontWeight: '900', textTransform: 'capitalize' },
   free: { color: colors.textMuted, fontSize: 13 },
-  item: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
+  item: { minHeight: 44, alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
   itemDone: { opacity: 0.6 },
   time: { color: colors.text, fontVariant: ['tabular-nums'], fontWeight: '800', width: 48 },
   itemText: { flex: 1, gap: 2 },

@@ -112,7 +112,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
             {item.state === 'pending' ? t('Pendiente · se enviará al tener conexión') : item.state === 'failed' ? `${t('No se envió')}${item.error ? `: ${item.error}` : ''}` : formatWhen(item.created_at)}
           </Text>
           {item.state === 'failed' && item.client_event_id ? (
-            <Pressable accessibilityRole="button" onPress={() => void dismissOutboxEvent(item.client_event_id as string).then(load)}>
+            <Pressable hitSlop={12} accessibilityRole="button" onPress={() => void dismissOutboxEvent(item.client_event_id as string).then(load)}>
               <Text style={styles.discard}>{t('Descartar')}</Text>
             </Pressable>
           ) : null}
@@ -125,7 +125,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
       <View style={styles.top}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}><Ionicons name="arrow-back" size={22} color={colors.primary} /></Pressable>
-        <Text numberOfLines={1} style={styles.heading}>{heading}</Text>
+        <Text style={styles.heading}>{heading}</Text>
       </View>
       {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -182,10 +182,10 @@ const styles = StyleSheet.create({
   meta: { color: colors.textMuted, fontSize: 11 },
   mineMeta: { color: '#DCE6FF' },
   discard: { color: colors.white, fontWeight: '800', textDecorationLine: 'underline' },
-  linkButton: { alignSelf: 'flex-start', backgroundColor: colors.white, borderColor: colors.primary, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  linkButton: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', backgroundColor: colors.white, borderColor: colors.primary, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: spacing.sm, paddingVertical: 4 },
   linkText: { color: colors.primary, fontWeight: '800' },
   composer: { alignItems: 'flex-end', backgroundColor: colors.surface, borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
   input: { backgroundColor: colors.background, borderRadius: radius.md, color: colors.text, flex: 1, fontSize: 15, maxHeight: 120, minHeight: 42, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  send: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 21, height: 42, justifyContent: 'center', width: 42 },
+  send: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },
   sendDisabled: { opacity: 0.4 },
 });

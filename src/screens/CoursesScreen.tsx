@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   empty: { color: colors.muted, textAlign: 'center' },
   programWrap: { gap: spacing.sm },
   programHeading: { color: colors.navy, fontSize: 18, fontWeight: '900', marginTop: spacing.sm },
-  programCard: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: spacing.md, overflow: 'hidden' },
+  programCard: { minHeight: 44, backgroundColor: colors.white, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: spacing.md, overflow: 'hidden' },
   programThumb: { borderRadius: 0, width: 140 },
   programCopy: { flex: 1, gap: 4, padding: spacing.md },
   programTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },

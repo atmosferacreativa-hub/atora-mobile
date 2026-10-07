@@ -159,7 +159,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Pressable onPress={onBack}><Text style={styles.back}>{t('← Volver a la lección')}</Text></Pressable>
+      <Pressable hitSlop={12} onPress={onBack}><Text style={styles.back}>{t('← Volver a la lección')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {assignment ? (
         <>
@@ -188,8 +188,8 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
               />
               {files.map((file, index) => (
                 <View key={`${file.uri}-${index}`} style={styles.fileRow}>
-                  <Text numberOfLines={1} style={styles.fileName}>{file.name}</Text>
-                  <Pressable onPress={() => setFiles(files.filter((_, i) => i !== index))}>
+                  <Text numberOfLines={2} ellipsizeMode="middle" style={styles.fileName}>{file.name}</Text>
+                  <Pressable hitSlop={12} onPress={() => setFiles(files.filter((_, i) => i !== index))}>
                     <Text style={styles.link}>{t('Quitar')}</Text>
                   </Pressable>
                 </View>
@@ -235,7 +235,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
               <Text style={[styles.badge, styles.badgeFailed]}>{t('No se pudo enviar')}</Text>
               <Text style={styles.help}>{t('Hecha el {date}', { date: formatDate(new Date(event.payload.clientSubmittedAt)) })}</Text>
               <Text style={styles.errorSmall}>{event.lastError}</Text>
-              <Pressable onPress={() => void dismissOutboxEvent(event.id)}><Text style={styles.link}>{t('Descartar')}</Text></Pressable>
+              <Pressable hitSlop={12} onPress={() => void dismissOutboxEvent(event.id)}><Text style={styles.link}>{t('Descartar')}</Text></Pressable>
             </View>
           ))}
 

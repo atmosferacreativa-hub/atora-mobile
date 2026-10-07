@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, gap: spacing.sm, padding: spacing.lg, paddingBottom: 0 },
   eyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  chip: { minHeight: 44, justifyContent: 'center', borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.text, fontWeight: '700' },
   chipTextOn: { color: colors.white },

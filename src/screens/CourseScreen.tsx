@@ -95,7 +95,7 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable onPress={onBack}><Text style={styles.back}>{t('← Mis cursos')}</Text></Pressable>
+      <Pressable hitSlop={12} onPress={onBack}><Text style={styles.back}>{t('← Mis cursos')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {data ? (
         <>

@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, gap: spacing.sm, padding: spacing.lg, paddingBottom: 0 },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
   title: { color: colors.text, flex: 1, fontSize: 22, fontWeight: '900' },
-  announce: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.md, flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  announce: { minHeight: 44, alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.md, flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   announceText: { color: colors.white, fontWeight: '800' },
   search: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, fontSize: 16, padding: spacing.md },
   sync: { color: colors.textMuted, fontSize: 12 },

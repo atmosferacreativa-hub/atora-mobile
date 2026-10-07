@@ -35,11 +35,11 @@ function ThreadRow({ thread, pinned, onPress }: { thread: MessageThread; pinned?
       </View>
       <View style={styles.rowText}>
         <View style={styles.rowHead}>
-          <Text numberOfLines={1} style={[styles.rowTitle, thread.unread > 0 && styles.bold]}>{thread.title}</Text>
+          <Text style={[styles.rowTitle, thread.unread > 0 && styles.bold]}>{thread.title}</Text>
           <Text style={styles.when}>{formatWhen(thread.last_message_at)}</Text>
         </View>
         <View style={styles.rowHead}>
-          <Text numberOfLines={1} style={styles.preview}>
+          <Text numberOfLines={2} style={styles.preview}>
             {thread.last_message ? `${thread.last_message.mine ? t('Tú: ') : ''}${thread.last_message.preview}` : pinned ? t('Sin avisos todavía.') : ''}
           </Text>
           {thread.unread > 0 ? <Text style={styles.badge}>{thread.unread > 99 ? '99+' : thread.unread}</Text> : null}
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   content: { gap: spacing.sm, padding: spacing.lg },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   title: { color: colors.text, fontSize: 26, fontWeight: '900' },
-  compose: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.pill, flexDirection: 'row', gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  compose: { minHeight: 44, alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.pill, flexDirection: 'row', gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   composeText: { color: colors.white, fontWeight: '800' },
   sync: { color: colors.textMuted, fontSize: 12 },
   error: { color: colors.danger },

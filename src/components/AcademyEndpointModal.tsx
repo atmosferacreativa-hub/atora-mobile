@@ -80,7 +80,7 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>{t('Configurar academia')}</Text>
-            <Pressable accessibilityRole="button" onPress={onClose}>
+            <Pressable hitSlop={12} accessibilityRole="button" onPress={onClose}>
               <Text style={styles.close}>{t('Cerrar')}</Text>
             </Pressable>
           </View>
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.ink, fontSize: 15, padding: spacing.md },
   preview: { color: colors.navy, fontSize: 12, fontWeight: '700' },
   presets: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  preset: { borderColor: colors.blue, borderRadius: 999, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  preset: { minHeight: 44, justifyContent: 'center', borderColor: colors.blue, borderRadius: 999, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 8 },
   presetText: { color: colors.blue, fontSize: 12, fontWeight: '800' },
   error: { color: colors.red, fontSize: 13 },
   button: { alignItems: 'center', backgroundColor: colors.blue, borderRadius: 12, minHeight: 52, justifyContent: 'center' },

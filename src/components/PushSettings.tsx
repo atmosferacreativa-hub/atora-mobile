@@ -49,7 +49,7 @@ export function PushPrompt({ token, compact }: { token: string; compact?: boolea
             : t('Te avisamos de mensajes, notas y fechas límite. El aviso no muestra el contenido; lo ves al abrir la app.')}
         </Text>
         {state === 'denied' ? (
-          <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}><Text style={styles.link}>{t('Abrir ajustes')}</Text></Pressable>
+          <Pressable hitSlop={12} accessibilityRole="button" onPress={() => void Linking.openSettings()}><Text style={styles.link}>{t('Abrir ajustes')}</Text></Pressable>
         ) : (
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => void activate()} style={styles.activate}>
             <Text style={styles.activateText}>{busy ? t('Activando…') : t('Activar')}</Text>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   prompt: { backgroundColor: colors.accentSoft, borderColor: colors.accent, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   promptTitle: { color: colors.text, fontWeight: '900' },
   promptText: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-  activate: { alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.pill, marginTop: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  activate: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.pill, marginTop: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: 6 },
   activateText: { color: colors.white, fontWeight: '800' },
   link: { color: colors.primary, fontWeight: '800', marginTop: spacing.xs },
   prefs: { gap: spacing.sm },

@@ -54,7 +54,7 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
           <Text style={styles.heroEyebrow}>{t('POR CALIFICAR')}</Text>
           <Text style={styles.heroTitle}>{data.to_grade.count === 1 ? t('1 entrega') : t('{count} entregas', { count: data.to_grade.count })}</Text>
           {data.to_grade.oldest.map((item) => (
-            <Text key={item.id} style={styles.heroMeta} numberOfLines={1}>
+            <Text key={item.id} style={styles.heroMeta} numberOfLines={2}>
               {item.student.name} · {item.lesson.title}{item.is_late ? ` · ${t('Tardía')}` : ''}
             </Text>
           ))}

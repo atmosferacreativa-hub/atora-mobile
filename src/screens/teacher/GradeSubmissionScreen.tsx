@@ -276,7 +276,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
           {attempt.files.map((file) => (
             <Pressable key={file.id} accessibilityRole="button" onPress={() => void openFile(file)} style={styles.file} testID={`grading-file-${file.id}`}>
               <Ionicons name={viewerKind(file.mime_type, file.filename) === 'pdf' ? 'document-text-outline' : viewerKind(file.mime_type, file.filename) === 'image' ? 'image-outline' : 'attach-outline'} size={20} color={colors.primary} />
-              <Text style={[styles.fileName, styles.flex]} numberOfLines={1}>{file.filename || t('Archivo')}</Text>
+              <Text style={[styles.fileName, styles.flex]} numberOfLines={2} ellipsizeMode="middle">{file.filename || t('Archivo')}</Text>
               {opening === file.id ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="open-outline" size={18} color={colors.textMuted} />}
             </Pressable>
           ))}
@@ -504,15 +504,15 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
   heading: { color: colors.primaryStrong, fontSize: 16, fontWeight: '900' },
   body: { color: colors.text, fontSize: 15, lineHeight: 22 },
-  file: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
+  file: { minHeight: 44, alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
   fileName: { color: colors.text, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  chip: { minHeight: 44, justifyContent: 'center', borderColor: colors.line, borderRadius: 16, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 6 },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.text, fontWeight: '700' },
   chipTextOn: { color: colors.white },
   criterion: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  level: { alignItems: 'center', borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, minWidth: 72, paddingHorizontal: spacing.sm, paddingVertical: 6 },
+  level: { minHeight: 44, justifyContent: 'center', alignItems: 'center', borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, minWidth: 72, paddingHorizontal: spacing.sm, paddingVertical: 6 },
   levelOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   levelLabel: { color: colors.text, fontSize: 12, fontWeight: '800' },
   levelPoints: { color: colors.textMuted, fontSize: 12 },
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   score: { minWidth: 90 },
   band: { color: colors.primaryStrong, fontWeight: '800' },
   totals: { alignItems: 'flex-end' },
-  copy: { backgroundColor: colors.primarySoft, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  copy: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.primarySoft, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   copyText: { color: colors.primaryStrong, fontWeight: '800' },
   feedback: { minHeight: 100, textAlignVertical: 'top' },
   actions: { flexDirection: 'row', gap: spacing.sm },
@@ -530,16 +530,16 @@ const styles = StyleSheet.create({
   secondary: { alignItems: 'center', borderColor: colors.primary, borderRadius: radius.md, borderWidth: 2, flex: 1, justifyContent: 'center', minHeight: 50, padding: spacing.md },
   secondaryText: { color: colors.primary, fontSize: 16, fontWeight: '900' },
   disabled: { opacity: 0.6 },
-  saved: { alignItems: 'center', backgroundColor: '#1E8A5A', borderRadius: radius.md, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
+  saved: { alignItems: 'center', backgroundColor: '#17724A', borderRadius: radius.md, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
   savedText: { color: colors.white, flex: 1, fontWeight: '900' },
-  next: { backgroundColor: colors.white, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  nextText: { color: '#1E8A5A', fontWeight: '900' },
+  next: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.white, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  nextText: { color: '#17724A', fontWeight: '900' },
   backdrop: { backgroundColor: colors.backdrop, flex: 1, justifyContent: 'center', padding: spacing.lg },
   modal: { backgroundColor: colors.surface, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.lg },
   theirs: { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, gap: 4, padding: spacing.md },
   /** En el diálogo los botones van apilados: sin `flex: 1` (en columna los recortaba). */
   modalButton: { flex: 0 },
-  link: { alignItems: 'center', padding: spacing.sm },
+  link: { minHeight: 44, justifyContent: 'center', alignItems: 'center', padding: spacing.sm },
   aiCard: { backgroundColor: colors.primarySoft, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.md },
   aiBody: { gap: spacing.sm },
   aiRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },

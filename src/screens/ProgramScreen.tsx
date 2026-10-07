@@ -53,7 +53,7 @@ export function ProgramScreen({ programId, token, onBack, onOpenCourse, onOpenLe
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
+      <Pressable hitSlop={12} onPress={onBack}><Text style={styles.back}>{t('← Volver')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {program ? (
         <>
