@@ -14,8 +14,8 @@ while IFS= read -r file; do
   for spec in "ios-6.9:1320:2868" "ios-6.5:1284:2778"; do
     IFS=: read -r dir w h <<< "$spec"
     cp "$file" "$DEST/$dir/$name"
-    sips --resampleHeight "$h" "$DEST/$dir/$name" >/dev/null
-    sips --padToHeightWidth "$h" "$w" --padColor "$BG" "$DEST/$dir/$name" >/dev/null
+    sips --resampleHeight "$h" "$DEST/$dir/$name" >/dev/null 2>&1
+    sips --padToHeightWidth "$h" "$w" --padColor "$BG" "$DEST/$dir/$name" >/dev/null 2>&1
   done
 done < <(find "$SRC" -name '*.png' | sort)
 echo "$n capturas en $DEST/{play,ios-6.9,ios-6.5}"
