@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
 import { getServerCapabilities } from '../api/discovery';
 import { downloadCourseMaterial, planCourseMaterial } from '../offline/courseMaterial';
@@ -85,16 +85,23 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
 
   if (!data && !error) return <View style={styles.center}><ActivityIndicator color={colors.blue} /></View>;
 
-  const sections = data
-    ? data.curriculum.reduce<Record<string, CourseDetail['curriculum']>>((acc, lesson) => {
-        const key = lesson.section?.trim() || 'Contenido';
-        (acc[key] ??= []).push(lesson);
-        return acc;
-      }, {})
-    : {};
+  // 1.0.0: lista virtualizada (cursos con muchas lecciones en teléfonos de gama baja).
+  type Row = { kind: 'section'; key: string; title: string } | { kind: 'lesson'; key: string; lesson: CourseDetail['curriculum'][number]; index: number };
+  const rows: Row[] = [];
+  if (data) {
+    const sections = data.curriculum.reduce<Record<string, CourseDetail['curriculum']>>((acc, lesson) => {
+      const key = lesson.section?.trim() || '';
+      (acc[key] ??= []).push(lesson);
+      return acc;
+    }, {});
+    for (const [section, lessons] of Object.entries(sections)) {
+      rows.push({ kind: 'section', key: `s-${section}`, title: section || t('Contenido') });
+      lessons.forEach((lesson, index) => rows.push({ kind: 'lesson', key: `l-${lesson.id}`, lesson, index }));
+    }
+  }
 
-  return (
-    <ScrollView contentContainerStyle={styles.content}>
+  const header = (
+    <View style={styles.header}>
       <Pressable hitSlop={12} onPress={onBack}><Text style={styles.back}>{t('← Mis cursos')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {data ? (
@@ -126,41 +133,47 @@ export function CourseScreen({ courseId, token, onBack, onOpenLesson, onOpenGrad
             </Pressable>
           ) : null}
           <Text style={styles.heading}>{t('Contenido')}</Text>
-          {!data.curriculum.length ? (
-            <Text style={styles.empty}>{t('Este curso todavía no tiene lecciones publicadas.')}</Text>
-          ) : (
-            Object.entries(sections).map(([section, lessons]) => (
-              <View key={section} style={styles.section}>
-                <Text style={styles.sectionTitle}>{section}</Text>
-                {lessons.map((lesson, index) => (
-                  <ListRow
-                    key={lesson.id}
-                    onPress={() => onOpenLesson(lesson.id)}
-                    subtitle={`${lesson.type} · ${t('{count} min', { count: lesson.duration_min })}`}
-                    title={lesson.title}
-                    leading={lesson.has_video ? (
-                      <View style={styles.thumbWrap}>
-                        <MediaImage
-                          badge={(lesson.video_count ?? 0) > 1 ? `${lesson.video_count} videos` : lesson.duration_min ? `${lesson.duration_min} min` : undefined}
-                          play
-                          style={styles.thumb}
-                          uri={localThumbs[lesson.id] || lesson.video_thumbnail_url}
-                        />
-                        {lesson.completed ? <Text style={styles.thumbDone}>✓</Text> : null}
-                      </View>
-                    ) : (
-                      <View style={[styles.number, lesson.completed && styles.done]}>
-                        <Text style={styles.numberText}>{lesson.completed ? '✓' : index + 1}</Text>
-                      </View>
-                    )}
-                  />
-                ))}
-              </View>
-            ))
-          )}
+          {!data.curriculum.length ? <Text style={styles.empty}>{t('Este curso todavía no tiene lecciones publicadas.')}</Text> : null}
         </>
       ) : null}
-    </ScrollView>
+    </View>
+  );
+
+  return (
+    <FlatList
+      contentContainerStyle={styles.content}
+      data={rows}
+      keyExtractor={(row) => row.key}
+      ListHeaderComponent={header}
+      initialNumToRender={12}
+      maxToRenderPerBatch={10}
+      windowSize={7}
+      removeClippedSubviews
+      renderItem={({ item }) => item.kind === 'section' ? (
+        <Text style={[styles.sectionTitle, styles.section]}>{item.title}</Text>
+      ) : (
+        <ListRow
+          onPress={() => onOpenLesson(item.lesson.id)}
+          subtitle={`${item.lesson.type} · ${t('{count} min', { count: item.lesson.duration_min })}`}
+          title={item.lesson.title}
+          leading={item.lesson.has_video ? (
+            <View style={styles.thumbWrap}>
+              <MediaImage
+                badge={(item.lesson.video_count ?? 0) > 1 ? t('{count} videos', { count: item.lesson.video_count ?? 0 }) : item.lesson.duration_min ? t('{count} min', { count: item.lesson.duration_min }) : undefined}
+                play
+                style={styles.thumb}
+                uri={localThumbs[item.lesson.id] || item.lesson.video_thumbnail_url}
+              />
+              {item.lesson.completed ? <Text style={styles.thumbDone}>✓</Text> : null}
+            </View>
+          ) : (
+            <View style={[styles.number, item.lesson.completed && styles.done]}>
+              <Text style={styles.numberText}>{item.lesson.completed ? '✓' : item.index + 1}</Text>
+            </View>
+          )}
+        />
+      )}
+    />
   );
 }
 
@@ -171,7 +184,8 @@ const styles = StyleSheet.create({
   gradesButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', padding: spacing.md },
   newBadge: { backgroundColor: colors.mustard, borderRadius: 10, color: colors.navy, fontSize: 11, fontWeight: '900', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2 },
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  content: { gap: spacing.md, padding: spacing.lg },
+  content: { gap: spacing.sm, padding: spacing.lg },
+  header: { gap: spacing.md, marginBottom: spacing.xs },
   back: { color: colors.blue, fontWeight: '800' },
   error: { color: colors.red },
   title: { color: colors.navy, fontSize: 28, fontWeight: '900' },

@@ -7,9 +7,9 @@ name: perf-leccion
     visible: "Cursos"
     timeout: 60000
 - tapOn: "Cursos"
-- extendedWaitUntil:
-    visible: "Curso E2E"
-    timeout: 60000
+- scrollUntilVisible:
+    element: "Curso E2E"
+    timeout: 90000
 - tapOn: "Curso E2E"
 - scrollUntilVisible:
     element: "Videos"

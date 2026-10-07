@@ -13,7 +13,7 @@
 import * as ts from 'typescript';
 
 const VISIBLE_PROPS = new Set([
-  'title', 'label', 'placeholder', 'accessibilityLabel', 'accessibilityHint', 'description', 'message', 'subtitle', 'headline', 'emptyText', 'hint', 'actionLabel', 'buttonText',
+  'title', 'label', 'placeholder', 'accessibilityLabel', 'accessibilityHint', 'description', 'message', 'subtitle', 'headline', 'emptyText', 'hint', 'actionLabel', 'buttonText', 'badge',
 ]);
 const SETTERS = /^set(Error|Notice|Message|FormError|Info|Warning|Hint|Status|Material|Feedback)$/;
 const LETTERS = /[A-Za-zÁÉÍÓÚáéíóúÑñ]{2,}/;

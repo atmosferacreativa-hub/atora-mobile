@@ -510,6 +510,7 @@ export const en: Record<string, string> = {
   "{count} por calificar": "{count} to grade",
   "{count} respondidas": "{count} answered",
   "{count} sin tamaño conocido": "{count} of unknown size",
+  "{count} videos": "{count} videos",
   "{done} de {total} lecciones": "{done} of {total} lessons",
   "{level}, {points} puntos": "{level}, {points} points",
   "{message} Se reinicia {when}.": "{message} It resets {when}.",

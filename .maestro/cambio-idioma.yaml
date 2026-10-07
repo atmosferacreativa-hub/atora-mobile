@@ -10,11 +10,13 @@ name: cambio-idioma
 - takeScreenshot: capturas/cambio-idioma-01-espanol
 - tapOn:
     id: "language-en"
+# Al redibujar, Yo vuelve arriba: las pestañas ya están en inglés.
 - extendedWaitUntil:
-    visible: "Language"
+    visible: "Courses"
     timeout: 15000
-- assertVisible: "Courses"
 - assertVisible: "Me"
+- scrollUntilVisible:
+    element: "Language"
 - takeScreenshot: capturas/cambio-idioma-02-ingles
 # Otra pantalla en inglés.
 - tapOn: "Courses"
@@ -29,6 +31,7 @@ name: cambio-idioma
 - tapOn:
     id: "language-es"
 - extendedWaitUntil:
-    visible: "Idioma"
+    visible: "Cursos"
     timeout: 15000
-- assertVisible: "Cursos"
+- scrollUntilVisible:
+    element: "Idioma"

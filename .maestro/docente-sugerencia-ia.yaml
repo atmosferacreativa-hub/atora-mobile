@@ -43,9 +43,10 @@ name: docente-sugerencia-ia
 - scrollUntilVisible:
     element:
       id: "ai-mark-1"
-- assertVisible:
-    id: "score-1"
-    text: "10"
+- scrollUntilVisible:
+    element:
+      id: "score-1"
+      text: "10"
 - takeScreenshot: capturas/docente-sugerencia-ia-04-usada
 - assertNotVisible:
     id: "grading-saved"
