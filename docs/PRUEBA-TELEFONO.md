@@ -45,3 +45,11 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 23. [ ] **Dos docentes** sobre la misma entrega: el segundo en guardar recibe el aviso de conflicto y no pisa la nota del primero.
 24. [ ] Una **tarea grupal** entregada por un integrante y calificada desde el teléfono da la nota a todos (respetando un ajuste individual).
 25. [ ] Un docente que también está matriculado alterna entre docente y estudiante desde Yo; cada modo muestra solo sus datos.
+
+## Fase 5 — Bloque A: guardado de calificaciones (con dos docentes del mismo curso)
+
+26. [ ] Guardar una calificación como **borrador**: el estudiante no la ve. **Publicarla**: el estudiante la ve, y SpeedGrader web muestra lo mismo (nota, nivel por criterio, decimales y comentarios).
+27. [ ] **Borrador recuperado**: el docente A escribe puntajes y cierra la app (o pierde la señal); el docente B califica la misma entrega; A vuelve a abrirla, elige "Recuperar" y ve la versión de B junto a su borrador. Guardar muestra el conflicto; solo con "Reemplazar con mi borrador" y su confirmación se guarda la de A.
+28. [ ] **Conflicto entre dos docentes**: los dos abren la misma entrega y guardan; el segundo recibe "Otro docente calificó primero" y no pisa la nota del primero.
+29. [ ] **Calificación grupal con un ajuste individual**: la nota publicada llega a todos los integrantes, y el que tiene ajuste ve el suyo.
+30. [ ] **PDF y borrador local**: abrir una entrega con PDF, escribir la rúbrica, activar modo avión o cerrar la app; al volver, el borrador se recupera y el PDF se vuelve a abrir.

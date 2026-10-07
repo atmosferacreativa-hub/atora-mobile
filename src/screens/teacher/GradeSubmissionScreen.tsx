@@ -5,7 +5,7 @@ import { downloadSubmissionFile, fetchSubmissionDetail, gradeSubmission } from '
 import { getSessionUserId } from '../../api/session';
 import { newEventId } from '../../offline/outbox/runtime';
 import { sqliteGradingDraftStore } from '../../grading/draftStore';
-import { discardDraft, recoverDraft, saveDraft, type CriterionDraft, type GradingDraft } from '../../grading/drafts';
+import { discardDraft, expectedRevision, recoverDraft, saveDraft, type CriterionDraft, type GradingDraft } from '../../grading/drafts';
 import { buildBands, describe as describeScore, parseFinalGrade, parseScore, rubricTotal } from '../../grading/rubric';
 import { useNetworkState } from '../../hooks/useNetworkState';
 import { viewerKind } from '../../viewer/files';
@@ -44,6 +44,8 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<'draft' | 'published' | null>(null);
   const [conflict, setConflict] = useState<{ message: string; theirs: SubmissionDetail } | null>(null);
+  /** 0.8.1: borrador recuperado después de que otro docente guardó (se muestra su versión al lado). */
+  const [otherVersion, setOtherVersion] = useState<SubmissionDetail | null>(null);
   const [opening, setOpening] = useState(0);
   const userId = useRef<number | null>(null);
   /** El formulario tal como está en el servidor: sin cambios no hay borrador local. */
@@ -66,7 +68,15 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
           `${recovered.staleRevision ? 'Otro docente guardó esta entrega después de que empezaste. ' : ''}¿Recuperar lo que escribiste el ${new Date(recovered.draft.savedAt).toLocaleString('es')}?`,
           [
             { text: 'Descartar', style: 'destructive', onPress: () => void discardDraft(sqliteGradingDraftStore, userId.current!, submissionId) },
-            { text: 'Recuperar', onPress: () => setForm({ attempt: recovered.draft.attempt, scores: recovered.draft.scores, feedback: recovered.draft.feedback, grade: recovered.draft.grade }) },
+            {
+              text: 'Recuperar',
+              onPress: () => {
+                setForm({ attempt: recovered.draft.attempt, scores: recovered.draft.scores, feedback: recovered.draft.feedback, grade: recovered.draft.grade });
+                // El borrador conserva su revisión: guardar sin confirmar provoca el 409 en vez de pisar la otra nota.
+                setRevision(expectedRevision(recovered.draft.revision, data.revision, false));
+                if (recovered.staleRevision) setOtherVersion(data);
+              },
+            },
           ],
         );
       }
@@ -183,6 +193,18 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
           <Text style={styles.groupText}>
             Entrega grupal · {detail.group.name}: la nota se aplica a todos los integrantes ({detail.group.members.map((m) => m.name).join(', ')}).
           </Text>
+        </View>
+      ) : null}
+
+      {otherVersion ? (
+        <View style={styles.theirs} testID="grading-other-version">
+          <Text style={styles.criterion}>Otro docente guardó esta entrega después de tu borrador</Text>
+          <Text style={styles.meta}>Su versión · Estado: {otherVersion.status === 'graded' ? 'Publicada' : 'Borrador'} · Nota: {otherVersion.grade ?? 'sin nota'}</Text>
+          {(otherVersion.rubric?.criteria ?? []).map((c) => (
+            <Text key={c.index} style={styles.meta}>{c.name}: {c.score ?? '—'}{c.level ? ` (${c.level})` : ''}</Text>
+          ))}
+          {otherVersion.feedback ? <Text style={styles.meta}>“{otherVersion.feedback}”</Text> : null}
+          <Text style={styles.meta}>Abajo está tu borrador. Al guardar se te pedirá confirmar si quieres reemplazar su versión.</Text>
         </View>
       ) : null}
 
@@ -343,13 +365,22 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
                 setConflict(null);
                 Alert.alert('¿Reemplazar su calificación?', 'Se guardará tu versión sobre la del otro docente.', [
                   { text: 'Cancelar', style: 'cancel' },
-                  { text: 'Reemplazar', style: 'destructive', onPress: () => { setRevision(theirs.revision); void submit(false, theirs.revision); } },
+                  {
+                    text: 'Reemplazar',
+                    style: 'destructive',
+                    onPress: () => {
+                      const current = expectedRevision(null, theirs.revision, true);
+                      setRevision(current);
+                      setOtherVersion(null);
+                      void submit(false, current);
+                    },
+                  },
                 ]);
               }}
               style={[styles.secondary, styles.modalButton]}
               testID="conflict-keep-mine"
             >
-              <Text style={styles.secondaryText}>Guardar la mía como borrador</Text>
+              <Text style={styles.secondaryText}>Reemplazar con mi borrador</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => setConflict(null)} style={styles.link}><Text style={styles.linkText}>Cancelar</Text></Pressable>
           </View>

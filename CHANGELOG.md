@@ -2,6 +2,15 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 0.8.1 (2026-10-06)
+
+Bloque A de la Fase 5 (auditoría externa de la Fase 4). Requiere **ATORA LMS 6.31.1** (revisión obligatoria al calificar). **Sin APK.**
+
+- **Fix — un borrador recuperado podía pisar la nota de otro docente**: el borrador local guarda la revisión con la que se empezó; al recuperarlo, si otro docente guardó después, se muestra su versión junto al borrador y el guardado sigue enviando **la revisión original** (el servidor responde con el conflicto), hasta elegir expresamente **"Reemplazar con mi borrador"** y confirmarlo. Solo entonces se envía la revisión actual.
+- **Pruebas de pantalla**: recorrido `docente-borrador-recuperado` (borrador local, la app se cierra, otro docente califica, se recupera y aparece el conflicto); el CI corre además la **prueba de concurrencia real** del plugin (dos guardados a la vez por HTTP: un 200 y un 409).
+- `docs/PRUEBA-TELEFONO.md`: filas 26–30 (Bloque A).
+- **TESTS** (Jest): revisión enviada con un borrador recuperado (original sin confirmar, actual tras "Reemplazar").
+
 ## 0.8.0 (2026-10-06)
 
 Fase 4 — Docente: calificar (Bloque 5). Requiere **ATORA LMS 6.31.0** (`capabilities.teacher_grading`). **Única APK `preview` de la Fase 4.**

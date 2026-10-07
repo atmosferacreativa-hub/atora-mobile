@@ -91,6 +91,17 @@ jobs:
           $WP atora seed-e2e --yes --video-dir=/var/www/html/e2e-media | tee seed.json
           curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
 
+      - name: Concurrencia real al calificar (dos guardados a la vez por HTTP)
+        run: |
+          # Plugin 6.31.1+: exactamente un 200 y un 409, una sola evaluación.
+          if [ -f _plugin/scripts/e2e-concurrent-grade.sh ]; then
+            API=http://localhost:8080/wp-json/atora-mobile/v1 \
+            WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp wordpress:cli-php8.1 wp" \
+            bash _plugin/scripts/e2e-concurrent-grade.sh
+          else
+            echo "El plugin de main no trae la prueba de concurrencia (anterior a 6.31.1)."
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
