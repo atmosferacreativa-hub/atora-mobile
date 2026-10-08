@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react';
 import { Keyboard, Pressable, type StyleProp, type ViewStyle } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import {
+  KeyboardAwareScrollView,
+  useReanimatedFocusedInput,
+  useReanimatedKeyboardAnimation,
+  useWindowDimensions,
+} from 'react-native-keyboard-controller';
+import Reanimated, { scrollTo, useAnimatedReaction, useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 
 /** Espacio entre el campo con el foco y el teclado. */
 export const KEYBOARD_GAP = 24;
@@ -19,11 +25,34 @@ type Props = {
  * (los botones siguen respondiendo al primer toque).
  */
 export function KeyboardScroll({ children, contentStyle, style, testID }: Props) {
+  const ref = useAnimatedRef<Reanimated.ScrollView>();
+  const offset = useScrollViewOffset(ref);
+  const { input } = useReanimatedFocusedInput();
+  const { height: keyboard } = useReanimatedKeyboardAnimation();
+  const { height: windowHeight } = useWindowDimensions();
+
+  // KeyboardAwareScrollView no desplaza si el foco pasa a otro campo con el
+  // teclado ya abierto ("Siguiente" del login): calcula con la selección del
+  // campo anterior. Aquí se lleva el campo nuevo encima del teclado.
+  useAnimatedReaction(
+    () => input.value,
+    (current, previous) => {
+      if (!current || current.target === previous?.target) return;
+      const keyboardHeight = Math.abs(keyboard.value);
+      if (keyboardHeight <= 0) return;
+      const bottom = current.layout.absoluteY + current.layout.height;
+      const limit = windowHeight - keyboardHeight - KEYBOARD_GAP;
+      if (bottom > limit) scrollTo(ref, 0, offset.value + (bottom - limit), true);
+    },
+    [windowHeight],
+  );
+
   return (
     <KeyboardAwareScrollView
       bottomOffset={KEYBOARD_GAP}
       contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
+      ref={ref}
       style={style}
       testID={testID}
     >
