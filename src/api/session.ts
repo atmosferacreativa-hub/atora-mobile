@@ -6,7 +6,8 @@ import { purgeLocalDb } from '../offline/db';
 import { cacheGet, cacheSet } from '../offline/localCache';
 import { purgeOutboxFiles } from '../offline/outboxFiles';
 import { purgeLocalThumbnails } from '../offline/thumbnailFiles';
-import { flushPendingLogout, logoutDevice, type PendingDevice } from './logoutFlow';
+import { flushPendingLogout, logoutDevice, withAcademy, type PendingDevice, type PendingRevocation } from './logoutFlow';
+import { getApiBaseUrlSync } from '../runtimeConfig';
 import { clearConversations } from '../ai/conversation';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 import { t } from '../i18n/core';
@@ -172,29 +173,32 @@ export async function loadDashboard(token: string): Promise<StudentHome> {
  * 1.0.0 (E.6): se revoca con el token de renovación en el cuerpo (plugin 6.33.1),
  * que sigue valiendo aunque el de acceso (15 min) haya vencido mientras no había red.
  */
-const revokeToken = async (token: string) => {
-  await apiRequest<{ revoked: boolean }>('auth/logout', { method: 'POST', token, body: JSON.stringify({ refresh_token: token }) });
+const revokeToken = async (token: string, baseUrl?: string) => {
+  await apiRequest<{ revoked: boolean }>('auth/logout', { method: 'POST', token, baseUrl, body: JSON.stringify({ refresh_token: token }) });
 };
-const unregisterDeviceRequest = async (item: PendingDevice) => {
-  await apiRequest(`devices/${item.deviceId}`, { method: 'DELETE', token: item.token });
+const unregisterDeviceRequest = async (item: { token: string; deviceId: number }, baseUrl?: string) => {
+  await apiRequest(`devices/${item.deviceId}`, { method: 'DELETE', token: item.token, baseUrl });
 };
 const tokenAlreadyInvalid = (reason: unknown) => reason instanceof ApiError && (reason.status === 401 || reason.status === 403);
 
-async function readPendingRevocations(): Promise<string[]> {
-  const raw = await AsyncStorage.getItem(PENDING_REVOKE_KEY);
-  const parsed: unknown = raw ? JSON.parse(raw) : [];
-  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+// 1.0.1: cada pendiente guarda la URL de su academia; los anteriores (sin academia) se descartan.
+async function readPendingRevocations(): Promise<PendingRevocation[]> {
+  const raw = await AsyncStorage.getItem(PENDING_REVOKE_KEY).catch(() => null);
+  let parsed: unknown = [];
+  try { parsed = raw ? JSON.parse(raw) : []; } catch { parsed = []; }
+  return Array.isArray(parsed) ? withAcademy<PendingRevocation>(parsed) : [];
 }
 
-async function writePendingRevocations(tokens: string[]): Promise<void> {
+async function writePendingRevocations(tokens: PendingRevocation[]): Promise<void> {
   if (!tokens.length) await AsyncStorage.removeItem(PENDING_REVOKE_KEY);
   else await AsyncStorage.setItem(PENDING_REVOKE_KEY, JSON.stringify(tokens.slice(-MAX_PENDING_REVOKE)));
 }
 
 async function readPendingDevices(): Promise<PendingDevice[]> {
-  const raw = await AsyncStorage.getItem(PENDING_DEVICE_KEY);
-  const parsed: unknown = raw ? JSON.parse(raw) : [];
-  return Array.isArray(parsed) ? parsed.filter((item): item is PendingDevice => typeof item?.token === 'string' && typeof item?.deviceId === 'number') : [];
+  const raw = await AsyncStorage.getItem(PENDING_DEVICE_KEY).catch(() => null);
+  let parsed: unknown = [];
+  try { parsed = raw ? JSON.parse(raw) : []; } catch { parsed = []; }
+  return Array.isArray(parsed) ? withAcademy<PendingDevice>(parsed).filter((item) => typeof item.deviceId === 'number') : [];
 }
 
 async function writePendingDevices(items: PendingDevice[]): Promise<void> {
@@ -220,21 +224,23 @@ async function storedRefreshToken(): Promise<string | null> {
  */
 export async function logout(token: string, deviceId: number | null = null): Promise<void> {
   const refresh = (await storedRefreshToken()) ?? token;
+  // La academia de esta sesión: lo pendiente se enviará solo a ella (1.0.1).
+  const academy = getApiBaseUrlSync();
   await logoutDevice({ access: token, refresh }, deviceId, {
-    revoke: revokeToken,
+    revoke: (pending) => revokeToken(pending, academy),
     alreadyInvalid: tokenAlreadyInvalid,
     clearLocal: clearSession,
-    rememberForLater: async (pending) => writePendingRevocations([...await readPendingRevocations(), pending]),
-    unregister: unregisterDeviceRequest,
-    rememberDevice: async (item) => writePendingDevices([...await readPendingDevices(), item]),
+    rememberForLater: async (pending) => { if (academy) await writePendingRevocations([...await readPendingRevocations(), { token: pending, academy }]); },
+    unregister: (item) => unregisterDeviceRequest(item, academy),
+    rememberDevice: async (item) => { if (academy) await writePendingDevices([...await readPendingDevices(), { ...item, academy }]); },
   });
 }
 
 /** Envía las bajas y revocaciones que quedaron pendientes por un cierre sin red. Nunca lanza. */
 export async function flushPendingLogoutNow(): Promise<{ devices: number; revocations: number }> {
   return flushPendingLogout({
-    unregister: unregisterDeviceRequest,
-    revoke: revokeToken,
+    unregister: (item) => unregisterDeviceRequest(item, item.academy),
+    revoke: (item) => revokeToken(item.token, item.academy),
     alreadyInvalid: tokenAlreadyInvalid,
     listDevices: readPendingDevices,
     saveDevices: writePendingDevices,

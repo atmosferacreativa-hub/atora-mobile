@@ -15,7 +15,8 @@ export class ApiError extends Error {
   }
 }
 
-type RequestOptions = RequestInit & { token?: string };
+/** `baseUrl`: 1.0.1, para enviar a una academia concreta (bajas pendientes), no a la configurada ahora. */
+type RequestOptions = RequestInit & { token?: string; baseUrl?: string };
 
 export function isOfflineError(reason: unknown): boolean {
   return reason instanceof ApiError && reason.status === 0;
@@ -31,14 +32,14 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const apiBaseUrl = getApiBaseUrlSync() || config.apiBaseUrl;
+  const apiBaseUrl = options.baseUrl || getApiBaseUrlSync() || config.apiBaseUrl;
   if (!apiBaseUrl) {
     throw new ApiError(t('La URL de la academia no está configurada.'), 0, 'missing_api_url');
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.requestTimeoutMs);
-  const { token, headers, ...requestOptions } = options;
+  const { token, headers, baseUrl: _baseUrl, ...requestOptions } = options;
 
   try {
     const response = await fetch(`${apiBaseUrl}/${path.replace(/^\//, '')}`, {
