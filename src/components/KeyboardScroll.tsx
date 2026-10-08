@@ -1,12 +1,18 @@
-import type { ReactNode } from 'react';
-import { Keyboard, Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import {
-  KeyboardAwareScrollView,
-  useReanimatedFocusedInput,
-  useReanimatedKeyboardAnimation,
-  useWindowDimensions,
-} from 'react-native-keyboard-controller';
-import Reanimated, { scrollTo, useAnimatedReaction, useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
+  Keyboard,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { scrollTargetFor } from './keyboardScrollMath';
 
 /** Espacio entre el campo con el foco y el teclado. */
 export const KEYBOARD_GAP = 24;
@@ -23,43 +29,86 @@ type Props = {
  * 1.0.1: pantalla con campos de texto. El campo con el foco queda siempre
  * encima del teclado, con margen; tocar fuera de un campo cierra el teclado
  * (los botones siguen respondiendo al primer toque).
+ *
+ * El área visible se achica con el teclado (KeyboardAvoidingView, la misma
+ * pieza que usan los chats) y el campo enfocado se mide y se lleva a la vista:
+ * al abrirse el teclado y también al pasar a otro campo con el teclado abierto
+ * ("Siguiente" del login). No depende de los eventos de campo enfocado de la
+ * librería, que en el emulador del CI no movían la pantalla.
  */
 export function KeyboardScroll({ children, contentStyle, style, testID }: Props) {
-  const ref = useAnimatedRef<Reanimated.ScrollView>();
-  const offset = useScrollViewOffset(ref);
-  const { input } = useReanimatedFocusedInput();
-  const { height: keyboard } = useReanimatedKeyboardAnimation();
-  const { height: windowHeight } = useWindowDimensions();
+  const scroll = useRef<ScrollView>(null);
+  const content = useRef<View>(null);
+  const offset = useRef(0);
+  const viewport = useRef(0);
+  const keyboardOpen = useRef(false);
+  const lastFocused = useRef<unknown>(null);
 
-  // KeyboardAwareScrollView no desplaza si el foco pasa a otro campo con el
-  // teclado ya abierto ("Siguiente" del login): calcula con la selección del
-  // campo anterior. Aquí se lleva el campo nuevo encima del teclado.
-  useAnimatedReaction(
-    () => input.value,
-    (current, previous) => {
-      if (!current || current.target === previous?.target) return;
-      const keyboardHeight = Math.abs(keyboard.value);
-      if (keyboardHeight <= 0) return;
-      const bottom = current.layout.absoluteY + current.layout.height;
-      const limit = windowHeight - keyboardHeight - KEYBOARD_GAP;
-      if (bottom > limit) scrollTo(ref, 0, offset.value + (bottom - limit), true);
-    },
-    [windowHeight],
-  );
+  const ensureVisible = useCallback(() => {
+    const focused = TextInput.State.currentlyFocusedInput() as unknown as View | null;
+    lastFocused.current = focused;
+    if (!focused || !content.current || !scroll.current || viewport.current <= 0) return;
+    focused.measureLayout(
+      content.current,
+      (_left, top, _width, height) => {
+        const target = scrollTargetFor({ top, height, offset: offset.current, viewport: viewport.current, gap: KEYBOARD_GAP });
+        if (target !== null) scroll.current?.scrollTo({ y: target, animated: true });
+      },
+      () => undefined,
+    );
+  }, []);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const show = Keyboard.addListener('keyboardDidShow', () => {
+      keyboardOpen.current = true;
+      // El área visible se achica justo después: se mide cuando ya cambió.
+      setTimeout(ensureVisible, 120);
+      // Con el teclado abierto, otro campo puede tomar el foco sin que el teclado se mueva.
+      if (!timer) {
+        timer = setInterval(() => {
+          if (TextInput.State.currentlyFocusedInput() !== lastFocused.current) ensureVisible();
+        }, 200);
+      }
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardOpen.current = false;
+      if (timer) clearInterval(timer);
+      timer = null;
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+      if (timer) clearInterval(timer);
+    };
+  }, [ensureVisible]);
+
+  const onLayout = (event: LayoutChangeEvent) => {
+    viewport.current = event.nativeEvent.layout.height;
+    if (keyboardOpen.current) ensureVisible();
+  };
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    offset.current = event.nativeEvent.contentOffset.y;
+  };
 
   return (
-    <KeyboardAwareScrollView
-      bottomOffset={KEYBOARD_GAP}
-      contentContainerStyle={{ flexGrow: 1 }}
-      keyboardShouldPersistTaps="handled"
-      ref={ref}
-      style={style}
-      testID={testID}
-    >
-      {/* a11y-ignore: fondo que cierra el teclado, no es un botón */}
-      <Pressable accessible={false} onPress={Keyboard.dismiss} style={[{ flexGrow: 1 }, contentStyle]}>
-        {children}
-      </Pressable>
-    </KeyboardAwareScrollView>
+    <KeyboardAvoidingView behavior="padding" style={[{ flex: 1 }, style]}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        onLayout={onLayout}
+        onScroll={onScroll}
+        ref={scroll}
+        scrollEventThrottle={16}
+        testID={testID}
+      >
+        <View collapsable={false} ref={content} style={{ flexGrow: 1 }}>
+          {/* a11y-ignore: fondo que cierra el teclado, no es un botón */}
+          <Pressable accessible={false} onPress={Keyboard.dismiss} style={[{ flexGrow: 1 }, contentStyle]}>
+            {children}
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
