@@ -150,6 +150,8 @@ export const en: Record<string, string> = {
   "En revisión": "Under review",
   "En riesgo": "At risk",
   "Endpoint: {url}": "Endpoint: {url}",
+  "Dirección: {url}": "Address: {url}",
+  "No encontramos una academia en esa dirección": "We couldn't find an academy at that address",
   "Entendido": "Got it",
   "Entrar": "Sign in",
   "entre {from} y {to}": "between {from} and {to}",
