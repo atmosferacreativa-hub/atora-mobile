@@ -73,3 +73,10 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 42. [ ] La compilación de producción, en un Android de gama baja, arranca y abre una lección sin trabarse.
 43. [ ] Las filas 1–37 (fases 0 a 5) siguen pasando.
 
+## Fase 6 — Bloque E (auditoría externa; plugin 6.33.1)
+
+44. [ ] Eliminación: el administrador anonimiza una cuenta de prueba que tenía mensajes y un certificado. La solicitud queda "Procesada"; el nombre y el correo no aparecen en mensajes, entregas ni en la verificación del certificado ("Titular anonimizado"); a ese correo no llega nada después.
+45. [ ] Con una entrega de dos intentos, el docente pide la sugerencia sobre el intento 1 y cambia al intento 2: la sugerencia dice "Sugerencia del intento 1", avisa que es de otro intento y no deja usarla hasta pedir otra (también en SpeedGrader web).
+46. [ ] Pedir una sugerencia y apagar los datos unos segundos: la app sigue esperando la misma; al volver la señal aparece. Salir de la pantalla y volver: retoma la misma sin pedir otra.
+47. [ ] Con notificaciones activadas, cerrar sesión en modo avión, esperar más de 15 minutos y quitar el modo avión (sin volver a iniciar sesión): un mensaje nuevo para esa cuenta ya no llega como aviso al teléfono.
+
