@@ -10,3 +10,11 @@ export function scrollTargetFor(p: { top: number; height: number; offset: number
   if (p.top - p.gap < p.offset) return Math.max(0, p.top - p.gap);
   return null;
 }
+
+/**
+ * Cuánto tapa el teclado a una vista: lo que queda por debajo del borde
+ * superior del teclado (`keyboardTop`, en coordenadas de la ventana).
+ */
+export function keyboardInsetFor(viewBottom: number, keyboardTop: number): number {
+  return Math.max(0, Math.round(viewBottom - keyboardTop));
+}

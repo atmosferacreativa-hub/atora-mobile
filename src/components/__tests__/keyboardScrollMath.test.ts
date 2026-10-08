@@ -1,4 +1,4 @@
-import { scrollTargetFor } from '../keyboardScrollMath';
+import { keyboardInsetFor, scrollTargetFor } from '../keyboardScrollMath';
 
 /** 1.0.1 (punto 3): cuánto desplazar para que el campo con el foco quede encima del teclado. */
 describe('campo con el foco encima del teclado', () => {
@@ -17,5 +17,15 @@ describe('campo con el foco encima del teclado', () => {
 
   it('tiene en cuenta lo ya desplazado', () => {
     expect(scrollTargetFor({ top: 600, height: 56, offset: 200, viewport: 300, gap: 24 })).toBe(380);
+  });
+});
+
+describe('margen inferior por el teclado', () => {
+  it('lo que el teclado tapa de la vista', () => {
+    // Vista hasta 590 (encima de la barra de pestañas); teclado desde 382.
+    expect(keyboardInsetFor(590, 382)).toBe(208);
+  });
+  it('vista que termina encima del teclado: nada', () => {
+    expect(keyboardInsetFor(300, 382)).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useKeyboardInset } from '../hooks/useKeyboardInset';
 import { getApiBaseUrlSync, getSiteBaseUrlSync, setApiBaseUrl } from '../runtimeConfig';
 import { academyApiBase, normalizeAcademyUrl } from '../academy/url';
 import { colors, spacing } from '../theme';
@@ -45,6 +45,8 @@ async function isAcademy(apiBase: string): Promise<boolean> {
 
 export function AcademyEndpointModal({ visible, onClose }: Props) {
   const [value, setValue] = useState(getSiteBaseUrlSync());
+  const frame = useRef<View>(null);
+  const inset = useKeyboardInset(frame);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -94,10 +96,10 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
    */
   if (!visible) return null;
   return (
-    <View style={StyleSheet.absoluteFill} testID="academy-sheet">
+    <View collapsable={false} ref={frame} style={[StyleSheet.absoluteFill, { paddingBottom: inset }]} testID="academy-sheet">
       {/* a11y-ignore: fondo atenuado; tocarlo cierra la ventana */}
       <Pressable accessible={false} onPress={onClose} style={[StyleSheet.absoluteFill, styles.backdrop]} />
-      <KeyboardAvoidingView behavior="padding" pointerEvents="box-none" style={styles.holder}>
+      <View pointerEvents="box-none" style={styles.holder}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>{t('Configurar academia')}</Text>
@@ -150,7 +152,7 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
             {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>{t('Guardar')}</Text>}
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }

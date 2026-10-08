@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { downloadSubmissionFile, fetchSubmissionDetail, gradeSubmission } from '../../api/teacher';
 import { getSessionUserId } from '../../api/session';
@@ -221,6 +221,8 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         client_event_id: newEventId(),
       });
       if (outcome.kind === 'conflict') {
+        // 1.0.1: el teclado se cierra; si no, al revisar la versión del otro docente tapaba el formulario.
+        Keyboard.dismiss();
         setConflict({ message: outcome.message, theirs: outcome.submission });
         return;
       }

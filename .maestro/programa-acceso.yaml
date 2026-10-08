@@ -5,8 +5,11 @@ name: programa-acceso
 - runFlow: common/login-estudiante3.yaml
 - tapOn: "Cursos"
 - extendedWaitUntil:
-    visible: "Curso del programa E2E"
+    visible: "Diplomado E2E"
     timeout: 30000
+# El curso del programa aparece en la lista (debajo de la tarjeta del programa).
+- scrollUntilVisible:
+    element: "Curso del programa E2E"
 - takeScreenshot: capturas/programa-acceso-01-cursos
 - tapOn: "Curso del programa E2E"
 - extendedWaitUntil:

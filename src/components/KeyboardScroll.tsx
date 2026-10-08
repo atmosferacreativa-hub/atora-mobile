@@ -11,8 +11,8 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { scrollTargetFor } from './keyboardScrollMath';
+import { useKeyboardInset } from '../hooks/useKeyboardInset';
 
 /** Espacio entre el campo con el foco y el teclado. */
 export const KEYBOARD_GAP = 24;
@@ -30,8 +30,8 @@ type Props = {
  * encima del teclado, con margen; tocar fuera de un campo cierra el teclado
  * (los botones siguen respondiendo al primer toque).
  *
- * El área visible se achica con el teclado (KeyboardAvoidingView, la misma
- * pieza que usan los chats) y el campo enfocado se mide y se lleva a la vista:
+ * El área visible se achica con el teclado (`useKeyboardInset`: lo que el
+ * teclado tapa de la pantalla) y el campo enfocado se mide y se lleva a la vista:
  * al abrirse el teclado y también al pasar a otro campo con el teclado abierto
  * ("Siguiente" del login). No depende de los eventos de campo enfocado de la
  * librería, que en el emulador del CI no movían la pantalla.
@@ -43,6 +43,8 @@ export function KeyboardScroll({ children, contentStyle, style, testID }: Props)
   const viewport = useRef(0);
   const keyboardOpen = useRef(false);
   const lastFocused = useRef<unknown>(null);
+  const frame = useRef<View>(null);
+  const inset = useKeyboardInset(frame);
 
   const ensureVisible = useCallback(() => {
     const focused = TextInput.State.currentlyFocusedInput() as unknown as View | null;
@@ -92,7 +94,7 @@ export function KeyboardScroll({ children, contentStyle, style, testID }: Props)
   };
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={[{ flex: 1 }, style]}>
+    <View collapsable={false} ref={frame} style={[{ flex: 1 }, style, { paddingBottom: inset }]}>
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
@@ -109,6 +111,6 @@ export function KeyboardScroll({ children, contentStyle, style, testID }: Props)
           </Pressable>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
