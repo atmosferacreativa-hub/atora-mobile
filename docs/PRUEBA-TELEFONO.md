@@ -80,3 +80,11 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 46. [ ] Pedir una sugerencia y apagar los datos unos segundos: la app sigue esperando la misma; al volver la señal aparece. Salir de la pantalla y volver: retoma la misma sin pedir otra.
 47. [ ] Con notificaciones activadas, cerrar sesión en modo avión, esperar más de 15 minutos y quitar el modo avión (sin volver a iniciar sesión): un mensaje nuevo para esa cuenta ya no llega como aviso al teléfono.
 
+## 1.0.1 — correcciones antes de las tiendas (plugin 6.33.2)
+
+48. [ ] Un estudiante inscrito solo en un programa (sin matrícula a los cursos) ve los cursos del programa en Cursos, entra a cada uno y abre sus lecciones, en la app y en la web. Un curso agregado después al programa también abre.
+49. [ ] Teclado, en cada pantalla con campos: login (usuario y contraseña; "Siguiente" y "Listo"), configurar academia, tarea, mensajes, asistente de IA, calificar (comentario de un criterio abajo de todo y comentario general), quiz con respuesta escrita, aviso del docente y búsqueda de estudiantes. El campo con el foco se ve siempre encima del teclado mientras se escribe; tocar fuera lo cierra.
+50. [ ] **Obligatoria**: una lección con un video público de Google Drive del demo se reproduce dentro de la app (se ve la imagen en el reproductor), sin abrir el navegador.
+51. [ ] En Configurar academia, escribir `https;//academia.atmosferacreativa.com` (o la del demo con `;`) la corrige y entra; escribir `hola` muestra "No encontramos una academia en esa dirección" y no cambia la academia guardada.
+52. [ ] Abrir y cerrar Configurar academia (con Cerrar, tocando afuera y con Atrás): el login se ve con sus colores normales, no apagado. Al abrir la app, la pantalla de inicio es blanca.
+

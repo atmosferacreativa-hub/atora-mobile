@@ -30,26 +30,26 @@ export async function performLogout(token: string, deps: LogoutDeps): Promise<{ 
   return { revoked };
 }
 
-export type PendingRevocationDeps = {
-  list(): Promise<string[]>;
-  save(tokens: string[]): Promise<void>;
-  revoke(token: string): Promise<void>;
+export type PendingRevocationDeps<T = string> = {
+  list(): Promise<T[]>;
+  save(items: T[]): Promise<void>;
+  revoke(item: T): Promise<void>;
   alreadyInvalid(reason: unknown): boolean;
 };
 
-/** Tras un inicio de sesión con conexión: revoca lo que quedó pendiente; lo que vuelve a fallar se conserva. */
-export async function revokePending(deps: PendingRevocationDeps): Promise<number> {
-  const tokens = await deps.list().catch(() => [] as string[]);
-  if (!tokens.length) return 0;
-  const keep: string[] = [];
+/** Revoca lo que quedó pendiente; lo que vuelve a fallar por la red se conserva. */
+export async function revokePending<T>(deps: PendingRevocationDeps<T>): Promise<number> {
+  const items = await deps.list().catch(() => [] as T[]);
+  if (!items.length) return 0;
+  const keep: T[] = [];
   let done = 0;
-  for (const token of tokens) {
+  for (const item of items) {
     try {
-      await deps.revoke(token);
+      await deps.revoke(item);
       done += 1;
     } catch (reason) {
       if (deps.alreadyInvalid(reason)) done += 1;
-      else keep.push(token);
+      else keep.push(item);
     }
   }
   await deps.save(keep).catch(() => undefined);
@@ -58,21 +58,25 @@ export async function revokePending(deps: PendingRevocationDeps): Promise<number
 
 /**
  * 1.0.0 (E.6): baja del teléfono en las notificaciones. Sin red queda pendiente
- * (con el token de la sesión que se cierra) y se envía cuando vuelve la red,
- * aunque ya no haya sesión en la app. El servidor (6.33.1) además borra los
- * tokens de una sesión al revocarla y no envía a sesiones revocadas.
+ * y se envía cuando vuelve la red, aunque ya no haya sesión en la app. El
+ * servidor (6.33.1) además borra los tokens de una sesión al revocarla.
+ *
+ * 1.0.1: cada pendiente lleva la URL de su academia (`academy`) y solo se envía
+ * a esa academia: nunca llegan credenciales de una academia a otra. Los
+ * pendientes viejos, sin academia, se descartan sin enviarse.
  */
-export type PendingDevice = { token: string; deviceId: number };
+export type PendingRevocation = { token: string; academy: string };
+export type PendingDevice = { token: string; deviceId: number; academy: string };
 
 export type LogoutDeviceDeps = LogoutDeps & {
-  unregister(item: PendingDevice): Promise<void>;
-  rememberDevice(item: PendingDevice): Promise<void>;
+  unregister(item: { token: string; deviceId: number }): Promise<void>;
+  rememberDevice(item: { token: string; deviceId: number }): Promise<void>;
 };
 
 /**
  * Cierre de sesión completo: baja del dispositivo (si lo hay, con el token de
  * acceso) y revocación (con el de renovación, que sigue valiendo si la red vuelve
- * tarde). Nunca lanza.
+ * tarde). Nunca lanza. Quien guarda los pendientes les agrega la academia actual.
  */
 export async function logoutDevice(tokens: { access: string; refresh: string }, deviceId: number | null, deps: LogoutDeviceDeps): Promise<{ revoked: boolean }> {
   if (deviceId) {
@@ -86,34 +90,29 @@ export async function logoutDevice(tokens: { access: string; refresh: string }, 
   return performLogout(tokens.refresh, deps);
 }
 
+/** Solo los pendientes con su academia (los de versiones anteriores no la tienen y se descartan). */
+export function withAcademy<T extends { academy?: unknown }>(items: unknown[]): T[] {
+  return items.filter((item): item is T => typeof item === 'object' && item !== null && typeof (item as { token?: unknown }).token === 'string' && typeof (item as { academy?: unknown }).academy === 'string' && (item as { academy: string }).academy !== '');
+}
+
 export type FlushPendingDeps = {
+  /** Envía a `item.academy`, nunca a la academia configurada ahora. */
   unregister(item: PendingDevice): Promise<void>;
-  revoke(token: string): Promise<void>;
+  revoke(item: PendingRevocation): Promise<void>;
   alreadyInvalid(reason: unknown): boolean;
   listDevices(): Promise<PendingDevice[]>;
   saveDevices(items: PendingDevice[]): Promise<void>;
-  listRevocations(): Promise<string[]>;
-  saveRevocations(tokens: string[]): Promise<void>;
+  listRevocations(): Promise<PendingRevocation[]>;
+  saveRevocations(items: PendingRevocation[]): Promise<void>;
 };
 
 /**
  * Al volver la red (con o sin sesión): primero las bajas de dispositivos (con el
- * token aún válido) y después las revocaciones. Lo que vuelve a fallar se conserva.
+ * token aún válido) y después las revocaciones, cada una a su academia. Un 401
+ * de esa academia descarta el pendiente; un error de red lo conserva.
  */
 export async function flushPendingLogout(deps: FlushPendingDeps): Promise<{ devices: number; revocations: number }> {
-  const items = await deps.listDevices().catch(() => [] as PendingDevice[]);
-  const keep: PendingDevice[] = [];
-  let devices = 0;
-  for (const item of items) {
-    try {
-      await deps.unregister(item);
-      devices += 1;
-    } catch (reason) {
-      if (deps.alreadyInvalid(reason)) devices += 1;
-      else keep.push(item);
-    }
-  }
-  if (items.length) await deps.saveDevices(keep).catch(() => undefined);
-  const revocations = await revokePending({ list: deps.listRevocations, save: deps.saveRevocations, revoke: deps.revoke, alreadyInvalid: deps.alreadyInvalid });
+  const devices = await revokePending<PendingDevice>({ list: deps.listDevices, save: deps.saveDevices, revoke: deps.unregister, alreadyInvalid: deps.alreadyInvalid });
+  const revocations = await revokePending<PendingRevocation>({ list: deps.listRevocations, save: deps.saveRevocations, revoke: deps.revoke, alreadyInvalid: deps.alreadyInvalid });
   return { devices, revocations };
 }

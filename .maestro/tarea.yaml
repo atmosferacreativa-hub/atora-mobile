@@ -13,9 +13,12 @@ name: tarea
     visible: "Tu entrega"
     timeout: 30000
 - takeScreenshot: capturas/tarea-01-consigna
-- tapOn: "Escribe tu respuesta (opcional si adjuntas archivos)"
+- tapOn:
+    id: "assignment-text"
 - inputText: "Entrega desde la prueba de pantalla."
-- hideKeyboard
+# 1.0.1: el campo con el foco queda encima del teclado.
+- assertVisible:
+    id: "assignment-text"
 - scrollUntilVisible:
     element: "Entregar"
 - tapOn: "Entregar"

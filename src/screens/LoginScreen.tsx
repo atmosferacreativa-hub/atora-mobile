@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { ApiError } from '../api/client';
 import { AcademyEndpointModal } from '../components/AcademyEndpointModal';
 import { getApiBaseUrlSync } from '../runtimeConfig';
@@ -26,6 +25,7 @@ export function LoginScreen({ onLogin }: Props) {
   const [error, setError] = useState('');
   const [setupOpen, setSetupOpen] = useState(false);
   const apiBaseUrl = getApiBaseUrlSync();
+  const passwordRef = useRef<TextInput>(null);
 
   const submit = async () => {
     if (!login.trim() || !password) {
@@ -54,11 +54,8 @@ export function LoginScreen({ onLogin }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.page}
-    >
-      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
+    <View style={styles.root}>
+    <KeyboardScroll contentStyle={styles.page} style={styles.root}>
       <View style={styles.brandBlock}>
         <Text style={styles.brand}>ATORA</Text>
         <Text style={styles.tagline}>{t('Tu aprendizaje, siempre contigo.')}</Text>
@@ -76,7 +73,11 @@ export function LoginScreen({ onLogin }: Props) {
           autoComplete="username"
           editable={!busy}
           onChangeText={setLogin}
+          // 1.0.1: "Siguiente" pasa a la contraseña.
+          onSubmitEditing={() => passwordRef.current?.focus()}
           placeholder={t('Correo o usuario')}
+          returnKeyType="next"
+          submitBehavior="submit"
           style={styles.input}
           testID="login-user"
           value={login}
@@ -86,8 +87,11 @@ export function LoginScreen({ onLogin }: Props) {
           autoComplete="current-password"
           editable={!busy}
           onChangeText={setPassword}
-          onSubmitEditing={submit}
+          // "Listo" inicia sesión.
+          onSubmitEditing={() => void submit()}
           placeholder={t('Contraseña')}
+          ref={passwordRef}
+          returnKeyType="done"
           secureTextEntry
           style={styles.input}
           testID="login-password"
@@ -105,12 +109,15 @@ export function LoginScreen({ onLogin }: Props) {
         </Pressable>
         <Text style={styles.security}>{t('Sesión protegida y revocable. Tu contraseña no se guarda.')}</Text>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardScroll>
+      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: spacing.lg },
+  root: { backgroundColor: colors.background, flex: 1 },
+  page: { justifyContent: 'center', padding: spacing.lg },
   brandBlock: { marginBottom: spacing.xl },
   brand: { color: colors.primary, fontSize: 38, fontWeight: '900', letterSpacing: 3 },
   tagline: { color: colors.accentText, fontSize: 16, fontWeight: '700', marginTop: spacing.xs },

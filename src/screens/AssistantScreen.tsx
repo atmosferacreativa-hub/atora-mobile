@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { aiNoticeSeen, askAssistant, markAiNoticeSeen } from '../api/ai';
 import { ApiError } from '../api/client';
@@ -8,6 +8,8 @@ import { aiDisclaimer, appendTurn, getConversation, historyFor, limitMessage, of
 import { useNetworkState } from '../hooks/useNetworkState';
 import { colors, radius, spacing } from '../theme';
 import { t } from '../i18n';
+// 1.0.1: la caja de escritura queda pegada al teclado (también con borde a borde).
+import { useKeyboardInset } from '../hooks/useKeyboardInset';
 
 type Props = {
   token: string;
@@ -21,6 +23,8 @@ type Props = {
  * durante la sesión. Sin conexión no se puede preguntar (no hay cola).
  */
 export function AssistantScreen({ token, lessonId, title, onBack }: Props) {
+  const frame = useRef<View>(null);
+  const inset = useKeyboardInset(frame);
   const { offline } = useNetworkState();
   const [turns, setTurns] = useState<Turn[]>(() => getConversation(lessonId));
   const [text, setText] = useState('');
@@ -62,7 +66,7 @@ export function AssistantScreen({ token, lessonId, title, onBack }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+    <View collapsable={false} ref={frame} style={[styles.flex, { paddingBottom: inset }]}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.primaryStrong} />
@@ -74,6 +78,8 @@ export function AssistantScreen({ token, lessonId, title, onBack }: Props) {
       </View>
       <Text style={styles.disclaimer} testID="assistant-disclaimer">{aiDisclaimer()}</Text>
       <FlatList
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="never"
         ref={list}
         contentContainerStyle={styles.list}
         data={turns}
@@ -109,7 +115,7 @@ export function AssistantScreen({ token, lessonId, title, onBack }: Props) {
           {busy ? <ActivityIndicator color={colors.white} /> : <Ionicons name="send" size={20} color={colors.white} />}
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

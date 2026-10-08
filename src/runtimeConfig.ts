@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config as buildConfig, defaultApiBaseUrl } from './config';
+import { academyApiBase, normalizeAcademyUrl } from './academy/url';
 
 const API_URL_KEY = 'atora.mobile.apiBaseUrl.v1';
 
@@ -35,17 +36,9 @@ export async function initRuntimeConfig(): Promise<void> {
 }
 
 export function normalizeApiBaseUrl(input: string): string {
-  const trimmed = input.trim().replace(/\/$/, '');
-  if (!trimmed) return '';
-
-  if (/\/wp-json\/atora-mobile\/v1$/i.test(trimmed)) return trimmed;
-  if (/\/wp-json\/atora\/v1$/i.test(trimmed)) return trimmed;
-
-  if (/^https?:\/\/.+/i.test(trimmed)) {
-    return `${trimmed}/wp-json/atora-mobile/v1`;
-  }
-
-  return trimmed;
+  // 1.0.1: misma corrección que la pantalla de academia (https;// → https://…); inválida → vacía.
+  const site = normalizeAcademyUrl(input);
+  return site ? academyApiBase(site) : '';
 }
 
 export async function setApiBaseUrl(next: string): Promise<void> {

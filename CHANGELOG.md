@@ -2,6 +2,20 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 1.0.1 (2026-10-08)
+
+Correcciones antes de las tiendas (orden `ORDEN-1.0.1.md` del plugin). Requiere **ATORA LMS 6.33.2** para el acceso por programa y el 409 reintentable; con versiones anteriores funciona como antes.
+
+- **Bajas de sesión por academia** (punto 2): cada baja pendiente (revocación y baja de avisos) guarda la URL de su academia y solo se envía ahí; nunca llegan credenciales de una academia a otra. Un 401 de esa academia la descarta; un error de red la conserva. Las pendientes de la 1.0.0 (sin academia) se descartan sin enviarse.
+- **Teclado** (punto 3): con borde a borde la pantalla ya no se acomodaba sola. `react-native-keyboard-controller`: el campo con el foco queda siempre encima del teclado, con margen, en login, academia, tarea, quiz, calificar (comentarios por criterio y general), aviso y búsqueda; en mensajes y en el asistente la caja de escritura queda pegada al teclado. Tocar fuera cierra el teclado. En el login, "Siguiente" pasa a la contraseña y "Listo" inicia sesión.
+- **Videos de Google Drive dentro de la app** (punto 4): el reproductor de Drive carga el video en un iframe de `youtube.googleapis.com` y en Android la app lo bloqueaba (su lista de dominios no lo incluía; no cambió desde la 0.3.1, cambió Drive). Se permiten los dominios del reproductor y se registra cualquier otra dirección bloqueada.
+- **URL de la academia** (punto 5): se corrige lo mal escrito (`https;//`, `https//`, `http:/`, espacios, mayúsculas, barra final; agrega `https://`). Si no es válida o no responde como academia: "No encontramos una academia en esa dirección" y no se guarda (antes se guardaba primero).
+- **Pantalla gris** (punto 6): la ventana de academia deja de ser una ventana nativa aparte (con su atenuación) y es una capa de la pantalla: al cerrarla no puede quedar nada encima.
+- **Calificar** (punto 7): si otro docente está guardando la entrega (409 `atora_grade_busy`), la app reintenta la lectura una vez tras 1 s.
+- **Pantalla de inicio en blanco** (punto 9), como el ícono.
+- **Recorridos de pantalla**: sin ocultar el teclado (cada campo se comprueba visible mientras se escribe); nuevos `academia-url`, `leccion-drive` (video público real de Drive) y `programa-acceso`.
+- **TESTS** (Jest): bajas pendientes con dos academias; reintento único; normalización de URL (21 casos); dominios del reproductor de Drive; colores de la marca.
+
 ## 1.0.0 (2026-10-07)
 
 Fase 6 — Publicación. Requiere **ATORA LMS 6.33.0** para el certificado en PDF y la eliminación de cuenta (con versiones anteriores se ocultan o siguen como antes). **Compilación de prueba (APK `preview`) y de producción (AAB) de la Fase 6.**

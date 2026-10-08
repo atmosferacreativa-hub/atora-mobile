@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { downloadSubmissionFile, fetchSubmissionDetail, gradeSubmission } from '../../api/teacher';
 import { getSessionUserId } from '../../api/session';
@@ -18,6 +18,7 @@ import { viewerKind } from '../../viewer/files';
 import { colors, radius, spacing } from '../../theme';
 import type { SubmissionDetail, SubmissionFileRef } from '../../teacher/types';
 import { locale, t } from '../../i18n';
+import { KeyboardScroll } from '../../components/KeyboardScroll';
 
 type Props = {
   token: string;
@@ -220,6 +221,8 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
         client_event_id: newEventId(),
       });
       if (outcome.kind === 'conflict') {
+        // 1.0.1: el teclado se cierra; si no, al revisar la versión del otro docente tapaba el formulario.
+        Keyboard.dismiss();
         setConflict({ message: outcome.message, theirs: outcome.submission });
         return;
       }
@@ -251,7 +254,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardScroll contentStyle={styles.content} testID="grade-scroll">
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.primaryStrong} />
@@ -526,7 +529,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

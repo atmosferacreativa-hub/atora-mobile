@@ -7,6 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { refreshAccessToken } from './session';
 import type { GradeOutcome, GradeRequest, QueuePage, StudentFile, StudentsPage, SubmissionDetail, SubmissionFileRef, TeacherCourse, TeacherToday } from '../teacher/types';
 import { t } from '../i18n/core';
+import { retryOnceIfBusy } from './busyRetry';
 
 /**
  * Docente (0.7.0, plugin 6.31.0). Lecturas con respaldo sin conexión (lo último
@@ -105,7 +106,8 @@ export function emitQueueCount(count: number): void {
 
 /** Calificar exige conexión: el detalle no se guarda sin conexión. */
 export async function fetchSubmissionDetail(token: string, submissionId: number): Promise<SubmissionDetail> {
-  const { submission } = await authenticatedRequest<{ submission: SubmissionDetail }>(`teacher/submissions/${submissionId}`, { token });
+  // 1.0.1: si otro docente está guardando (409 atora_grade_busy), un reintento tras 1 s.
+  const { submission } = await retryOnceIfBusy(() => authenticatedRequest<{ submission: SubmissionDetail }>(`teacher/submissions/${submissionId}`, { token }));
   return submission;
 }
 

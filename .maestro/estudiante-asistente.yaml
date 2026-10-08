@@ -24,7 +24,8 @@ onFlowComplete:
 - tapOn:
     id: "assistant-input"
 - inputText: "No entiendo el tema"
-- hideKeyboard
+- assertVisible:
+    id: "assistant-input"
 - tapOn:
     id: "assistant-send"
 - extendedWaitUntil:

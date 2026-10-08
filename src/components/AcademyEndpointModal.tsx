@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
+  BackHandler,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { ApiError, apiRequest } from '../api/client';
-import { getApiBaseUrlSync, normalizeApiBaseUrl, setApiBaseUrl } from '../runtimeConfig';
+import { useKeyboardInset } from '../hooks/useKeyboardInset';
+import { getApiBaseUrlSync, getSiteBaseUrlSync, setApiBaseUrl } from '../runtimeConfig';
+import { academyApiBase, normalizeAcademyUrl } from '../academy/url';
 import { colors, spacing } from '../theme';
 import { t } from '../i18n';
 
@@ -26,57 +27,79 @@ const presets = __DEV__
     ]
   : [];
 
-async function probeNamespace(): Promise<void> {
-  // Validación: el namespace de ATORA Mobile debe existir y responder 200.
-  const baseUrl = getApiBaseUrlSync();
-  const response = await fetch(baseUrl, { method: 'GET', headers: { Accept: 'application/json' } });
-  if (!response.ok) {
-    throw new ApiError(t('No pudimos validar el endpoint de la academia.'), response.status, 'invalid_endpoint');
-  }
-  const payload = await response.json().catch(() => null);
-  if (!payload || typeof payload !== 'object' || (payload as { namespace?: string }).namespace === undefined) {
-    throw new ApiError(t('La academia respondió en un formato inesperado.'), response.status, 'invalid_json');
+/** 1.0.1: la dirección es de una academia ATORA solo si responde `/discovery`. Nada se guarda antes. */
+async function isAcademy(apiBase: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(`${apiBase}/discovery`, { method: 'GET', headers: { Accept: 'application/json' }, signal: controller.signal });
+    if (!response.ok) return false;
+    const payload = (await response.json().catch(() => null)) as { api?: unknown; product?: unknown } | null;
+    return Boolean(payload && typeof payload === 'object' && (payload.api === 'atora-mobile/v1' || payload.product === 'ATORA LMS'));
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
 export function AcademyEndpointModal({ visible, onClose }: Props) {
-  const current = getApiBaseUrlSync();
-  const [value, setValue] = useState(current);
+  const [value, setValue] = useState(getSiteBaseUrlSync());
+  const frame = useRef<View>(null);
+  const inset = useKeyboardInset(frame);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const normalized = useMemo(() => normalizeApiBaseUrl(value), [value]);
+  const site = useMemo(() => normalizeAcademyUrl(value), [value]);
 
   useEffect(() => {
     if (!visible) return;
-    setValue(getApiBaseUrlSync());
+    setValue(getSiteBaseUrlSync());
     setError('');
   }, [visible]);
+
+  // "Atrás" de Android cierra la ventana (antes lo hacía el Modal nativo).
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, onClose]);
 
   const save = async () => {
     setBusy(true);
     setError('');
     try {
-      await setApiBaseUrl(value);
-      // Probar conectividad con el endpoint ya guardado.
-      if (normalized) {
-        await probeNamespace();
+      // 1.0.1: se corrige la dirección (https;// → https://…) y solo se guarda si responde como academia.
+      if (!site || !(await isAcademy(academyApiBase(site)))) {
+        setError(t('No encontramos una academia en esa dirección'));
+        return;
       }
+      setValue(site);
+      await setApiBaseUrl(academyApiBase(site));
       onClose();
-    } catch (reason) {
-      if (reason instanceof ApiError) {
-        setError(reason.code ? `${reason.message} [${reason.code}]` : reason.message);
-      } else {
-        setError(t('No pudimos guardar la academia. Revisa la URL y tu red.'));
-      }
+    } catch {
+      setError(t('No pudimos guardar la academia. Revisa la URL y tu red.'));
     } finally {
       setBusy(false);
     }
   };
 
+  /**
+   * 1.0.1 (punto 6): capa dentro de la pantalla en lugar del Modal nativo. En
+   * Android el Modal es otra ventana con su propia atenuación, que en algunos
+   * teléfonos (borde a borde) dejaba el login apagado al cerrarla. Cerrada, la
+   * capa no existe: no puede quedar nada encima. El teclado se acomoda igual que
+   * en el resto de la app.
+   */
+  if (!visible) return null;
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <View collapsable={false} ref={frame} style={[StyleSheet.absoluteFill, { paddingBottom: inset }]} testID="academy-sheet">
+      {/* a11y-ignore: fondo atenuado; tocarlo cierra la ventana */}
+      <Pressable accessible={false} onPress={onClose} style={[StyleSheet.absoluteFill, styles.backdrop]} />
+      <View pointerEvents="box-none" style={styles.holder}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>{t('Configurar academia')}</Text>
@@ -93,12 +116,16 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
             editable={!busy}
+            keyboardType="url"
             onChangeText={setValue}
+            onSubmitEditing={() => void save()}
+            returnKeyType="done"
             placeholder="https://tuacademia.com"
+            testID="academy-url-input"
             style={styles.input}
             value={value}
           />
-          <Text style={styles.preview}>{t('Endpoint: {url}', { url: normalized || '—' })}</Text>
+          <Text style={styles.preview} testID="academy-url-preview">{t('Dirección: {url}', { url: site || '—' })}</Text>
 
           <View style={styles.presets}>
             {presets.map((item) => (
@@ -126,12 +153,13 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
           </Pressable>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { backgroundColor: colors.backdrop, flex: 1, justifyContent: 'flex-end' },
+  backdrop: { backgroundColor: colors.backdrop },
+  holder: { flex: 1, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.paper, borderTopLeftRadius: 22, borderTopRightRadius: 22, gap: spacing.md, padding: spacing.lg },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   title: { color: colors.navy, fontSize: 18, fontWeight: '900' },

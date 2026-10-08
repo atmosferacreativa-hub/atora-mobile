@@ -70,6 +70,8 @@ export function TeacherStudentsScreen({ token, courseId, title, onBack, onOpenSt
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       <FlatList
         contentContainerStyle={styles.list}
+        // 1.0.1: con el teclado abierto (buscando), el primer toque abre al estudiante.
+        keyboardShouldPersistTaps="handled"
         data={items}
         keyExtractor={(item) => String(item.id)}
         onEndReached={() => { if (next && !loading) void load(next, query.trim()); }}

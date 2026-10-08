@@ -11,13 +11,15 @@ appId: com.atmosferacreativa.atora
 - tapOn:
     id: "login-user"
 - inputText: "estudiante2_e2e"
-- hideKeyboard
-- tapOn:
-    id: "login-password"
+# 1.0.1: el campo con el foco se ve encima del teclado; "Siguiente" pasa a la contraseña.
+- assertVisible:
+    id: "login-user"
+- pressKey: Enter
 - inputText: "atora-e2e-2026"
-- hideKeyboard
-- tapOn:
-    id: "login-submit"
+- assertVisible:
+    id: "login-password"
+# "Listo" inicia sesión.
+- pressKey: Enter
 - extendedWaitUntil:
     visible: "Cursos"
     timeout: 60000

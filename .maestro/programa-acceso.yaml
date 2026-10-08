@@ -1,0 +1,28 @@
+appId: com.atmosferacreativa.atora
+name: programa-acceso
+# 1.0.1 (punto 1, plugin 6.33.2): inscrito SOLO en un programa entra a un curso del programa.
+---
+- runFlow: common/login-estudiante3.yaml
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Diplomado E2E"
+    timeout: 30000
+# El curso del programa aparece en la lista (debajo de la tarjeta del programa).
+- scrollUntilVisible:
+    element: "Curso del programa E2E"
+- takeScreenshot: capturas/programa-acceso-01-cursos
+- tapOn: "Curso del programa E2E"
+- extendedWaitUntil:
+    visible: "Contenido"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Bienvenida al programa"
+- assertNotVisible: "No tienes acceso a este curso."
+- takeScreenshot: capturas/programa-acceso-02-curso
+- tapOn: "Bienvenida al programa"
+- extendedWaitUntil:
+    visible: "Contenido de la lección Bienvenida al programa."
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Marcar como completada"
+- takeScreenshot: capturas/programa-acceso-03-leccion

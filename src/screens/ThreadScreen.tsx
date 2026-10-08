@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchThread, markThreadRead, outgoingMessages, sendMessage, threadForEvent } from '../api/messages';
 import { dismissOutboxEvent, flushOutbox, subscribeOutbox } from '../offline/outbox/runtime';
@@ -9,6 +9,8 @@ import { colors, radius, spacing } from '../theme';
 import type { InboxMessage, InternalLink, MessageThread } from '../types';
 import { formatWhen } from './MessagesScreen';
 import { locale, t } from '../i18n';
+// 1.0.1: la caja de escritura queda pegada al teclado (también con borde a borde).
+import { useKeyboardInset } from '../hooks/useKeyboardInset';
 
 type Props = {
   token: string;
@@ -23,6 +25,8 @@ type Props = {
 
 /** Hilo (0.6.0): historial paginado, respuesta y estados pendiente / no se envió. */
 export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpenLink, onThreadCreated }: Props) {
+  const frame = useRef<View>(null);
+  const inset = useKeyboardInset(frame);
   const network = useNetworkState();
   const [thread, setThread] = useState<MessageThread | null>(null);
   const [messages, setMessages] = useState<InboxMessage[]>([]);
@@ -122,7 +126,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+    <View collapsable={false} ref={frame} style={[styles.flex, { paddingBottom: inset }]}>
       <View style={styles.top}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}><Ionicons name="arrow-back" size={22} color={colors.primary} /></Pressable>
         <Text style={styles.heading}>{heading}</Text>
@@ -131,6 +135,8 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator style={styles.flex} color={colors.primary} /> : (
         <FlatList
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="never"
           inverted
           data={list}
           keyExtractor={(item, index) => (item.client_event_id ? `e-${item.client_event_id}` : `m-${item.id}-${index}`)}
@@ -150,6 +156,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
             onChangeText={setText}
             placeholder={network.offline ? t('Sin conexión: se enviará al volver') : t('Escribe un mensaje')}
             placeholderTextColor={colors.textMuted}
+            testID="thread-input"
             style={styles.input}
             value={text}
           />
@@ -158,7 +165,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
           </Pressable>
         </View>
       ) : null}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

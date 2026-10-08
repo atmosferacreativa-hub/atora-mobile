@@ -29,6 +29,7 @@ import { openWithSystem, viewerKind } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
 import { t } from '../i18n';
+import { allowDriveNavigation } from '../viewer/drive';
 
 export type OpenResourceParams = { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 
@@ -177,13 +178,17 @@ function VideoBlock({
               onLoadStart={() => { setEmbedLoading(true); setEmbedFailed(false); }}
               onLoadEnd={() => setEmbedLoading(false)}
               onError={() => { setEmbedLoading(false); setEmbedFailed(true); }}
-              onShouldStartLoadWithRequest={({ url }) =>
-                url === 'about:blank'
-                || /^https:\/\/([a-z0-9-]+\.)*(google\.com|googleusercontent\.com|gstatic\.com|googlevideo\.com)\//i.test(url)
-              }
+              onShouldStartLoadWithRequest={({ url }) => {
+                // 1.0.1: también los iframes del reproductor de Drive (youtube.googleapis.com).
+                const allowed = allowDriveNavigation(url);
+                if (!allowed) console.warn(`[drive] navegación bloqueada: ${url}`);
+                return allowed;
+              }}
               originWhitelist={['https://*']}
               source={{ uri: video.embedUrl }}
               style={styles.embed}
+              testID="drive-player"
+              thirdPartyCookiesEnabled
             />
             {embedLoading ? (
               <View style={styles.embedOverlay}>

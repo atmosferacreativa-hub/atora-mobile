@@ -1,0 +1,27 @@
+appId: com.atmosferacreativa.atora
+name: leccion-drive
+# 1.0.1 (punto 4): un video público real de Google Drive se ve dentro de la app,
+# no solo con "Abrir video en el navegador". Necesita internet en el emulador.
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "Video de Drive"
+- tapOn: "Video de Drive"
+- extendedWaitUntil:
+    visible: "Reproducir video"
+    timeout: 30000
+- takeScreenshot: capturas/leccion-drive-01-caratula
+- tapOn: "Reproducir video"
+- extendedWaitUntil:
+    visible:
+      id: "drive-player"
+    timeout: 30000
+# El reproductor de Drive tarda en cargar su imagen.
+- extendedWaitUntil:
+    notVisible: "Si el video no carga aquí, el navegador suele funcionar mejor."
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 15000
+- takeScreenshot: capturas/leccion-drive-02-reproductor
+- assertNotVisible: "Si el video no carga aquí, el navegador suele funcionar mejor."

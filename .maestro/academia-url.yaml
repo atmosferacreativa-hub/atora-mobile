@@ -1,0 +1,48 @@
+appId: com.atmosferacreativa.atora
+name: academia-url
+# 1.0.1 (puntos 5 y 6): la URL mal escrita se corrige; una que no es de una
+# academia no se guarda; al cerrar la ventana el login no queda apagado
+# (capturas 01 y 04: mismos colores).
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: "Ingresar a tu academia"
+          timeout: 60000
+- takeScreenshot: capturas/academia-url-01-antes
+- tapOn: "Academia"
+- extendedWaitUntil:
+    visible: "Configurar academia"
+    timeout: 10000
+- tapOn:
+    id: "academy-url-input"
+- eraseText: 60
+- inputText: "hola"
+- assertVisible:
+    id: "academy-url-input"
+- tapOn: "Guardar"
+- extendedWaitUntil:
+    visible: "No encontramos una academia en esa dirección"
+    timeout: 20000
+- assertVisible: "Configurar academia"
+- takeScreenshot: capturas/academia-url-02-no-encontrada
+- tapOn:
+    id: "academy-url-input"
+- eraseText: 20
+- inputText: "HTTP;//10.0.2.2:8080/"
+# El campo con el foco queda encima del teclado y la dirección ya se ve corregida.
+- assertVisible:
+    id: "academy-url-input"
+- assertVisible: "Dirección: http://10.0.2.2:8080"
+- takeScreenshot: capturas/academia-url-03-corregida
+- tapOn: "Guardar"
+- extendedWaitUntil:
+    notVisible: "Configurar academia"
+    timeout: 20000
+- assertVisible: "http://10.0.2.2:8080/wp-json/atora-mobile/v1"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: capturas/academia-url-04-despues

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, StatusBar, StyleSheet, Text, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import './src/api/courses';
 import './src/api/assignments';
 import './src/api/positions';
@@ -285,7 +286,10 @@ function AppShell() {
 function App() {
   return (
     <SafeAreaProvider>
-      <AppShell />
+      {/* 1.0.1: con borde a borde (SDK 54) la pantalla ya no se acomoda sola al teclado. */}
+      <KeyboardProvider>
+        <AppShell />
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }
