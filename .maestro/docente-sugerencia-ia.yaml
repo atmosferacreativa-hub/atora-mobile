@@ -55,7 +55,8 @@ name: docente-sugerencia-ia
     id: "score-1"
 - eraseText: 4
 - inputText: "9"
-- hideKeyboard
+- assertVisible:
+    id: "score-1"
 - assertNotVisible:
     id: "ai-mark-1"
 - takeScreenshot: capturas/docente-sugerencia-ia-05-editada

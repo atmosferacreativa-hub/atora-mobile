@@ -15,7 +15,8 @@ name: docente-estudiantes
 - tapOn:
     id: "teacher-student-search"
 - inputText: "Dos"
-- hideKeyboard
+- assertVisible:
+    id: "teacher-student-search"
 - extendedWaitUntil:
     visible: "Estudiante Dos E2E"
     timeout: 30000

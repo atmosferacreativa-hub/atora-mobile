@@ -12,9 +12,12 @@ name: mensajes
 - extendedWaitUntil:
     visible: "Hola, revisa la tarea de esta semana."
     timeout: 30000
-- tapOn: "Escribe un mensaje"
+- tapOn:
+    id: "thread-input"
 - inputText: "Recibido, gracias."
-- hideKeyboard
+# 1.0.1: la caja de escritura queda pegada al teclado, visible.
+- assertVisible:
+    id: "thread-input"
 - tapOn: "Enviar"
 - extendedWaitUntil:
     visible: "Recibido, gracias."

@@ -16,7 +16,8 @@ name: docente-calificar-409
 - tapOn:
     id: "score-0"
 - inputText: "9"
-- hideKeyboard
+- assertVisible:
+    id: "score-0"
 # Mientras tanto, otro docente guarda la misma entrega.
 - runScript: scripts/otro-docente-guarda.js
 - scrollUntilVisible:

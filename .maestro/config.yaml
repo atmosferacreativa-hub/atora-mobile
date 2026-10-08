@@ -5,8 +5,11 @@ flows:
 executionOrder:
   continueOnFailure: true
   flowsOrder:
+    - academia-url
     - login
     - leccion
+    - leccion-drive
+    - programa-acceso
     - estudiante-asistente
     - tarea
     - quiz

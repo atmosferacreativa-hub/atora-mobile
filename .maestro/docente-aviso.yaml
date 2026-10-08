@@ -15,8 +15,12 @@ name: docente-aviso
 - tapOn:
     id: "announcement-body"
 - inputText: "Nos vemos el jueves."
-- hideKeyboard
+- assertVisible:
+    id: "announcement-body"
 - takeScreenshot: capturas/docente-aviso-01-redactar
+- scrollUntilVisible:
+    element:
+      id: "announcement-send"
 - tapOn:
     id: "announcement-send"
 - extendedWaitUntil:

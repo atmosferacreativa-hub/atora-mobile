@@ -19,7 +19,8 @@ name: docente-borrador-recuperado
     id: "score-0"
 - eraseText: 10
 - inputText: "9"
-- hideKeyboard
+- assertVisible:
+    id: "score-0"
 - takeScreenshot: capturas/docente-borrador-recuperado-01-escribe
 # Se cierra la app y, mientras tanto, otro docente califica.
 - stopApp

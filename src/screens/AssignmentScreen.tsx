@@ -184,6 +184,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
                 multiline
                 onChangeText={setText}
                 placeholder={t('Escribe tu respuesta (opcional si adjuntas archivos)')}
+                testID="assignment-text"
                 style={styles.input}
                 value={text}
               />

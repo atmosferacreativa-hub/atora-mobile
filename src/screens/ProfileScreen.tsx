@@ -165,8 +165,8 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
   };
 
   return (
+    <View style={styles.root}>
     <ScrollView contentContainerStyle={styles.content}>
-      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <Text style={styles.title}>{displayName || t('Perfil')}</Text>
       {email ? <Text style={styles.email}>{email}</Text> : null}
 
@@ -323,10 +323,13 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
         </Pressable>
       ) : null}
     </ScrollView>
+      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.lg },
   title: { color: colors.navy, fontSize: 28, fontWeight: '800' },
   email: { color: colors.muted, fontSize: 15 },

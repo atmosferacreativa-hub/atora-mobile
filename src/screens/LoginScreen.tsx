@@ -54,8 +54,8 @@ export function LoginScreen({ onLogin }: Props) {
   };
 
   return (
+    <View style={styles.root}>
     <KeyboardScroll contentStyle={styles.page} style={styles.root}>
-      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
       <View style={styles.brandBlock}>
         <Text style={styles.brand}>ATORA</Text>
         <Text style={styles.tagline}>{t('Tu aprendizaje, siempre contigo.')}</Text>
@@ -110,6 +110,8 @@ export function LoginScreen({ onLogin }: Props) {
         <Text style={styles.security}>{t('Sesión protegida y revocable. Tu contraseña no se guarda.')}</Text>
       </View>
     </KeyboardScroll>
+      <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
+    </View>
   );
 }
 

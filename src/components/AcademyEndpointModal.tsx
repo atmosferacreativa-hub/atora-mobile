@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
+  BackHandler,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { getApiBaseUrlSync, getSiteBaseUrlSync, setApiBaseUrl } from '../runtimeConfig';
 import { academyApiBase, normalizeAcademyUrl } from '../academy/url';
 import { colors, spacing } from '../theme';
@@ -55,6 +56,16 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
     setError('');
   }, [visible]);
 
+  // "Atrás" de Android cierra la ventana (antes lo hacía el Modal nativo).
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, onClose]);
+
   const save = async () => {
     setBusy(true);
     setError('');
@@ -74,9 +85,19 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
     }
   };
 
+  /**
+   * 1.0.1 (punto 6): capa dentro de la pantalla en lugar del Modal nativo. En
+   * Android el Modal es otra ventana con su propia atenuación, que en algunos
+   * teléfonos (borde a borde) dejaba el login apagado al cerrarla. Cerrada, la
+   * capa no existe: no puede quedar nada encima. El teclado se acomoda igual que
+   * en el resto de la app.
+   */
+  if (!visible) return null;
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <View style={StyleSheet.absoluteFill} testID="academy-sheet">
+      {/* a11y-ignore: fondo atenuado; tocarlo cierra la ventana */}
+      <Pressable accessible={false} onPress={onClose} style={[StyleSheet.absoluteFill, styles.backdrop]} />
+      <KeyboardAvoidingView behavior="padding" pointerEvents="box-none" style={styles.holder}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>{t('Configurar academia')}</Text>
@@ -93,8 +114,12 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
             editable={!busy}
+            keyboardType="url"
             onChangeText={setValue}
+            onSubmitEditing={() => void save()}
+            returnKeyType="done"
             placeholder="https://tuacademia.com"
+            testID="academy-url-input"
             style={styles.input}
             value={value}
           />
@@ -125,13 +150,14 @@ export function AcademyEndpointModal({ visible, onClose }: Props) {
             {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>{t('Guardar')}</Text>}
           </Pressable>
         </View>
-      </View>
-    </Modal>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { backgroundColor: colors.backdrop, flex: 1, justifyContent: 'flex-end' },
+  backdrop: { backgroundColor: colors.backdrop },
+  holder: { flex: 1, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.paper, borderTopLeftRadius: 22, borderTopRightRadius: 22, gap: spacing.md, padding: spacing.lg },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   title: { color: colors.navy, fontSize: 18, fontWeight: '900' },

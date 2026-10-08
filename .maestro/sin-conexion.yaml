@@ -30,9 +30,11 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "Hola, revisa la tarea de esta semana."
     timeout: 30000
-- tapOn: "Escribe un mensaje"
+- tapOn:
+    id: "thread-input"
 - inputText: "Escrito sin conexión."
-- hideKeyboard
+- assertVisible:
+    id: "thread-input"
 - tapOn: "Enviar"
 - extendedWaitUntil:
     visible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
