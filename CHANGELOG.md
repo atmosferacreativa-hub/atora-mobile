@@ -19,6 +19,18 @@ Fase 6 — Publicación. Requiere **ATORA LMS 6.33.0** para el certificado en PD
 - **Recorridos de pantalla**: `cambio-idioma`, `certificado-pdf` (también sin conexión) y `eliminar-cuenta`; modos del CI `gama-baja` (mediciones) y `tienda` (capturas en 1080 × 2400).
 - **TESTS** (Jest): catálogo de idiomas (falla si una pantalla muestra un texto sin traducir o falta una traducción), accesibilidad (etiquetas y 44 puntos), contraste del tema, reporte de errores sin datos personales, pedido del certificado en PDF.
 
+### Bloque E (auditoría externa) — misma versión 1.0.0, nueva compilación
+
+La 1.0.0 nunca llegó a una tienda: sigue siendo 1.0.0 con un número de compilación nuevo y la etiqueta `v1.0.0` movida. Requiere **ATORA LMS 6.33.1** para lo que sigue (con 6.33.0 funciona como antes).
+
+- **Sugerencia de IA atada al intento** (E.3): se pide para el intento que se está calificando y muestra "Sugerencia del intento N". Si es de otro intento o el contenido cambió, lo avisa y oculta "Usar" hasta pedir otra.
+- **La sugerencia no se pierde** (E.4): la app consulta el mismo trabajo hasta 3 minutos en total; un corte o un tiempo de espera de la red no la cancela. Pasado ese tiempo muestra "Sigue generándose" con **Consultar otra vez** (sin pedir otra), y al salir y volver a la pantalla retoma el mismo trabajo.
+- **Cerrar sesión sin red** (E.6): la baja del teléfono en los avisos y la revocación de la sesión quedan pendientes y se envían al volver la conexión, aunque nadie haya vuelto a iniciar sesión. La revocación usa el token de renovación, que sigue valiendo si el de acceso venció mientras no había red.
+- **CI**: prueba real de límites de IA con 10 llamadas simultáneas y límite 3 (`scripts/e2e-concurrent-ai.sh` del plugin).
+- **Política de privacidad**: los certificados emitidos se conservan sin datos personales (titular anonimizado).
+- **Ícono de la app con fondo blanco**, como el logo original (antes azul marino, que en el teléfono se veía casi negro). La pantalla de inicio no cambia.
+- **TESTS** (Jest): la sugerencia sirve solo para su intento; consulta que sobrevive a cortes de red y se rinde a los 3 min; trabajo pendiente por entrega; cierre de sesión en modo avión y reconexión → el servidor ya no tiene el token ni envía avisos.
+
 ## 0.9.0 (2026-10-06)
 
 Fase 5 — IA (Bloque 2). Requiere **ATORA LMS 6.32.0** (`capabilities.ai_assistant`, `ai_grading_suggestion`); con versiones anteriores, o si la academia no activó la IA, no aparece nada nuevo. **Única APK `preview` de la Fase 5.**

@@ -17,11 +17,11 @@ name: docente-sugerencia-ia
 - takeScreenshot: capturas/docente-sugerencia-ia-01-boton
 - tapOn:
     id: "ai-suggestion-request"
-# Asíncrona: la app consulta cada 3 s, hasta 2 minutos.
+# Asíncrona: la app consulta cada 3 s, hasta 3 minutos.
 - extendedWaitUntil:
     visible:
       id: "ai-suggestion-ready"
-    timeout: 130000
+    timeout: 190000
 - takeScreenshot: capturas/docente-sugerencia-ia-02-sugerencia
 - scrollUntilVisible:
     element: "Indicio de texto generado por IA: Medio"

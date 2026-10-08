@@ -108,6 +108,17 @@ jobs:
             echo "El plugin de main no trae la prueba de concurrencia (anterior a 6.31.1)."
           fi
 
+      - name: Límite de IA con llamadas simultáneas (10 a la vez, límite 3)
+        run: |
+          # Plugin 6.33.1+ (E.5): pasan exactamente 3 y se rechazan 7.
+          if [ -f _plugin/scripts/e2e-concurrent-ai.sh ]; then
+            API=http://localhost:8080/wp-json/atora-mobile/v1 \
+            WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp wordpress:cli-php8.1 wp" \
+            bash _plugin/scripts/e2e-concurrent-ai.sh
+          else
+            echo "El plugin no trae la prueba de límites simultáneos (anterior a 6.33.1)."
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20

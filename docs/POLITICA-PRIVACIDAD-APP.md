@@ -59,7 +59,7 @@ No vendemos datos ni los usamos para publicidad. No hay seguimiento entre apps. 
 - En la app: **Yo → Eliminar mi cuenta**.
 - Sin la app: en la página **/eliminar-cuenta/** del sitio de tu academia (te enviamos un enlace de confirmación a tu correo).
 
-La academia procesa la solicitud en un plazo de **30 días**: borra tu nombre, correo, usuario, datos de contacto, sesiones y dispositivos. Las notas y actas que la institución deba conservar por ley se guardan **sin tus datos personales**. Los certificados ya emitidos siguen siendo verificables con el nombre impreso en ellos, porque son el registro del título otorgado.
+La academia procesa la solicitud en un plazo de **30 días**: borra tu nombre, correo, usuario, datos de contacto, sesiones, dispositivos y mensajes, y cancela los correos y avisos pendientes. Las notas, actas y certificados que la institución deba conservar por ley se guardan **sin tus datos personales** (el certificado queda a nombre de un titular anonimizado).
 
 ## Menores de edad
 
@@ -91,7 +91,7 @@ Last updated: […publication date…]
 
 **Sharing**: we do not sell data or use it for advertising, and there is no cross-app tracking. The only third parties are service providers: your academy's server, the AI provider (no identifying data), notification services and the crash reporting service (no personal data).
 
-**Delete your account**: in the app (**Me → Delete my account**) or without the app at **/eliminar-cuenta/** on your academy's site (a confirmation link is emailed to you). The academy processes it within **30 days**, deleting your name, email, username, contact data, sessions and devices. Grades and records the institution must keep by law are kept **without your personal data**. Certificates already issued remain verifiable with the name printed on them, as the record of the awarded title.
+**Delete your account**: in the app (**Me → Delete my account**) or without the app at **/eliminar-cuenta/** on your academy's site (a confirmation link is emailed to you). The academy processes it within **30 days**, deleting your name, email, username, contact data, sessions, devices and messages, and cancelling pending emails and notifications. Grades, records and certificates the institution must keep by law are kept **without your personal data** (the certificate holder becomes anonymous).
 
 **Minors**: if an academy enrolls minors, it is responsible for obtaining parental or guardian consent as required by law.
 

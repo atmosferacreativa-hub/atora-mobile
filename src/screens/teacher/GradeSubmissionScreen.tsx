@@ -7,7 +7,8 @@ import { fetchSuggestionJob, requestSuggestion } from '../../api/ai';
 import { ApiError } from '../../api/client';
 import { getServerCapabilities } from '../../api/discovery';
 import { limitMessage } from '../../ai/conversation';
-import { applySuggestion, LIKELIHOOD_LABEL, NO_MARKS, pollSuggestion, unmarkCriterion, unmarkFeedback, type AiMarks, type GradingSuggestion } from '../../ai/suggestion';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { applySuggestion, forgetPending, LIKELIHOOD_LABEL, pendingFor, rememberPending, suggestionUsable, NO_MARKS, pollSuggestion, unmarkCriterion, unmarkFeedback, type AiMarks, type GradingSuggestion } from '../../ai/suggestion';
 import { newEventId } from '../../offline/outbox/runtime';
 import { sqliteGradingDraftStore } from '../../grading/draftStore';
 import { discardDraft, expectedRevision, recoverDraft, saveDraft, type CriterionDraft, type GradingDraft } from '../../grading/drafts';
@@ -55,7 +56,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const [opening, setOpening] = useState(0);
   /** 0.9.0: sugerencia de IA. Solo rellena el borrador; nunca guarda. */
   const [aiEnabled, setAiEnabled] = useState(false);
-  const [ai, setAi] = useState<{ state: 'idle' | 'loading' | 'ready' | 'error'; suggestion?: GradingSuggestion; message?: string }>({ state: 'idle' });
+  const [ai, setAi] = useState<{ state: 'idle' | 'loading' | 'slow' | 'ready' | 'error'; suggestion?: GradingSuggestion; message?: string; jobId?: string; attempt?: number }>({ state: 'idle' });
   const [aiMarks, setAiMarks] = useState<AiMarks>(NO_MARKS);
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
@@ -111,11 +112,43 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const checks = useMemo(() => criteria.map((c) => parseScore(form?.scores[c.index]?.score ?? '', c.max_points, c.name)), [criteria, form]);
   const total = rubricTotal(criteria.map((c, i) => ({ maxPoints: c.max_points, score: checks[i]?.ok ? (checks[i] as { value: number | null }).value : null })));
   const attempt = detail?.attempts.find((a) => a.attempt === form?.attempt) ?? detail?.attempts[detail.attempts.length - 1];
+  const usable = ai.suggestion && form ? suggestionUsable(ai.suggestion, form.attempt) : false;
 
   const setScore = (index: number, patch: Partial<CriterionDraft>) => {
     setAiMarks((marks) => unmarkCriterion(marks, index));
     setForm((current) => (current ? { ...current, scores: { ...current.scores, [index]: { score: '', feedback: '', ...current.scores[index], ...patch } } } : current));
   };
+
+  /**
+   * 1.0.0 (E.4): sigue el mismo trabajo hasta 3 min; la red caída no lo cancela.
+   * Si tarda más, "Sigue generándose" y se puede volver a consultar; al salir y
+   * volver a la pantalla se retoma el mismo `job_id`.
+   */
+  const followJob = async (jobId: string, asked: number) => {
+    setAi({ state: 'loading', jobId, attempt: asked });
+    const result = await pollSuggestion(jobId, {
+      fetch: (id) => fetchSuggestionJob(token, id, asked || undefined),
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      now: () => Date.now(),
+      cancelled: () => !mounted.current,
+    });
+    if (!mounted.current || result.kind === 'cancelled') return;
+    if (result.kind === 'timeout') {
+      setAi({ state: 'slow', jobId, attempt: asked });
+      return;
+    }
+    void forgetPending(AsyncStorage, submissionId);
+    if (result.kind === 'done') setAi({ state: 'ready', suggestion: result.suggestion });
+    else setAi({ state: 'error', message: result.message });
+  };
+
+  useEffect(() => {
+    if (!aiEnabled) return;
+    void pendingFor(AsyncStorage, submissionId).then((pending) => {
+      if (pending && mounted.current) void followJob(pending.jobId, pending.attempt);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiEnabled, submissionId]);
 
   const askSuggestion = async () => {
     if (offline) {
@@ -124,16 +157,11 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
     }
     setAi({ state: 'loading' });
     try {
-      const job = await requestSuggestion(token, submissionId);
-      const result = await pollSuggestion(job.job_id, {
-        fetch: (id) => fetchSuggestionJob(token, id),
-        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-        now: () => Date.now(),
-        cancelled: () => !mounted.current,
-      });
-      if (!mounted.current || result.kind === 'cancelled') return;
-      if (result.kind === 'done') setAi({ state: 'ready', suggestion: result.suggestion });
-      else setAi({ state: 'error', message: result.kind === 'failed' ? result.message : 'La sugerencia tardó demasiado. Intenta más tarde.' });
+      const asked = form?.attempt ?? 0;
+      const job = await requestSuggestion(token, submissionId, asked);
+      await rememberPending(AsyncStorage, submissionId, { jobId: job.job_id, attempt: asked });
+      if (!mounted.current) return;
+      await followJob(job.job_id, asked);
     } catch (reason) {
       if (!mounted.current) return;
       const message = reason instanceof ApiError && reason.status === 429 ? limitMessage(reason.message, reason.data?.reset_at) : reason instanceof Error ? reason.message : 'No se pudo pedir la sugerencia.';
@@ -144,7 +172,8 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   /** "Usar todo" (sin índice) o "Usar" en un criterio: solo el borrador local. */
   const useSuggestion = (only?: number) => {
     if (!form || !ai.suggestion) return;
-    const filled = applySuggestion(form, aiMarks, ai.suggestion, only);
+    if (!suggestionUsable(ai.suggestion, form.attempt)) return;
+    const filled = applySuggestion(form, aiMarks, ai.suggestion, only, form.attempt);
     setAiMarks(filled.marks);
     setForm({ ...form, scores: filled.scores, feedback: filled.feedback });
   };
@@ -299,15 +328,25 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
             <View style={styles.scoreRow}><ActivityIndicator color={colors.primary} /><Text style={styles.meta}>{t('Generando la sugerencia…')}</Text></View>
           ) : null}
           {ai.state === 'error' ? <Text style={styles.error} testID="ai-suggestion-error">{ai.message}</Text> : null}
+          {ai.state === 'slow' && ai.jobId ? (
+            <View testID="ai-suggestion-slow">
+              <Text style={styles.meta}>{t('Sigue generándose. Puedes seguir calificando y volver a consultar; no hace falta pedirla otra vez.')}</Text>
+              <Pressable accessibilityRole="button" disabled={offline} onPress={() => void followJob(ai.jobId!, ai.attempt ?? 0)} style={[styles.copy, offline && styles.disabled]} testID="ai-suggestion-check">
+                <Text style={styles.copyText}>{t('Consultar otra vez')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           {ai.state === 'ready' && ai.suggestion ? (
             <View style={styles.aiBody} testID="ai-suggestion-ready">
+              {ai.suggestion.attempt ? <Text style={styles.criterion} testID="ai-suggestion-attempt">{t('Sugerencia del intento {n}', { n: ai.suggestion.attempt })}</Text> : null}
+              {!usable ? <Text style={styles.error} testID="ai-suggestion-stale">{t('Esta sugerencia es de otro intento o de un contenido que cambió. Pide una nueva para usarla.')}</Text> : null}
               {ai.suggestion.criteria.map((row) => (
                 <View key={row.index} style={styles.aiRow}>
                   <View style={styles.flex}>
                     <Text style={styles.criterion}>{row.name}: {t('{score} de {max}', { score: row.score ?? '—', max: row.max_points })}{row.level ? ` · ${row.level}` : ''}</Text>
                     <Text style={styles.meta}>{row.justification}</Text>
                   </View>
-                  {row.score !== null ? (
+                  {row.score !== null && usable ? (
                     <Pressable accessibilityRole="button" accessibilityLabel={t('Usar sugerencia para {name}', { name: row.name })} onPress={() => useSuggestion(row.index)} style={styles.copy} testID={`ai-use-${row.index}`}>
                       <Text style={styles.copyText}>{t('Usar')}</Text>
                     </Pressable>
@@ -321,9 +360,11 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
                 <Text style={styles.likelihoodNote}>{ai.suggestion.disclaimer}</Text>
               </View>
               <View style={styles.actions}>
-                <Pressable accessibilityRole="button" onPress={() => useSuggestion()} style={styles.secondary} testID="ai-use-all">
-                  <Text style={styles.secondaryText}>{t('Usar todo')}</Text>
-                </Pressable>
+                {usable ? (
+                  <Pressable accessibilityRole="button" onPress={() => useSuggestion()} style={styles.secondary} testID="ai-use-all">
+                    <Text style={styles.secondaryText}>{t('Usar todo')}</Text>
+                  </Pressable>
+                ) : null}
                 <Pressable accessibilityRole="button" onPress={() => void askSuggestion()} style={styles.secondary} testID="ai-suggestion-again">
                   <Text style={styles.secondaryText}>{t('Pedir otra')}</Text>
                 </Pressable>
