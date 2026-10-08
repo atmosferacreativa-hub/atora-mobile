@@ -13,8 +13,10 @@ name: programa-acceso
 - takeScreenshot: capturas/programa-acceso-01-cursos
 - tapOn: "Curso del programa E2E"
 - extendedWaitUntil:
-    visible: "Bienvenida al programa"
+    visible: "Contenido"
     timeout: 30000
+- scrollUntilVisible:
+    element: "Bienvenida al programa"
 - assertNotVisible: "No tienes acceso a este curso."
 - takeScreenshot: capturas/programa-acceso-02-curso
 - tapOn: "Bienvenida al programa"
