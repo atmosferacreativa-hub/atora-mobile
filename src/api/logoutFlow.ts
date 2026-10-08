@@ -55,3 +55,65 @@ export async function revokePending(deps: PendingRevocationDeps): Promise<number
   await deps.save(keep).catch(() => undefined);
   return done;
 }
+
+/**
+ * 1.0.0 (E.6): baja del teléfono en las notificaciones. Sin red queda pendiente
+ * (con el token de la sesión que se cierra) y se envía cuando vuelve la red,
+ * aunque ya no haya sesión en la app. El servidor (6.33.1) además borra los
+ * tokens de una sesión al revocarla y no envía a sesiones revocadas.
+ */
+export type PendingDevice = { token: string; deviceId: number };
+
+export type LogoutDeviceDeps = LogoutDeps & {
+  unregister(item: PendingDevice): Promise<void>;
+  rememberDevice(item: PendingDevice): Promise<void>;
+};
+
+/**
+ * Cierre de sesión completo: baja del dispositivo (si lo hay, con el token de
+ * acceso) y revocación (con el de renovación, que sigue valiendo si la red vuelve
+ * tarde). Nunca lanza.
+ */
+export async function logoutDevice(tokens: { access: string; refresh: string }, deviceId: number | null, deps: LogoutDeviceDeps): Promise<{ revoked: boolean }> {
+  if (deviceId) {
+    const item = { token: tokens.access, deviceId };
+    try {
+      await deps.unregister(item);
+    } catch (reason) {
+      if (!deps.alreadyInvalid(reason)) await deps.rememberDevice(item).catch(() => undefined);
+    }
+  }
+  return performLogout(tokens.refresh, deps);
+}
+
+export type FlushPendingDeps = {
+  unregister(item: PendingDevice): Promise<void>;
+  revoke(token: string): Promise<void>;
+  alreadyInvalid(reason: unknown): boolean;
+  listDevices(): Promise<PendingDevice[]>;
+  saveDevices(items: PendingDevice[]): Promise<void>;
+  listRevocations(): Promise<string[]>;
+  saveRevocations(tokens: string[]): Promise<void>;
+};
+
+/**
+ * Al volver la red (con o sin sesión): primero las bajas de dispositivos (con el
+ * token aún válido) y después las revocaciones. Lo que vuelve a fallar se conserva.
+ */
+export async function flushPendingLogout(deps: FlushPendingDeps): Promise<{ devices: number; revocations: number }> {
+  const items = await deps.listDevices().catch(() => [] as PendingDevice[]);
+  const keep: PendingDevice[] = [];
+  let devices = 0;
+  for (const item of items) {
+    try {
+      await deps.unregister(item);
+      devices += 1;
+    } catch (reason) {
+      if (deps.alreadyInvalid(reason)) devices += 1;
+      else keep.push(item);
+    }
+  }
+  if (items.length) await deps.saveDevices(keep).catch(() => undefined);
+  const revocations = await revokePending({ list: deps.listRevocations, save: deps.saveRevocations, revoke: deps.revoke, alreadyInvalid: deps.alreadyInvalid });
+  return { devices, revocations };
+}

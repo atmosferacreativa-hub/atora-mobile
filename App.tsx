@@ -7,12 +7,12 @@ import './src/api/assignments';
 import './src/api/positions';
 import './src/api/teacher';
 import { fetchUnreadCount, subscribeUnread } from './src/api/messages';
-import { registerDevice, unregisterDevice } from './src/api/push';
+import { registerDevice, savedDeviceId } from './src/api/push';
 import { destinationFor, type PushData } from './src/notifications/route';
 import { getServerCapabilities, loadServerCapabilities } from './src/api/discovery';
 import { fetchGrades, newGradeCourseIds } from './src/api/grades';
 import { ApiError, isRetriableError } from './src/api/client';
-import { loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
+import { flushPendingLogoutNow, loadDashboard, login, logout, restoreAccessToken } from './src/api/session';
 import { purgeCurrentUserDownloads } from './src/offline/mediaDownloads';
 import { purgeCertificateFiles } from './src/api/certificates';
 import { purgeGradingFiles } from './src/api/teacher';
@@ -150,6 +150,13 @@ function AppShell() {
     return () => clearInterval(id);
   }, [network.offline, token]);
 
+  // 1.0.0 (E.6): un cierre de sesión hecho sin red se completa al volver la conexión,
+  // haya o no sesión abierta (el servidor deja de enviar avisos a este teléfono).
+  useEffect(() => {
+    if (network.offline) return;
+    void flushPendingLogoutNow();
+  }, [network.offline]);
+
   // 0.6.0: sin permiso de avisos la app igual se pone al día al volver a primer plano.
   useEffect(() => {
     if (!token) return;
@@ -205,9 +212,9 @@ function AppShell() {
       await purgeCurrentUserDownloads().catch(() => undefined);
       await purgeCertificateFiles().catch(() => undefined);
       await purgeGradingFiles().catch(() => undefined);
-      // 0.6.0: el servidor deja de enviar avisos a este teléfono.
-      if (token) await unregisterDevice(token).catch(() => undefined);
-      if (token) await logout(token);
+      // 0.6.0 / 1.0.0 (E.6): baja de los avisos y revocación; sin red quedan pendientes.
+      const deviceId = token ? await savedDeviceId().catch(() => null) : null;
+      if (token) await logout(token, deviceId);
     } finally {
       // 0.4.1: la pantalla vuelve al inicio de sesión pase lo que pase (por ejemplo, sin red).
       setToken(null);

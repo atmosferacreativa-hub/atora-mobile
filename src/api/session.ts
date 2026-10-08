@@ -6,7 +6,7 @@ import { purgeLocalDb } from '../offline/db';
 import { cacheGet, cacheSet } from '../offline/localCache';
 import { purgeOutboxFiles } from '../offline/outboxFiles';
 import { purgeLocalThumbnails } from '../offline/thumbnailFiles';
-import { performLogout, revokePending } from './logoutFlow';
+import { flushPendingLogout, logoutDevice, type PendingDevice } from './logoutFlow';
 import { clearConversations } from '../ai/conversation';
 import type { LoginResponse, MobileSession, StudentHome } from '../types';
 import { t } from '../i18n/core';
@@ -15,6 +15,8 @@ const SESSION_KEY = 'atora.mobile.session.v1';
 // Fuera de los prefijos que se purgan al cerrar sesión: tiene que sobrevivir hasta el próximo inicio con red.
 const PENDING_REVOKE_KEY = 'atora.mobile.revoke-pending.v1';
 const MAX_PENDING_REVOKE = 10;
+// 1.0.0 (E.6): bajas de notificaciones de un cierre sin red; también sobreviven al cierre.
+const PENDING_DEVICE_KEY = 'atora.mobile.push-unregister-pending.v1';
 const CACHE_PREFIX = 'atora.cache.';
 const QUEUE_PREFIX = 'atora.queue.';
 
@@ -95,7 +97,7 @@ export async function login(
   await clearAppCaches();
   await persist(withExpirations(response.session, response.user.id));
   // Hay conexión: se revocan las sesiones que quedaron abiertas por un cierre sin red.
-  void revokePendingSessions().catch(() => undefined);
+  void flushPendingLogoutNow().catch(() => undefined);
   return response;
 }
 
@@ -166,8 +168,15 @@ export async function loadDashboard(token: string): Promise<StudentHome> {
   }
 }
 
+/**
+ * 1.0.0 (E.6): se revoca con el token de renovación en el cuerpo (plugin 6.33.1),
+ * que sigue valiendo aunque el de acceso (15 min) haya vencido mientras no había red.
+ */
 const revokeToken = async (token: string) => {
-  await apiRequest<{ revoked: boolean }>('auth/logout', { method: 'POST', token });
+  await apiRequest<{ revoked: boolean }>('auth/logout', { method: 'POST', token, body: JSON.stringify({ refresh_token: token }) });
+};
+const unregisterDeviceRequest = async (item: PendingDevice) => {
+  await apiRequest(`devices/${item.deviceId}`, { method: 'DELETE', token: item.token });
 };
 const tokenAlreadyInvalid = (reason: unknown) => reason instanceof ApiError && (reason.status === 401 || reason.status === 403);
 
@@ -182,27 +191,56 @@ async function writePendingRevocations(tokens: string[]): Promise<void> {
   else await AsyncStorage.setItem(PENDING_REVOKE_KEY, JSON.stringify(tokens.slice(-MAX_PENDING_REVOKE)));
 }
 
+async function readPendingDevices(): Promise<PendingDevice[]> {
+  const raw = await AsyncStorage.getItem(PENDING_DEVICE_KEY);
+  const parsed: unknown = raw ? JSON.parse(raw) : [];
+  return Array.isArray(parsed) ? parsed.filter((item): item is PendingDevice => typeof item?.token === 'string' && typeof item?.deviceId === 'number') : [];
+}
+
+async function writePendingDevices(items: PendingDevice[]): Promise<void> {
+  if (!items.length) await AsyncStorage.removeItem(PENDING_DEVICE_KEY);
+  else await AsyncStorage.setItem(PENDING_DEVICE_KEY, JSON.stringify(items.slice(-MAX_PENDING_REVOKE)));
+}
+
+async function storedRefreshToken(): Promise<string | null> {
+  try {
+    const raw = await SecureStore.getItemAsync(SESSION_KEY);
+    const stored = raw ? (JSON.parse(raw) as Partial<StoredSession>) : null;
+    return typeof stored?.refresh_token === 'string' ? stored.refresh_token : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 0.4.1: nunca lanza. La revocación en el servidor es "mejor esfuerzo"; sin red,
- * la sesión local se borra igual y el token se revoca en el próximo inicio de sesión.
+ * la sesión local se borra igual y la revocación queda pendiente.
+ * 1.0.0 (E.6): también la baja del teléfono en las notificaciones (`deviceId`);
+ * lo pendiente se envía al volver la red, aunque ya no haya sesión.
  */
-export async function logout(token: string): Promise<void> {
-  await performLogout(token, {
+export async function logout(token: string, deviceId: number | null = null): Promise<void> {
+  const refresh = (await storedRefreshToken()) ?? token;
+  await logoutDevice({ access: token, refresh }, deviceId, {
     revoke: revokeToken,
     alreadyInvalid: tokenAlreadyInvalid,
     clearLocal: clearSession,
     rememberForLater: async (pending) => writePendingRevocations([...await readPendingRevocations(), pending]),
+    unregister: unregisterDeviceRequest,
+    rememberDevice: async (item) => writePendingDevices([...await readPendingDevices(), item]),
   });
 }
 
-/** Revoca los tokens que quedaron pendientes por un cierre de sesión sin red. */
-export function revokePendingSessions(): Promise<number> {
-  return revokePending({
-    list: readPendingRevocations,
-    save: writePendingRevocations,
+/** Envía las bajas y revocaciones que quedaron pendientes por un cierre sin red. Nunca lanza. */
+export async function flushPendingLogoutNow(): Promise<{ devices: number; revocations: number }> {
+  return flushPendingLogout({
+    unregister: unregisterDeviceRequest,
     revoke: revokeToken,
     alreadyInvalid: tokenAlreadyInvalid,
-  });
+    listDevices: readPendingDevices,
+    saveDevices: writePendingDevices,
+    listRevocations: readPendingRevocations,
+    saveRevocations: writePendingRevocations,
+  }).catch(() => ({ devices: 0, revocations: 0 }));
 }
 
 export async function refreshAccessToken(): Promise<string | null> {

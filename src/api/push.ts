@@ -5,7 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { authenticatedRequest } from './authenticated';
 import { getServerCapabilities } from './discovery';
 import { getSessionUserId } from './session';
-import { cacheDelete, cacheGet, cacheSet } from '../offline/localCache';
+import { cacheGet, cacheSet } from '../offline/localCache';
 import type { NotificationPreferences } from '../types';
 
 /**
@@ -63,13 +63,14 @@ export async function registerDevice(token: string): Promise<void> {
   if (userId) await cacheSet(userId, 'push', 0, { id, token: expoToken }).catch(() => undefined);
 }
 
-/** Al cerrar sesión: el servidor deja de enviar a este teléfono. Mejor esfuerzo. */
-export async function unregisterDevice(token: string): Promise<void> {
+/**
+ * Id del teléfono registrado en la academia, para darlo de baja al cerrar sesión.
+ * 1.0.0 (E.6): la baja la hace `logout()` (session.ts); sin red queda pendiente
+ * y se envía al volver la conexión, aunque ya no haya sesión.
+ */
+export async function savedDeviceId(): Promise<number | null> {
   const device = await savedDevice();
-  if (!device) return;
-  await authenticatedRequest(`devices/${device.id}`, { method: 'DELETE', token }).catch(() => undefined);
-  const userId = await getSessionUserId();
-  if (userId) await cacheDelete(userId, 'push', 0).catch(() => undefined);
+  return device?.id ?? null;
 }
 
 export async function fetchPreferences(token: string): Promise<NotificationPreferences> {
