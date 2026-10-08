@@ -7,7 +7,7 @@ import { fetchSuggestionJob, requestSuggestion } from '../../api/ai';
 import { ApiError } from '../../api/client';
 import { getServerCapabilities } from '../../api/discovery';
 import { limitMessage } from '../../ai/conversation';
-import { applySuggestion, LIKELIHOOD_LABEL, NO_MARKS, pollSuggestion, unmarkCriterion, unmarkFeedback, type AiMarks, type GradingSuggestion } from '../../ai/suggestion';
+import { applySuggestion, LIKELIHOOD_LABEL, suggestionUsable, NO_MARKS, pollSuggestion, unmarkCriterion, unmarkFeedback, type AiMarks, type GradingSuggestion } from '../../ai/suggestion';
 import { newEventId } from '../../offline/outbox/runtime';
 import { sqliteGradingDraftStore } from '../../grading/draftStore';
 import { discardDraft, expectedRevision, recoverDraft, saveDraft, type CriterionDraft, type GradingDraft } from '../../grading/drafts';
@@ -111,6 +111,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const checks = useMemo(() => criteria.map((c) => parseScore(form?.scores[c.index]?.score ?? '', c.max_points, c.name)), [criteria, form]);
   const total = rubricTotal(criteria.map((c, i) => ({ maxPoints: c.max_points, score: checks[i]?.ok ? (checks[i] as { value: number | null }).value : null })));
   const attempt = detail?.attempts.find((a) => a.attempt === form?.attempt) ?? detail?.attempts[detail.attempts.length - 1];
+  const usable = ai.suggestion && form ? suggestionUsable(ai.suggestion, form.attempt) : false;
 
   const setScore = (index: number, patch: Partial<CriterionDraft>) => {
     setAiMarks((marks) => unmarkCriterion(marks, index));
@@ -124,9 +125,10 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
     }
     setAi({ state: 'loading' });
     try {
-      const job = await requestSuggestion(token, submissionId);
+      const asked = form?.attempt ?? 0;
+      const job = await requestSuggestion(token, submissionId, asked);
       const result = await pollSuggestion(job.job_id, {
-        fetch: (id) => fetchSuggestionJob(token, id),
+        fetch: (id) => fetchSuggestionJob(token, id, asked || undefined),
         sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
         now: () => Date.now(),
         cancelled: () => !mounted.current,
@@ -144,7 +146,8 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   /** "Usar todo" (sin índice) o "Usar" en un criterio: solo el borrador local. */
   const useSuggestion = (only?: number) => {
     if (!form || !ai.suggestion) return;
-    const filled = applySuggestion(form, aiMarks, ai.suggestion, only);
+    if (!suggestionUsable(ai.suggestion, form.attempt)) return;
+    const filled = applySuggestion(form, aiMarks, ai.suggestion, only, form.attempt);
     setAiMarks(filled.marks);
     setForm({ ...form, scores: filled.scores, feedback: filled.feedback });
   };
@@ -301,13 +304,15 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
           {ai.state === 'error' ? <Text style={styles.error} testID="ai-suggestion-error">{ai.message}</Text> : null}
           {ai.state === 'ready' && ai.suggestion ? (
             <View style={styles.aiBody} testID="ai-suggestion-ready">
+              {ai.suggestion.attempt ? <Text style={styles.criterion} testID="ai-suggestion-attempt">{t('Sugerencia del intento {n}', { n: ai.suggestion.attempt })}</Text> : null}
+              {!usable ? <Text style={styles.error} testID="ai-suggestion-stale">{t('Esta sugerencia es de otro intento o de un contenido que cambió. Pide una nueva para usarla.')}</Text> : null}
               {ai.suggestion.criteria.map((row) => (
                 <View key={row.index} style={styles.aiRow}>
                   <View style={styles.flex}>
                     <Text style={styles.criterion}>{row.name}: {t('{score} de {max}', { score: row.score ?? '—', max: row.max_points })}{row.level ? ` · ${row.level}` : ''}</Text>
                     <Text style={styles.meta}>{row.justification}</Text>
                   </View>
-                  {row.score !== null ? (
+                  {row.score !== null && usable ? (
                     <Pressable accessibilityRole="button" accessibilityLabel={t('Usar sugerencia para {name}', { name: row.name })} onPress={() => useSuggestion(row.index)} style={styles.copy} testID={`ai-use-${row.index}`}>
                       <Text style={styles.copyText}>{t('Usar')}</Text>
                     </Pressable>
@@ -321,9 +326,11 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
                 <Text style={styles.likelihoodNote}>{ai.suggestion.disclaimer}</Text>
               </View>
               <View style={styles.actions}>
-                <Pressable accessibilityRole="button" onPress={() => useSuggestion()} style={styles.secondary} testID="ai-use-all">
-                  <Text style={styles.secondaryText}>{t('Usar todo')}</Text>
-                </Pressable>
+                {usable ? (
+                  <Pressable accessibilityRole="button" onPress={() => useSuggestion()} style={styles.secondary} testID="ai-use-all">
+                    <Text style={styles.secondaryText}>{t('Usar todo')}</Text>
+                  </Pressable>
+                ) : null}
                 <Pressable accessibilityRole="button" onPress={() => void askSuggestion()} style={styles.secondary} testID="ai-suggestion-again">
                   <Text style={styles.secondaryText}>{t('Pedir otra')}</Text>
                 </Pressable>

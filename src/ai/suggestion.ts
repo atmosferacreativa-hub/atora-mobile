@@ -25,12 +25,16 @@ export type GradingSuggestion = {
   disclaimer: string;
   model: string;
   created_at: string;
+  /** 1.0.0 (plugin 6.33.1): intento con que se pidió y si ya no corresponde (otro intento o contenido cambiado). */
+  attempt?: number;
+  stale?: boolean;
 };
 
 export type SuggestionJob = {
   job_id: string;
   submission_id: number;
-  status: 'pending' | 'done' | 'failed';
+  attempt?: number;
+  status: 'pending' | 'running' | 'done' | 'failed';
   suggestion: GradingSuggestion | null;
   error: string | null;
 };
@@ -42,6 +46,11 @@ export const POLL_TIMEOUT_MS = 120_000;
 export type AiMarks = { criteria: number[]; feedback: boolean };
 
 export const NO_MARKS: AiMarks = { criteria: [], feedback: false };
+
+/** La sugerencia sirve para el intento que el docente está viendo (y su contenido no cambió). */
+export function suggestionUsable(suggestion: GradingSuggestion, viewingAttempt: number): boolean {
+  return !suggestion.stale && (suggestion.attempt ?? viewingAttempt) === viewingAttempt;
+}
 
 type Fill = { scores: Record<number, CriterionDraft>; feedback: string; marks: AiMarks };
 
@@ -55,7 +64,12 @@ export function applySuggestion(
   marks: AiMarks,
   suggestion: GradingSuggestion,
   only?: number,
+  viewingAttempt?: number,
 ): Fill {
+  // De otro intento: no se usa sin pedir una nueva.
+  if (viewingAttempt !== undefined && !suggestionUsable(suggestion, viewingAttempt)) {
+    return { scores: current.scores, feedback: current.feedback, marks };
+  }
   const scores = { ...current.scores };
   const marked = new Set(marks.criteria);
   for (const row of suggestion.criteria) {

@@ -1,4 +1,4 @@
-import { applySuggestion, NO_MARKS, pollSuggestion, POLL_INTERVAL_MS, unmarkCriterion, unmarkFeedback, type GradingSuggestion, type SuggestionJob } from '../suggestion';
+import { applySuggestion, NO_MARKS, suggestionUsable, pollSuggestion, POLL_INTERVAL_MS, unmarkCriterion, unmarkFeedback, type GradingSuggestion, type SuggestionJob } from '../suggestion';
 
 const suggestion: GradingSuggestion = {
   criteria: [
@@ -41,6 +41,23 @@ describe('usar la sugerencia rellena el borrador sin enviar', () => {
     const { marks } = applySuggestion(empty, NO_MARKS, suggestion);
     expect(unmarkCriterion(marks, 0)).toEqual({ criteria: [1], feedback: true });
     expect(unmarkFeedback(marks)).toEqual({ criteria: [0, 1], feedback: false });
+  });
+});
+
+describe('la sugerencia es de un intento (E.3)', () => {
+  const of = (attempt: number, stale = false): GradingSuggestion => ({ ...suggestion, attempt, stale });
+
+  it('sirve solo para el intento con que se pidió y si el contenido no cambió', () => {
+    expect(suggestionUsable(of(2), 2)).toBe(true);
+    expect(suggestionUsable(of(1), 2)).toBe(false);
+    expect(suggestionUsable(of(2, true), 2)).toBe(false);
+  });
+
+  it('"Usar" no rellena nada con una sugerencia de otro intento', () => {
+    const out = applySuggestion(empty, NO_MARKS, of(1), undefined, 2);
+    expect(out.scores).toEqual(empty.scores);
+    expect(out.feedback).toBe('');
+    expect(out.marks).toEqual(NO_MARKS);
   });
 });
 

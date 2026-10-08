@@ -17,12 +17,18 @@ export function askAssistant(token: string, lessonId: number, message: string, h
   });
 }
 
-export function requestSuggestion(token: string, submissionId: number): Promise<{ job_id: string; status: 'pending' }> {
-  return authenticatedRequest(`teacher/submissions/${submissionId}/ai-suggestion`, { token, method: 'POST' });
+/** 1.0.0: la sugerencia es del intento que el docente está calificando. */
+export function requestSuggestion(token: string, submissionId: number, attempt: number): Promise<{ job_id: string; attempt: number; status: 'pending' }> {
+  return authenticatedRequest(`teacher/submissions/${submissionId}/ai-suggestion`, {
+    token,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ attempt }),
+  });
 }
 
-export function fetchSuggestionJob(token: string, jobId: string): Promise<SuggestionJob> {
-  return authenticatedRequest(`teacher/ai-suggestions/${jobId}`, { token });
+export function fetchSuggestionJob(token: string, jobId: string, attempt?: number): Promise<SuggestionJob> {
+  return authenticatedRequest(`teacher/ai-suggestions/${jobId}${attempt ? `?attempt=${attempt}` : ''}`, { token });
 }
 
 // El aviso de IA se muestra la primera vez; no es dato del usuario, sobrevive al cierre de sesión.

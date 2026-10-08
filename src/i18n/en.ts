@@ -208,6 +208,8 @@ export const en: Record<string, string> = {
   "Formatos: {formats} · hasta {mb} MB · máximo {count} archivo(s).": "Formats: {formats} · up to {mb} MB · at most {count} file(s).",
   "Fortalezas: {list}": "Strengths: {list}",
   "Generando la sugerencia…": "Generating the suggestion…",
+  "Sugerencia del intento {n}": "Suggestion for attempt {n}",
+  "Esta sugerencia es de otro intento o de un contenido que cambió. Pide una nueva para usarla.": "This suggestion is for another attempt or for content that changed. Request a new one to use it.",
   "Grupal": "Group",
   "Guardada. Se enviará cuando tengas conexión.": "Saved. It will be sent when you are online.",
   "Guardado. Se enviará cuando tengas conexión.": "Saved. It will be sent when you are online.",
