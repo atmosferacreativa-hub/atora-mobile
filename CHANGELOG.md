@@ -28,6 +28,7 @@ La 1.0.0 nunca llegó a una tienda: sigue siendo 1.0.0 con un número de compila
 - **Cerrar sesión sin red** (E.6): la baja del teléfono en los avisos y la revocación de la sesión quedan pendientes y se envían al volver la conexión, aunque nadie haya vuelto a iniciar sesión. La revocación usa el token de renovación, que sigue valiendo si el de acceso venció mientras no había red.
 - **CI**: prueba real de límites de IA con 10 llamadas simultáneas y límite 3 (`scripts/e2e-concurrent-ai.sh` del plugin).
 - **Política de privacidad**: los certificados emitidos se conservan sin datos personales (titular anonimizado).
+- **Ícono de la app con fondo blanco**, como el logo original (antes azul marino, que en el teléfono se veía casi negro). La pantalla de inicio no cambia.
 - **TESTS** (Jest): la sugerencia sirve solo para su intento; consulta que sobrevive a cortes de red y se rinde a los 3 min; trabajo pendiente por entrega; cierre de sesión en modo avión y reconexión → el servidor ya no tiene el token ni envía avisos.
 
 ## 0.9.0 (2026-10-06)

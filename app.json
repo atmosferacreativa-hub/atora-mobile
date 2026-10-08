@@ -54,7 +54,7 @@
       "package": "com.atmosferacreativa.atora",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#13233A"
+        "backgroundColor": "#FFFFFF"
       },
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
