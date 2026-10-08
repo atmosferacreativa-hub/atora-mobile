@@ -17,9 +17,11 @@ export function useKeyboardInset(ref: RefObject<View | null>): number {
   const [inset, setInset] = useState(0);
   useEffect(() => {
     let top = 0;
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    let timers: ReturnType<typeof setTimeout>[] = [];
     const measure = (source: string) => {
       ref.current?.measureInWindow((_x, y, _w, height) => {
+        // Nunca con el teclado cerrado: al pasar de un campo a otro llega un "cerrado" y enseguida un "abierto".
+        if (top <= 0) return;
         const next = keyboardInsetFor(y + height, top);
         console.warn(`[teclado] ${source}: borde del teclado ${Math.round(top)}, vista hasta ${Math.round(y + height)}, margen ${next}`);
         setInset(next);
@@ -33,6 +35,8 @@ export function useKeyboardInset(ref: RefObject<View | null>): number {
     };
     const closed = () => {
       top = 0;
+      timers.forEach(clearTimeout);
+      timers = [];
       setInset(0);
     };
     const subscriptions = [
