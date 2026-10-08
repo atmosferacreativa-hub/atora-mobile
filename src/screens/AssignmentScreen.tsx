@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import {
   ASSIGNMENT_SUBMISSION,
@@ -17,6 +17,7 @@ import type { OutboxEvent } from '../offline/outbox/types';
 import { colors, spacing } from '../theme';
 import type { AssignmentResponse, AssignmentSubmission } from '../types';
 import { locale, t } from '../i18n';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 
 type Props = { lessonId: number; token: string; onBack: () => void };
 
@@ -158,7 +159,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
   const due = fromServer(assignment?.due_at ?? null);
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardScroll contentStyle={styles.content} testID="assignment-scroll">
       <Pressable hitSlop={12} onPress={onBack}><Text style={styles.back}>{t('← Volver a la lección')}</Text></Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {assignment ? (
@@ -286,7 +287,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
           })}
         </>
       ) : null}
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

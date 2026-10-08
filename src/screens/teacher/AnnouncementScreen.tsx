@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { flushOutbox, subscribeOutbox } from '../../offline/outbox/runtime';
 import { pendingAnnouncements, sendAnnouncement } from '../../api/teacher';
@@ -7,6 +7,7 @@ import { pendingFor } from '../../teacher/announcements';
 import { useNetworkState } from '../../hooks/useNetworkState';
 import { colors, radius, spacing } from '../../theme';
 import { t } from '../../i18n';
+import { KeyboardScroll } from '../../components/KeyboardScroll';
 
 type Props = { token: string; courseId: number; title: string; sections: { id: number; title: string }[]; onBack: () => void };
 type Pending = Awaited<ReturnType<typeof pendingAnnouncements>>[number];
@@ -43,7 +44,7 @@ export function AnnouncementScreen({ token, courseId, title, sections, onBack }:
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardScroll contentStyle={styles.content}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.primaryStrong} />
@@ -78,7 +79,7 @@ export function AnnouncementScreen({ token, courseId, title, sections, onBack }:
           <Text style={styles.pendingMeta}>{event.status === 'failed' ? `${t('No se envió')}: ${event.lastError}` : t('Pendiente · se enviará al tener conexión')}</Text>
         </View>
       ))}
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

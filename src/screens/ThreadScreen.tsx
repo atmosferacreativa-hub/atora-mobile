@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+// 1.0.1: la caja de escritura queda pegada al teclado (también con borde a borde).
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchThread, markThreadRead, outgoingMessages, sendMessage, threadForEvent } from '../api/messages';
 import { dismissOutboxEvent, flushOutbox, subscribeOutbox } from '../offline/outbox/runtime';
@@ -122,7 +124,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+    <KeyboardAvoidingView behavior="padding" style={styles.flex}>
       <View style={styles.top}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12}><Ionicons name="arrow-back" size={22} color={colors.primary} /></Pressable>
         <Text style={styles.heading}>{heading}</Text>
@@ -131,6 +133,8 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator style={styles.flex} color={colors.primary} /> : (
         <FlatList
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="never"
           inverted
           data={list}
           keyExtractor={(item, index) => (item.client_event_id ? `e-${item.client_event_id}` : `m-${item.id}-${index}`)}

@@ -18,6 +18,7 @@ import { afterSubmitFailure, answersPayload, discardDraft, newDraft, remainingSe
 import { colors, spacing } from '../theme';
 import type { QuizAnswer, QuizPayload, QuizQuestion, QuizResult } from '../types';
 import { t } from '../i18n';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 
 type Props = {
   lessonId: number;
@@ -258,7 +259,7 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
       </View>
       <View style={styles.track}><View style={[styles.progress, { width: `${((index + 1) / total) * 100}%` }]} /></View>
 
-      <ScrollView contentContainerStyle={styles.questionScroll} keyboardShouldPersistTaps="handled">
+      <KeyboardScroll contentStyle={styles.questionScroll}>
         <View style={styles.questionCard}>
           <Text style={styles.questionText}>{question.question}</Text>
           {question.type === 'multiple' ? <Text style={styles.hint}>{t('Puedes seleccionar varias opciones.')}</Text> : null}
@@ -276,7 +277,7 @@ export function QuizScreen({ lessonId, token, onBack, onCompleted }: Props) {
           <Text accessibilityRole="alert" style={styles.offline}>{t('Necesitas conexión para entregar. Tus respuestas están guardadas.')}</Text>
         ) : null}
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-      </ScrollView>
+      </KeyboardScroll>
 
       <View style={styles.actions}>
         <Pressable
