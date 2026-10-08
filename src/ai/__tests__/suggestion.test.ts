@@ -1,4 +1,4 @@
-import { applySuggestion, NO_MARKS, suggestionUsable, pollSuggestion, POLL_INTERVAL_MS, unmarkCriterion, unmarkFeedback, type GradingSuggestion, type SuggestionJob } from '../suggestion';
+import { applySuggestion, forgetPending, NO_MARKS, pendingFor, rememberPending, suggestionUsable, POLL_TIMEOUT_MS, type KeyValue, pollSuggestion, POLL_INTERVAL_MS, unmarkCriterion, unmarkFeedback, type GradingSuggestion, type SuggestionJob } from '../suggestion';
 
 const suggestion: GradingSuggestion = {
   criteria: [
@@ -73,17 +73,64 @@ describe('consulta del trabajo', () => {
     expect(sleeps).toEqual([POLL_INTERVAL_MS, POLL_INTERVAL_MS]);
   });
 
-  it('se rinde a los 2 minutos', async () => {
+  it('se rinde a los 3 minutos en total (E.4)', async () => {
     let t = 0;
     let calls = 0;
     const result = await pollSuggestion('j', { fetch: async () => { calls += 1; return job('pending'); }, sleep: async (ms) => { t += ms; }, now: () => t });
     expect(result).toEqual({ kind: 'timeout' });
-    expect(t).toBeLessThanOrEqual(120_000);
-    expect(calls).toBe(41); // en 0, 3, …, 120 s
+    expect(POLL_TIMEOUT_MS).toBe(180_000);
+    expect(t).toBeLessThanOrEqual(180_000);
+    expect(calls).toBe(61); // en 0, 3, …, 180 s
+  });
+
+  it('un corte o un tiempo de espera de la red no cancela: sigue consultando el mismo trabajo (E.4)', async () => {
+    const seen: string[] = [];
+    const answers: Array<() => SuggestionJob> = [
+      () => { throw Object.assign(new Error('timeout'), { status: 0, code: 'request_timeout' }); },
+      () => { throw Object.assign(new Error('caído'), { status: 503 }); },
+      () => job('pending'),
+      () => job('done'),
+    ];
+    const result = await pollSuggestion('j', { fetch: async (id) => { seen.push(id); return answers.shift()!(); }, sleep: async () => undefined, now: () => 0 });
+    expect(result).toEqual({ kind: 'done', suggestion });
+    expect(seen).toEqual(['j', 'j', 'j', 'j']);
+  });
+
+  it('un trabajo que ya no existe (404) sí termina la consulta', async () => {
+    const result = await pollSuggestion('j', { fetch: async () => { throw Object.assign(new Error('No encontrado.'), { status: 404 }); }, sleep: async () => undefined, now: () => 0 });
+    expect(result).toEqual({ kind: 'failed', message: 'No encontrado.' });
   });
 
   it('informa el error del servidor y para si se sale de la pantalla', async () => {
     expect(await pollSuggestion('j', { fetch: async () => job('failed'), sleep: async () => undefined, now: () => 0 })).toEqual({ kind: 'failed', message: 'Falló.' });
     expect(await pollSuggestion('j', { fetch: async () => job('pending'), sleep: async () => undefined, now: () => 0, cancelled: () => true })).toEqual({ kind: 'cancelled' });
+  });
+});
+
+describe('el trabajo pendiente se retoma al volver (E.4)', () => {
+  const memory = (): KeyValue & { data: Record<string, string> } => {
+    const data: Record<string, string> = {};
+    return {
+      data,
+      getItem: async (k) => data[k] ?? null,
+      setItem: async (k, v) => { data[k] = v; },
+      removeItem: async (k) => { delete data[k]; },
+    };
+  };
+
+  it('guarda el job_id por entrega y lo devuelve hasta que termina', async () => {
+    const kv = memory();
+    await rememberPending(kv, 12, { jobId: 'j-12', attempt: 2 }, 1_000);
+    expect(await pendingFor(kv, 12, 5_000)).toEqual({ jobId: 'j-12', attempt: 2, since: 1_000 });
+    expect(await pendingFor(kv, 13, 5_000)).toBeNull();
+    expect(Object.keys(kv.data)[0]).toMatch(/^atora\.cache\./); // se borra al cerrar sesión
+    await forgetPending(kv, 12);
+    expect(await pendingFor(kv, 12, 5_000)).toBeNull();
+  });
+
+  it('uno muy viejo (más de 30 min) ya no se retoma', async () => {
+    const kv = memory();
+    await rememberPending(kv, 12, { jobId: 'j-12', attempt: 1 }, 0);
+    expect(await pendingFor(kv, 12, 31 * 60_000)).toBeNull();
   });
 });

@@ -40,7 +40,8 @@ export type SuggestionJob = {
 };
 
 export const POLL_INTERVAL_MS = 3000;
-export const POLL_TIMEOUT_MS = 120_000;
+/** 1.0.0 (E.4): hasta 3 minutos en total; después "Sigue generándose" y se puede volver a consultar. */
+export const POLL_TIMEOUT_MS = 180_000;
 
 /** Marca de "sugerido por IA": criterios (por índice) y la devolución general. */
 export type AiMarks = { criteria: number[]; feedback: boolean };
@@ -105,17 +106,64 @@ export type PollDeps = {
 
 export type PollResult = { kind: 'done'; suggestion: GradingSuggestion } | { kind: 'failed'; message: string } | { kind: 'timeout' } | { kind: 'cancelled' };
 
-/** Consulta cada 3 s, hasta 2 minutos. */
+/** Errores que terminan la consulta: el trabajo no existe o no es del docente. Los de red (0), 408, 429 y 5xx no. */
+function fatal(reason: unknown): boolean {
+  const status = (reason as { status?: unknown } | null)?.status;
+  return typeof status === 'number' && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
+/**
+ * Consulta el mismo trabajo cada 3 s, hasta 3 minutos en total. Un corte o un
+ * tiempo de espera de la red no cancela: se vuelve a consultar el mismo `job_id`.
+ */
 export async function pollSuggestion(jobId: string, deps: PollDeps): Promise<PollResult> {
   const started = deps.now();
   for (;;) {
     if (deps.cancelled?.()) return { kind: 'cancelled' };
-    const job = await deps.fetch(jobId);
-    if (job.status === 'done' && job.suggestion) return { kind: 'done', suggestion: job.suggestion };
-    if (job.status === 'failed') return { kind: 'failed', message: job.error || t('La IA no pudo generar la sugerencia. Intenta más tarde.') };
+    let job: SuggestionJob | null = null;
+    try {
+      job = await deps.fetch(jobId);
+    } catch (reason) {
+      if (fatal(reason)) return { kind: 'failed', message: reason instanceof Error && reason.message ? reason.message : t('La IA no pudo generar la sugerencia. Intenta más tarde.') };
+    }
+    if (job?.status === 'done' && job.suggestion) return { kind: 'done', suggestion: job.suggestion };
+    if (job?.status === 'failed') return { kind: 'failed', message: job.error || t('La IA no pudo generar la sugerencia. Intenta más tarde.') };
     if (deps.now() - started + POLL_INTERVAL_MS > POLL_TIMEOUT_MS) return { kind: 'timeout' };
     await deps.sleep(POLL_INTERVAL_MS);
   }
+}
+
+/** Almacén clave-valor (AsyncStorage en la app). */
+export type KeyValue = {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+};
+
+export type PendingSuggestion = { jobId: string; attempt: number; since: number };
+
+/** Bajo el prefijo de caché: se borra al cerrar sesión. */
+const pendingKey = (submissionId: number) => `atora.cache.ai-suggestion.${submissionId}`;
+const PENDING_MAX_AGE_MS = 30 * 60_000;
+
+/** El trabajo pedido se recuerda por entrega para retomarlo al volver a la pantalla. */
+export function rememberPending(kv: KeyValue, submissionId: number, job: { jobId: string; attempt: number }, now = Date.now()): Promise<void> {
+  return kv.setItem(pendingKey(submissionId), JSON.stringify({ ...job, since: now })).catch(() => undefined);
+}
+
+export async function pendingFor(kv: KeyValue, submissionId: number, now = Date.now()): Promise<PendingSuggestion | null> {
+  try {
+    const raw = await kv.getItem(pendingKey(submissionId));
+    const value = raw ? (JSON.parse(raw) as PendingSuggestion) : null;
+    if (!value || typeof value.jobId !== 'string' || now - value.since > PENDING_MAX_AGE_MS) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+export function forgetPending(kv: KeyValue, submissionId: number): Promise<void> {
+  return kv.removeItem(pendingKey(submissionId)).catch(() => undefined);
 }
 
 export const LIKELIHOOD_LABEL: Record<GradingSuggestion['ai_likelihood'], string> = { bajo: tk('Bajo'), medio: tk('Medio'), alto: tk('Alto') };

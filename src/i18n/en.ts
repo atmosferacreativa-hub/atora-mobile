@@ -209,6 +209,8 @@ export const en: Record<string, string> = {
   "Fortalezas: {list}": "Strengths: {list}",
   "Generando la sugerencia…": "Generating the suggestion…",
   "Sugerencia del intento {n}": "Suggestion for attempt {n}",
+  "Sigue generándose. Puedes seguir calificando y volver a consultar; no hace falta pedirla otra vez.": "Still generating. You can keep grading and check again; no need to request it again.",
+  "Consultar otra vez": "Check again",
   "Esta sugerencia es de otro intento o de un contenido que cambió. Pide una nueva para usarla.": "This suggestion is for another attempt or for content that changed. Request a new one to use it.",
   "Grupal": "Group",
   "Guardada. Se enviará cuando tengas conexión.": "Saved. It will be sent when you are online.",

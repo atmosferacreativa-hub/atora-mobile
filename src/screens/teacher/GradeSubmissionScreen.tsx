@@ -7,7 +7,8 @@ import { fetchSuggestionJob, requestSuggestion } from '../../api/ai';
 import { ApiError } from '../../api/client';
 import { getServerCapabilities } from '../../api/discovery';
 import { limitMessage } from '../../ai/conversation';
-import { applySuggestion, LIKELIHOOD_LABEL, suggestionUsable, NO_MARKS, pollSuggestion, unmarkCriterion, unmarkFeedback, type AiMarks, type GradingSuggestion } from '../../ai/suggestion';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { applySuggestion, forgetPending, LIKELIHOOD_LABEL, pendingFor, rememberPending, suggestionUsable, NO_MARKS, pollSuggestion, unmarkCriterion, unmarkFeedback, type AiMarks, type GradingSuggestion } from '../../ai/suggestion';
 import { newEventId } from '../../offline/outbox/runtime';
 import { sqliteGradingDraftStore } from '../../grading/draftStore';
 import { discardDraft, expectedRevision, recoverDraft, saveDraft, type CriterionDraft, type GradingDraft } from '../../grading/drafts';
@@ -55,7 +56,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const [opening, setOpening] = useState(0);
   /** 0.9.0: sugerencia de IA. Solo rellena el borrador; nunca guarda. */
   const [aiEnabled, setAiEnabled] = useState(false);
-  const [ai, setAi] = useState<{ state: 'idle' | 'loading' | 'ready' | 'error'; suggestion?: GradingSuggestion; message?: string }>({ state: 'idle' });
+  const [ai, setAi] = useState<{ state: 'idle' | 'loading' | 'slow' | 'ready' | 'error'; suggestion?: GradingSuggestion; message?: string; jobId?: string; attempt?: number }>({ state: 'idle' });
   const [aiMarks, setAiMarks] = useState<AiMarks>(NO_MARKS);
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
@@ -118,6 +119,37 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
     setForm((current) => (current ? { ...current, scores: { ...current.scores, [index]: { score: '', feedback: '', ...current.scores[index], ...patch } } } : current));
   };
 
+  /**
+   * 1.0.0 (E.4): sigue el mismo trabajo hasta 3 min; la red caída no lo cancela.
+   * Si tarda más, "Sigue generándose" y se puede volver a consultar; al salir y
+   * volver a la pantalla se retoma el mismo `job_id`.
+   */
+  const followJob = async (jobId: string, asked: number) => {
+    setAi({ state: 'loading', jobId, attempt: asked });
+    const result = await pollSuggestion(jobId, {
+      fetch: (id) => fetchSuggestionJob(token, id, asked || undefined),
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      now: () => Date.now(),
+      cancelled: () => !mounted.current,
+    });
+    if (!mounted.current || result.kind === 'cancelled') return;
+    if (result.kind === 'timeout') {
+      setAi({ state: 'slow', jobId, attempt: asked });
+      return;
+    }
+    void forgetPending(AsyncStorage, submissionId);
+    if (result.kind === 'done') setAi({ state: 'ready', suggestion: result.suggestion });
+    else setAi({ state: 'error', message: result.message });
+  };
+
+  useEffect(() => {
+    if (!aiEnabled) return;
+    void pendingFor(AsyncStorage, submissionId).then((pending) => {
+      if (pending && mounted.current) void followJob(pending.jobId, pending.attempt);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiEnabled, submissionId]);
+
   const askSuggestion = async () => {
     if (offline) {
       Alert.alert(t('Sin conexión'), t('La sugerencia de IA necesita conexión.'));
@@ -127,15 +159,9 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
     try {
       const asked = form?.attempt ?? 0;
       const job = await requestSuggestion(token, submissionId, asked);
-      const result = await pollSuggestion(job.job_id, {
-        fetch: (id) => fetchSuggestionJob(token, id, asked || undefined),
-        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-        now: () => Date.now(),
-        cancelled: () => !mounted.current,
-      });
-      if (!mounted.current || result.kind === 'cancelled') return;
-      if (result.kind === 'done') setAi({ state: 'ready', suggestion: result.suggestion });
-      else setAi({ state: 'error', message: result.kind === 'failed' ? result.message : 'La sugerencia tardó demasiado. Intenta más tarde.' });
+      await rememberPending(AsyncStorage, submissionId, { jobId: job.job_id, attempt: asked });
+      if (!mounted.current) return;
+      await followJob(job.job_id, asked);
     } catch (reason) {
       if (!mounted.current) return;
       const message = reason instanceof ApiError && reason.status === 429 ? limitMessage(reason.message, reason.data?.reset_at) : reason instanceof Error ? reason.message : 'No se pudo pedir la sugerencia.';
@@ -302,6 +328,14 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
             <View style={styles.scoreRow}><ActivityIndicator color={colors.primary} /><Text style={styles.meta}>{t('Generando la sugerencia…')}</Text></View>
           ) : null}
           {ai.state === 'error' ? <Text style={styles.error} testID="ai-suggestion-error">{ai.message}</Text> : null}
+          {ai.state === 'slow' && ai.jobId ? (
+            <View testID="ai-suggestion-slow">
+              <Text style={styles.meta}>{t('Sigue generándose. Puedes seguir calificando y volver a consultar; no hace falta pedirla otra vez.')}</Text>
+              <Pressable accessibilityRole="button" disabled={offline} onPress={() => void followJob(ai.jobId!, ai.attempt ?? 0)} style={[styles.copy, offline && styles.disabled]} testID="ai-suggestion-check">
+                <Text style={styles.copyText}>{t('Consultar otra vez')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           {ai.state === 'ready' && ai.suggestion ? (
             <View style={styles.aiBody} testID="ai-suggestion-ready">
               {ai.suggestion.attempt ? <Text style={styles.criterion} testID="ai-suggestion-attempt">{t('Sugerencia del intento {n}', { n: ai.suggestion.attempt })}</Text> : null}
