@@ -2,6 +2,18 @@
 
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
+## 1.0.2 (2026-10-23)
+
+Leer cómodo el material (también sin conexión).
+
+- **Visor de PDF**: zoom con dos dedos y doble toque; botones `A−`, `A+` y **Ajustar**; desplazamiento horizontal cuando la página ampliada es más ancha que la pantalla; el zoom se mantiene al pasar de página y al girar el teléfono.
+- **Imágenes del material**: visor con zoom (pinch), doble toque y arrastre.
+- **Texto de la lección**: controles `A−` / `A+` para el tamaño de letra, guardado en el teléfono y respetando además el tamaño de letra del sistema.
+- **Giro de pantalla**: el visor de PDF e imágenes permite landscape (el resto de la app se mantiene en vertical).
+- **Certificados**: usan el mismo visor y heredan el zoom.
+- **Recorrido de pantalla**: nuevo `material-zoom` (abre un PDF descargado sin conexión, amplía y abre una imagen).
+- **TESTS** (Jest): preferencia de tamaño de letra (guardar y aplicar) y URL del visor con zoom inicial.
+
 ## 1.0.1 (2026-10-08)
 
 Correcciones antes de las tiendas (orden `ORDEN-1.0.1.md` del plugin). Requiere **ATORA LMS 6.33.2** para el acceso por programa y el 409 reintentable; con versiones anteriores funciona como antes.

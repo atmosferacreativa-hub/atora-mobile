@@ -88,3 +88,12 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 51. [ ] En Configurar academia, escribir `https;//academia.atmosferacreativa.com` (o la del demo con `;`) la corrige y entra; escribir `hola` muestra "No encontramos una academia en esa dirección" y no cambia la academia guardada.
 52. [ ] Abrir y cerrar Configurar academia (con Cerrar, tocando afuera y con Atrás): el login se ve con sus colores normales, no apagado. Al abrir la app, la pantalla de inicio es blanca.
 
+## 1.0.2 — material cómodo (zoom y lectura)
+
+53. [ ] **PDF descargado**: abrir un PDF del material, ampliar con dos dedos y con el botón **A+**, usar **Ajustar al ancho**, y comprobar que al hacer scroll horizontal se puede leer cuando la página está más ancha que la pantalla.
+54. [ ] **PDF sin conexión**: descargar el PDF, activar modo avión y volver a abrirlo desde la lección; el visor abre y el zoom funciona.
+55. [ ] **Imagen del material**: abrir una imagen en el visor, ampliar con dos dedos y arrastrar; doble toque alterna entre ajuste y zoom.
+56. [ ] **Texto de la lección**: usar `A−/A+` para cambiar el tamaño de letra, salir y volver a abrir la lección: se recuerda en el teléfono. Con letra grande del sistema, el texto sigue respetando el ajuste del usuario.
+57. [ ] **Giro**: en el visor de PDF e imágenes, girar a horizontal y seguir usando el zoom; al salir del visor, el resto de la app queda en vertical.
+58. [ ] Las filas 1–52 siguen pasando.
+

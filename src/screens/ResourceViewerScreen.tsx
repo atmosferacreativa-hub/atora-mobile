@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { VIEWER_ROOT, viewerUrl } from '../viewer/files';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { VIEWER_ROOT, viewerUrlWithOptions } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import { t } from '../i18n';
 
@@ -17,16 +18,38 @@ type Props = {
 export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWithSystem }: Props) {
   const [source, setSource] = useState('');
   const [failed, setFailed] = useState(false);
-  // 1.0.0: la primera página ya se ve (lo esperan las pruebas de pantalla).
-  const [ready, setReady] = useState(kind !== 'pdf');
+  // 1.0.0+: la primera página ya se ve (lo esperan las pruebas de pantalla).
+  const [ready, setReady] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const webRef = useRef<WebView>(null);
+
+  const showZoomControls = kind === 'pdf' || kind === 'image';
+  const canZoomOut = zoom > 1.01;
+  const canZoomIn = zoom < 4.99;
+
+  const initialZoom = useMemo(() => (kind === 'image' ? 1 : 1), [kind]);
 
   useEffect(() => {
+    // Solo en visor: permitir landscape.
+    void ScreenOrientation.unlockAsync().catch(() => undefined);
+    return () => {
+      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
+    };
+  }, []);
+
+  useEffect(() => {
+    setReady(kind === 'html');
     let active = true;
-    viewerUrl(kind, localUri)
+    viewerUrlWithOptions(kind, localUri, { initialZoom })
       .then((url) => { if (active) setSource(url); })
       .catch(() => { if (active) setFailed(true); });
     return () => { active = false; };
-  }, [kind, localUri]);
+  }, [kind, localUri, initialZoom]);
+
+  const sendZoom = (op: 'in' | 'out' | 'fit') => {
+    const js = `try{window.__atoraViewer&&window.__atoraViewer.${op === 'in' ? 'zoomIn' : op === 'out' ? 'zoomOut' : 'fitWidth'}&&window.__atoraViewer.${op === 'in' ? 'zoomIn' : op === 'out' ? 'zoomOut' : 'fitWidth'}();}catch(e){}`;
+    webRef.current?.injectJavaScript(js);
+  };
 
   return (
     <View style={styles.screen}>
@@ -35,6 +58,19 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
           <Text style={styles.back}>{t('← Volver')}</Text>
         </Pressable>
         <Text numberOfLines={1} style={styles.title}>{title}</Text>
+        {showZoomControls ? (
+          <View style={styles.zoom}>
+            <Pressable accessibilityRole="button" onPress={() => sendZoom('out')} disabled={!canZoomOut} hitSlop={10} style={styles.zoomBtnWrap}>
+              <Text style={[styles.zoomBtn, !canZoomOut ? styles.zoomDisabled : null]}>A−</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => sendZoom('fit')} hitSlop={10} style={styles.zoomBtnWrap}>
+              <Text style={styles.zoomBtn}>{t('Ajustar')}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => sendZoom('in')} disabled={!canZoomIn} hitSlop={10} style={styles.zoomBtnWrap}>
+              <Text style={[styles.zoomBtn, !canZoomIn ? styles.zoomDisabled : null]}>A+</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
       {failed ? (
         <View style={styles.center}>
@@ -45,6 +81,7 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
         </View>
       ) : source ? (
         <WebView
+          ref={webRef}
           source={{ uri: source }}
           originWhitelist={['file://*']}
           allowFileAccess
@@ -52,7 +89,7 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
           allowUniversalAccessFromFileURLs
           allowingReadAccessToURL={VIEWER_ROOT}
           javaScriptEnabled={kind !== 'html'}
-          setBuiltInZoomControls={kind === 'image'}
+          setBuiltInZoomControls={false}
           setDisplayZoomControls={false}
           onError={() => setFailed(true)}
           onMessage={(event) => {
@@ -60,6 +97,8 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
               const message = JSON.parse(event.nativeEvent.data) as { type: string };
               if (message.type === 'error') setFailed(true);
               if (message.type === 'first-page') setReady(true);
+              if (message.type === 'ready') setReady(true);
+              if (message.type === 'zoom' && typeof (message as any).zoom === 'number') setZoom((message as any).zoom);
             } catch {
               // Mensaje ajeno.
             }
@@ -87,6 +126,10 @@ const styles = StyleSheet.create({
   bar: { alignItems: 'center', backgroundColor: colors.surface, flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   back: { color: colors.blue, fontWeight: '800' },
   title: { color: colors.navy, flex: 1, fontWeight: '900' },
+  zoom: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  zoomBtnWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  zoomBtn: { color: colors.navy, fontWeight: '900' },
+  zoomDisabled: { opacity: 0.35 },
   web: { backgroundColor: colors.ink, flex: 1 },
   center: { alignItems: 'center', flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   error: { color: colors.white, textAlign: 'center' },

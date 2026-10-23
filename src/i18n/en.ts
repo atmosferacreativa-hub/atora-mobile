@@ -542,4 +542,6 @@ export const en: Record<string, string> = {
   "← Volver": "← Back",
   "← Volver a la lección": "← Back to the lesson",
   "← Volver al curso": "← Back to the course",
+  "Ajustar": "Fit",
+  "Texto": "Text",
 };

@@ -1,6 +1,6 @@
 {
   "name": "atora-mobile",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -34,6 +34,7 @@
     "expo-localization": "~17.0.9",
     "expo-network": "~8.0.7",
     "expo-notifications": "~0.32.17",
+    "expo-screen-orientation": "~9.0.0",
     "expo-secure-store": "~15.0.7",
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",

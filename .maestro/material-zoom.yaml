@@ -1,0 +1,54 @@
+appId: com.atmosferacreativa.atora
+name: material-zoom
+# 1.0.2: zoom de material descargado (PDF e imágenes) + controles de lectura.
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+
+# Materiales: PDF
+- scrollUntilVisible:
+    element: "Materiales"
+- scrollUntilVisible:
+    element: "Guía PDF"
+- tapOn:
+    text: "Descargar"
+    index: 0
+- extendedWaitUntil:
+    visible: "Disponible sin conexión"
+    timeout: 60000
+- tapOn: "Guía PDF"
+- extendedWaitUntil:
+    visible:
+      id: "resource-ready"
+    timeout: 60000
+- assertNotVisible: "No se pudo abrir el archivo aquí."
+- tapOn: "A+"
+- takeScreenshot: capturas/material-zoom-01-pdf-zoom
+- back
+
+# Sin conexión: abrir el mismo PDF descargado.
+- setAirplaneMode: enabled
+- tapOn: "Guía PDF"
+- extendedWaitUntil:
+    visible:
+      id: "resource-ready"
+    timeout: 30000
+- tapOn: "A+"
+- takeScreenshot: capturas/material-zoom-02-pdf-offline-zoom
+- back
+
+# Imagen: visor fullscreen con zoom.
+- setAirplaneMode: disabled
+- scrollUntilVisible:
+    element: "Imagen de ejemplo"
+- tapOn: "Imagen de ejemplo"
+- extendedWaitUntil:
+    visible:
+      id: "resource-ready"
+    timeout: 30000
+- tapOn: "A+"
+- takeScreenshot: capturas/material-zoom-03-imagen
+- back
+
