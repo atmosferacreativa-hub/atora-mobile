@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
@@ -30,6 +31,7 @@ import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
 import { t } from '../i18n';
 import { allowDriveNavigation } from '../viewer/drive';
+import { loadFontScale, saveFontScale, stepFontScale } from '../reading/fontScale';
 
 export type OpenResourceParams = { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 
@@ -281,13 +283,39 @@ function LessonContent({
   askOffline: boolean;
 }) {
   const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
+  const [fontScale, setFontScale] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    loadFontScale(AsyncStorage).then((value) => { if (active) setFontScale(value); });
+    return () => { active = false; };
+  }, []);
+
+  const changeFont = (dir: 'down' | 'up') => {
+    const next = stepFontScale(fontScale, dir);
+    setFontScale(next);
+    void saveFontScale(AsyncStorage, next);
+  };
 
   return (
     <>
       <Text style={styles.title}>{lesson.title}</Text>
       <Text style={styles.meta}>{t('{count} minutos', { count: lesson.duration_min })} · {lesson.type}</Text>
       {videoArea}
-      <Text style={styles.body}>{lesson.content_text || t('Esta lección no contiene texto adicional.')}</Text>
+	  <View style={styles.readingBar}>
+	    <Text style={styles.readingLabel}>{t('Texto')}</Text>
+	    <View style={styles.readingControls}>
+	      <Pressable accessibilityRole="button" onPress={() => changeFont('down')} hitSlop={10} style={styles.readingBtnWrap}>
+	        <Text style={styles.readingBtn}>A−</Text>
+	      </Pressable>
+	      <Pressable accessibilityRole="button" onPress={() => changeFont('up')} hitSlop={10} style={styles.readingBtnWrap}>
+	        <Text style={styles.readingBtn}>A+</Text>
+	      </Pressable>
+	    </View>
+	  </View>
+	  <Text style={[styles.body, { fontSize: styles.body.fontSize * fontScale, lineHeight: styles.body.lineHeight * fontScale }]}>
+	    {lesson.content_text || t('Esta lección no contiene texto adicional.')}
+	  </Text>
       {resources.length ? (
         <View style={styles.resources}>
           <Text style={styles.sectionTitle}>{t('Materiales')}</Text>
@@ -728,6 +756,11 @@ const styles = StyleSheet.create({
   downloadButton: { alignItems: 'center', borderColor: colors.blue, borderRadius: 12, borderWidth: 1, minHeight: 46, justifyContent: 'center', padding: spacing.sm },
   downloadText: { color: colors.blue, fontWeight: '800' },
   body: { color: colors.ink, fontSize: 17, lineHeight: 27 },
+  readingBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  readingLabel: { color: colors.muted, fontWeight: '800' },
+  readingControls: { flexDirection: 'row', gap: 16 },
+  readingBtnWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  readingBtn: { color: colors.blue, fontWeight: '900' },
   resources: { gap: spacing.sm },
   sectionTitle: { color: colors.navy, fontSize: 18, fontWeight: '900' },
   sectionHint: { color: colors.muted, lineHeight: 20 },
