@@ -1,0 +1,62 @@
+name: Build Android artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch/tag/SHA) to build'
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Prebuild (Android)
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build APK + AAB (release)
+        working-directory: android
+        run: |
+          # En CI, con el heap por defecto Gradle puede quedarse sin Metaspace.
+          sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8/' gradle.properties || true
+          grep -q '^org.gradle.jvmargs' gradle.properties || echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g' >> gradle.properties
+          echo 'org.gradle.parallel=true' >> gradle.properties
+          echo 'org.gradle.caching=true' >> gradle.properties
+          printf '\nandroid { lint { checkReleaseBuilds = false } }\n' >> app/build.gradle
+          ./gradlew assembleRelease bundleRelease --no-daemon --build-cache
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/dist/atora-android-preview.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/dist/atora-android.aab"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts-${{ inputs.ref }}
+          path: dist/
+          if-no-files-found: error
+
