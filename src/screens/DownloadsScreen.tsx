@@ -11,6 +11,7 @@ import { t } from '../i18n';
 type Props = { courses: CourseSummary[]; onBack: () => void };
 
 function fileLabel(item: DownloadRecord): string {
+  if (kindOf(item) === 'scorm') return 'SCORM';
   const mime = item.mime ?? '';
   if (mime.includes('pdf') || /\.pdf$/i.test(item.localUri)) return 'PDF';
   if (mime.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(item.localUri)) return 'IMG';

@@ -21,6 +21,7 @@ import { CertificatesScreen } from '../screens/CertificatesScreen';
 import { CourseGradesScreen } from '../screens/CourseGradesScreen';
 import { EvolutionScreen } from '../screens/EvolutionScreen';
 import { ResourceViewerScreen } from '../screens/ResourceViewerScreen';
+import { ScormPlayerScreen } from '../screens/ScormPlayerScreen';
 import { AgendaScreen } from '../screens/AgendaScreen';
 import { ComposeScreen } from '../screens/ComposeScreen';
 import { MessagesScreen } from '../screens/MessagesScreen';
@@ -38,7 +39,7 @@ import { PushPreferences, PushPrompt } from '../components/PushSettings';
 import type { Destination } from '../notifications/route';
 import { openWithSystem } from '../viewer/files';
 import { colors, spacing } from '../theme';
-import type { InternalLink, StudentHome } from '../types';
+import type { InternalLink, LessonResource, StudentHome } from '../types';
 import type { AppMode } from './roles';
 import { t, tk, useLanguage } from '../i18n';
 
@@ -80,6 +81,8 @@ export type LearningStackParams = {
   Quiz: { lessonId: number };
   Assignment: { lessonId: number };
   Resource: { title: string; localUri: string; kind: 'pdf' | 'image' | 'html'; mime?: string };
+  /** 1.1.0: SCORM (visor local). */
+  Scorm: { lessonId: number; courseId: number; resource: LessonResource };
   CourseGrades: { courseId: number; title: string };
   /** 0.6.0: buzón. */
   Thread: { threadId?: number; title?: string; recipient?: { id: number; name: string; courseId?: number } };
@@ -210,7 +213,21 @@ function LessonRoute({ route, navigation }: LearningProps<'Lesson'>) {
       onOpenQuiz={() => navigation.push('Quiz', { lessonId: route.params.lessonId })}
       onOpenAssignment={() => navigation.push('Assignment', { lessonId: route.params.lessonId })}
       onOpenResource={(params) => navigation.push('Resource', params)}
+      onOpenScorm={(courseId, resource) => navigation.push('Scorm', { lessonId: route.params.lessonId, courseId, resource })}
       onAsk={mode === 'student' ? (title) => navigation.push('Assistant', { lessonId: route.params.lessonId, title }) : undefined}
+    />
+  );
+}
+
+function ScormRoute({ route, navigation }: LearningProps<'Scorm'>) {
+  const { token } = useAppSession();
+  return (
+    <ScormPlayerScreen
+      token={token}
+      lessonId={route.params.lessonId}
+      courseId={route.params.courseId}
+      resource={route.params.resource}
+      onBack={() => navigation.goBack()}
     />
   );
 }
@@ -460,6 +477,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Quiz" component={QuizRoute} />
         <Stack.Screen name="Assignment" component={AssignmentRoute} />
         <Stack.Screen name="Resource" component={ResourceRoute} />
+        <Stack.Screen name="Scorm" component={ScormRoute} />
         <Stack.Screen name="CourseGrades" component={CourseGradesRoute} />
         <Stack.Screen name="Thread" component={ThreadRoute} />
         <Stack.Screen name="Compose" component={ComposeRoute} />

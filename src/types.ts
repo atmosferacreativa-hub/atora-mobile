@@ -125,6 +125,13 @@ export type LessonResource = {
   downloadable?: boolean;
   bytes?: number | null;
   updated_at?: string | null;
+
+  /** 1.1.0 (SCORM): identificadores del paquete en Biblioteca. */
+  library_item_id?: number;
+  library_version_id?: number;
+  version_checksum_sha256?: string;
+  scorm_version?: string;
+  launch_href?: string;
 };
 
 export type QuizAnswer = string | string[];

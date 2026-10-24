@@ -1,0 +1,48 @@
+appId: com.atmosferacreativa.atora
+name: scorm-sin-conexion
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "SCORM"
+- tapOn: "SCORM"
+- extendedWaitUntil:
+    visible: "SCORM mínimo"
+    timeout: 30000
+
+# Sin red: no permite iniciar el intento por primera vez.
+- setAirplaneMode: enabled
+- tapOn: "SCORM mínimo"
+- extendedWaitUntil:
+    visible: "Descargar y abrir"
+    timeout: 30000
+- tapOn: "Descargar y abrir"
+- extendedWaitUntil:
+    visible: "Necesitas conexión"
+    timeout: 30000
+- takeScreenshot: capturas/scorm-sin-conexion-01-bloqueado
+
+# Con red: descarga el paquete (abre el intento en el servidor) y lo abre.
+- setAirplaneMode: disabled
+- tapOn: "Descargar y abrir"
+- extendedWaitUntil:
+    visible: "← Volver"
+    timeout: 90000
+- takeScreenshot: capturas/scorm-sin-conexion-02-online
+
+# Luego, sin red: vuelve a abrir desde archivos locales.
+- setAirplaneMode: enabled
+- tapOn: "← Volver"
+- tapOn: "← Volver"
+- tapOn: "SCORM"
+- extendedWaitUntil:
+    visible: "SCORM mínimo"
+    timeout: 30000
+- tapOn: "SCORM mínimo"
+- extendedWaitUntil:
+    visible: "← Volver"
+    timeout: 30000
+- takeScreenshot: capturas/scorm-sin-conexion-03-offline
+

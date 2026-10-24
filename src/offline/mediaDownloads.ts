@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Network from 'expo-network';
 import { getSessionUserId } from '../api/session';
+import { scormDownloadLink } from '../api/scorm';
 import {
   isSameVideo,
   kindOf,
@@ -15,6 +16,7 @@ import {
 } from './downloadsMath';
 import type { LessonDetail, LessonResource } from '../types';
 import { t } from '../i18n/core';
+import { unzipSync } from 'fflate';
 
 export type { DownloadRecord, DownloadSettings };
 
@@ -261,6 +263,185 @@ export async function downloadResource(
   );
 }
 
+// Hermes (Android) no garantiza `atob`/`btoa`. Implementación base64 pura para
+// extraer ZIPs SCORM desde `FileSystem.readAsStringAsync(...Base64)`.
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const B64_LOOKUP = new Map(Array.from(B64).map((c, i) => [c, i] as const));
+
+function base64ToBytes(base64: string): Uint8Array {
+  const clean = String(base64 || '').replace(/\s+/g, '');
+  if (!clean) return new Uint8Array(0);
+
+  const pad = clean.endsWith('==') ? 2 : clean.endsWith('=') ? 1 : 0;
+  const len = clean.length;
+  const outLen = Math.max(0, Math.floor((len * 3) / 4) - pad);
+  const out = new Uint8Array(outLen);
+  let oi = 0;
+
+  for (let i = 0; i < len; i += 4) {
+    const c0 = clean[i];
+    const c1 = clean[i + 1];
+    const c2 = clean[i + 2];
+    const c3 = clean[i + 3];
+    if (!c0 || !c1) break;
+    const b0 = B64_LOOKUP.get(c0);
+    const b1 = B64_LOOKUP.get(c1);
+    const b2 = c2 === '=' || !c2 ? undefined : B64_LOOKUP.get(c2);
+    const b3 = c3 === '=' || !c3 ? undefined : B64_LOOKUP.get(c3);
+    if (b0 === undefined || b1 === undefined || (c2 !== '=' && c2 && b2 === undefined) || (c3 !== '=' && c3 && b3 === undefined)) {
+      throw new Error('invalid base64');
+    }
+
+    const x = (b0 << 18) | (b1 << 12) | ((b2 ?? 0) << 6) | (b3 ?? 0);
+    if (oi < outLen) out[oi++] = (x >> 16) & 0xff;
+    if (oi < outLen && c2 !== '=') out[oi++] = (x >> 8) & 0xff;
+    if (oi < outLen && c3 !== '=') out[oi++] = x & 0xff;
+  }
+  return out;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i] ?? 0;
+    const b = bytes[i + 1] ?? 0;
+    const c = bytes[i + 2] ?? 0;
+    const x = (a << 16) | (b << 8) | c;
+    out += B64[(x >> 18) & 63] + B64[(x >> 12) & 63] + (i + 1 < bytes.length ? B64[(x >> 6) & 63] : '=') + (i + 2 < bytes.length ? B64[x & 63] : '=');
+  }
+  return out;
+}
+
+function sanitizeZipPath(entry: string): string {
+  const normalized = entry.replace(/\\/g, '/');
+  if (!normalized || normalized.startsWith('/') || normalized.includes('..')) throw new Error(t('El paquete no es válido.'));
+  return normalized.replace(/^\//, '');
+}
+
+async function unzipScormPackage(zipUri: string, destDir: string): Promise<{ bytes: number; files: number }> {
+  await FileSystem.makeDirectoryAsync(destDir, { intermediates: true });
+  const raw = await FileSystem.readAsStringAsync(zipUri, { encoding: FileSystem.EncodingType.Base64 });
+  const entries = unzipSync(base64ToBytes(raw));
+  let bytes = 0;
+  let files = 0;
+  for (const [name, data] of Object.entries(entries)) {
+    const safe = sanitizeZipPath(name);
+    if (safe.endsWith('/')) {
+      await FileSystem.makeDirectoryAsync(`${destDir}${safe}`, { intermediates: true });
+      continue;
+    }
+    const parts = safe.split('/');
+    if (parts.length > 1) {
+      await FileSystem.makeDirectoryAsync(`${destDir}${parts.slice(0, -1).join('/')}`, { intermediates: true });
+    }
+    await FileSystem.writeAsStringAsync(`${destDir}${safe}`, bytesToBase64(data as Uint8Array), { encoding: FileSystem.EncodingType.Base64 });
+    bytes += (data as Uint8Array).length;
+    files += 1;
+  }
+  await FileSystem.writeAsStringAsync(`${destDir}.atora-complete`, '1');
+  return { bytes, files };
+}
+
+const SCORM_DIR = `${DOWNLOAD_DIR}scorm/`;
+
+/** SCORM (1.1.0): descarga el ZIP, lo descomprime y guarda un registro en el manifiesto. */
+export async function downloadScormPackage(
+  lesson: Pick<LessonDetail, 'id' | 'course_id'>,
+  resource: LessonResource,
+  token: string,
+  options: { allowCellular?: boolean } = {},
+): Promise<DownloadRecord> {
+  const libraryItemId = Number(resource.library_item_id ?? 0);
+  if (!libraryItemId) throw new Error(t('Este material no está disponible.'));
+  await assertNetwork(await getDownloadSettings(), options.allowCellular);
+
+  const link = await scormDownloadLink(token, lesson.id, libraryItemId);
+  const sourceUrl = link.download_url;
+  if (!sourceUrl) throw new Error(t('El servidor no entregó el archivo.'));
+  if (!isAllowedSource(sourceUrl)) throw new Error(t('Solo se permiten descargas protegidas por HTTPS.'));
+
+  await FileSystem.makeDirectoryAsync(SCORM_DIR, { intermediates: true });
+
+  const checksum = link.version_checksum_sha256 || `v${link.library_version_id}`;
+  const zipPath = `${SCORM_DIR}pkg-${lesson.id}-${libraryItemId}-${checksum}.zip`;
+  const destDir = `${SCORM_DIR}pkg-${lesson.id}-${libraryItemId}-${checksum}/`;
+
+  const { downloadAsync } = await import('expo-file-system');
+  const result = await downloadAsync(sourceUrl, zipPath, { headers: { Authorization: `Bearer ${token}` } });
+  if (result.status < 200 || result.status >= 300) {
+    await FileSystem.deleteAsync(result.uri, { idempotent: true });
+    throw new Error(t('El servidor no entregó el archivo.'));
+  }
+
+  // Extraer a carpeta dedicada y marcar completo (si falla, queda sin marcar).
+  const extracted = await unzipScormPackage(result.uri, destDir);
+  await FileSystem.deleteAsync(result.uri, { idempotent: true });
+
+  const recordKey = `${lesson.id}:scorm:${libraryItemId}:${checksum}`;
+  const now = Date.now();
+  const saved: DownloadRecord = {
+    lessonId: lesson.id,
+    courseId: lesson.course_id,
+    sourceUrl,
+    localUri: destDir,
+    size: extracted.bytes,
+    downloadedAt: now,
+    lastAccessedAt: now,
+    kind: 'scorm',
+    resourceKey: recordKey,
+    title: resource.title,
+    mime: 'application/zip',
+    serverUpdatedAt: resource.updated_at ?? null,
+    updateAvailable: false,
+    scorm: {
+      libraryItemId,
+      libraryVersionId: link.library_version_id,
+      checksum,
+      launchHref: resource.launch_href || '',
+      scormVersion: link.scorm_version,
+      attemptId: link.attempt_id,
+    },
+  };
+
+  await withManifest(async () => {
+    const records = await readManifest();
+    const replaced = records.filter((item) => item.resourceKey === recordKey);
+    await Promise.all(replaced.map(deleteRecordFile));
+    await writeManifest([...records.filter((item) => item.resourceKey !== recordKey), saved]);
+  });
+  const maintained = await maintainDownloads();
+  const kept = maintained.find((item) => item.resourceKey === recordKey);
+  if (!kept) throw new Error(t('No hay espacio disponible dentro del límite configurado.'));
+  return kept;
+}
+
+export async function findScormDownload(lessonId: number, resource: LessonResource): Promise<DownloadRecord | null> {
+  const libraryItemId = Number(resource.library_item_id ?? 0);
+  const checksum = String(resource.version_checksum_sha256 ?? '');
+  if (!libraryItemId || !checksum) return null;
+  const key = `${lessonId}:scorm:${libraryItemId}:${checksum}`;
+  return touch((record) => kindOf(record) === 'scorm' && record.resourceKey === key);
+}
+
+/** Actualiza metadatos SCORM del registro (p.ej. el attemptId creado al abrir con red). */
+export async function updateScormDownloadAttemptId(resourceKey: string, attemptId: number): Promise<void> {
+  const key = String(resourceKey || '');
+  const id = Number(attemptId || 0);
+  if (!key || !id) return;
+  await withManifest(async () => {
+    const records = await readManifest();
+    let changed = false;
+    const next = records.map((record) => {
+      if (kindOf(record) !== 'scorm' || record.resourceKey !== key) return record;
+      const current = Number(record.scorm?.attemptId ?? 0);
+      if (current === id) return record;
+      changed = true;
+      return { ...record, scorm: { ...record.scorm, attemptId: id } };
+    });
+    if (changed) await writeManifest(next);
+  });
+}
+
 export function findResourceDownload(lessonId: number, resource: LessonResource): Promise<DownloadRecord | null> {
   const key = resourceKey(lessonId, resource);
   return touch((record) => record.resourceKey === key);
@@ -268,6 +449,10 @@ export function findResourceDownload(lessonId: number, resource: LessonResource)
 
 export async function listResourceDownloads(lessonId: number): Promise<DownloadRecord[]> {
   return (await readManifest()).filter((record) => kindOf(record) === 'resource' && record.lessonId === lessonId);
+}
+
+export async function listScormDownloads(lessonId: number): Promise<DownloadRecord[]> {
+  return (await readManifest()).filter((record) => kindOf(record) === 'scorm' && record.lessonId === lessonId);
 }
 
 /**

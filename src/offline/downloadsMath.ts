@@ -3,7 +3,7 @@
  * comparten un solo manifiesto, una cuota, la caducidad y "solo Wi-Fi".
  */
 
-export type DownloadKind = 'video' | 'resource';
+export type DownloadKind = 'video' | 'resource' | 'scorm';
 
 export type DownloadRecord = {
   lessonId: number;
@@ -27,6 +27,16 @@ export type DownloadRecord = {
   updateAvailable?: boolean;
   /** 0.4.1: video de la lección (`videos[].key`). Sin clave = primer video (descargas de 0.4.0). */
   videoKey?: string;
+
+  /** 1.1.0 (SCORM): paquete extraído. */
+  scorm?: {
+    libraryItemId: number;
+    libraryVersionId: number;
+    checksum: string;
+    launchHref: string;
+    scormVersion: string;
+    attemptId: number;
+  };
 };
 
 export type DownloadSettings = {
@@ -92,7 +102,13 @@ export function shouldAutoUpdate(bytes: number | null | undefined, onWifi: boole
   return onWifi || !settings.wifiOnly;
 }
 
-export function resourceKey(lessonId: number, resource: { file_id?: number; url: string }): string {
+export function resourceKey(
+  lessonId: number,
+  resource: { type?: string; file_id?: number; url: string; library_item_id?: number; version_checksum_sha256?: string },
+): string {
+  if (resource.type === 'scorm' && resource.library_item_id && resource.version_checksum_sha256) {
+    return `${lessonId}:scorm:${resource.library_item_id}:${resource.version_checksum_sha256}`;
+  }
   return `${lessonId}:${resource.file_id ? `f${resource.file_id}` : resource.url}`;
 }
 
