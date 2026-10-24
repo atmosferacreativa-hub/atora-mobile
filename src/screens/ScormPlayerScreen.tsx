@@ -166,11 +166,12 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       try {
         const started = await startScormAttempt(token, lessonId, libraryItemId);
         resolvedAttemptId = Number(started.attempt_id ?? 0);
-        if (resolvedAttemptId) {
-          await updateScormDownloadAttemptId(saved.resourceKey, resolvedAttemptId).catch(() => undefined);
-          saved = { ...saved, scorm: { ...saved.scorm, attemptId: resolvedAttemptId } };
-          setRecord(saved);
-        }
+	        if (resolvedAttemptId && saved.scorm) {
+	          const key = saved.resourceKey ?? '';
+	          if (key) await updateScormDownloadAttemptId(key, resolvedAttemptId).catch(() => undefined);
+	          saved = { ...saved, scorm: { ...saved.scorm, attemptId: resolvedAttemptId } };
+	          setRecord(saved);
+	        }
       } catch (reason) {
         if (isScormNoAttemptsError(reason)) throw new Error(t('No quedan intentos disponibles para este SCORM.'));
         throw reason;
@@ -203,7 +204,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     valuesRef.current = values;
     setInitialValues(values);
     setSource(localUri);
-  }, [hasNetwork, launchHref, token]);
+	  }, [hasNetwork, launchHref, token, lessonId, libraryItemId]);
 
   useEffect(() => {
     let active = true;

@@ -307,7 +307,10 @@ function bytesToBase64(bytes: Uint8Array): string {
     const b = bytes[i + 1] ?? 0;
     const c = bytes[i + 2] ?? 0;
     const x = (a << 16) | (b << 8) | c;
-    out += B64[(x >> 18) & 63] + B64[(x >> 12) & 63] + (i + 1 < bytes.length ? B64[(x >> 6) & 63] : '=') + (i + 2 < bytes.length ? B64[x & 63] : '=');
+    out += B64.charAt((x >> 18) & 63)
+      + B64.charAt((x >> 12) & 63)
+      + (i + 1 < bytes.length ? B64.charAt((x >> 6) & 63) : '=')
+      + (i + 2 < bytes.length ? B64.charAt(x & 63) : '=');
   }
   return out;
 }
@@ -433,6 +436,7 @@ export async function updateScormDownloadAttemptId(resourceKey: string, attemptI
     let changed = false;
     const next = records.map((record) => {
       if (kindOf(record) !== 'scorm' || record.resourceKey !== key) return record;
+      if (!record.scorm) return record;
       const current = Number(record.scorm?.attemptId ?? 0);
       if (current === id) return record;
       changed = true;
