@@ -54,7 +54,7 @@ jobs:
         id: flows
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "list=login,leccion" >> "$GITHUB_OUTPUT"
+            echo "list=login,leccion,scorm-online,scorm-sin-conexion,scorm-xhr" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ inputs.flows }}" ] && [ "${{ inputs.flows }}" != "todos" ]; then
             echo "list=${{ inputs.flows }}" >> "$GITHUB_OUTPUT"
           else

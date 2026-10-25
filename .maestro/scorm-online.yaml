@@ -20,9 +20,12 @@ name: scorm-online
     timeout: 30000
 - tapOn: "Descargar y abrir"
 
-# El contenido corre en un WebView local; basta con que abra sin error.
+# El contenido corre en un WebView local: en E2E mostramos un snippet del body.
 - extendedWaitUntil:
     visible: "← Volver"
     timeout: 30000
-- takeScreenshot: capturas/scorm-online-02-player
+- extendedWaitUntil:
+    visible: "SCORM:"
+    timeout: 60000
+- takeScreenshot: capturas/scorm-online-02-player-contenido
 

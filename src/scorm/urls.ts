@@ -21,15 +21,26 @@ function normalizePath(pathname: string): string {
 }
 
 function filePathFromUrl(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'file:') return null;
-    // URL.pathname viene con escapes; normalizamos por segmentos para resolver
-    // `..` y variantes percent-encoded (p. ej. %2e%2e).
-    return normalizePath(parsed.pathname);
-  } catch {
-    return null;
+  // No dependemos de `URL` (polyfill variable en React Native).
+  const raw = String(url || '');
+  if (!raw.startsWith('file://')) return null;
+  // Quitar query/hash.
+  const cut = raw.split('#')[0]?.split('?')[0] ?? '';
+  const afterScheme = cut.slice('file://'.length);
+
+  // file:///path  → /path
+  // file://localhost/path → /path
+  // file://path (raro) → /path
+  if (afterScheme.startsWith('/')) {
+    return normalizePath(afterScheme);
   }
+  if (afterScheme.startsWith('localhost/')) {
+    return normalizePath(`/${afterScheme.slice('localhost'.length)}`);
+  }
+
+  const slash = afterScheme.indexOf('/');
+  if (slash === -1) return '/';
+  return normalizePath(afterScheme.slice(slash));
 }
 
 /**

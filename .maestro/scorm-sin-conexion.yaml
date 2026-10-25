@@ -30,6 +30,9 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "← Volver"
     timeout: 90000
+- extendedWaitUntil:
+    visible: "SCORM:"
+    timeout: 60000
 - takeScreenshot: capturas/scorm-sin-conexion-02-online
 
 # Luego, sin red: vuelve a abrir desde archivos locales.
@@ -44,5 +47,8 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "← Volver"
     timeout: 30000
+- extendedWaitUntil:
+    visible: "SCORM:"
+    timeout: 60000
 - takeScreenshot: capturas/scorm-sin-conexion-03-offline
 

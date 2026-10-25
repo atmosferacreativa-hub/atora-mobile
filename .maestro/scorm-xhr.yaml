@@ -1,0 +1,45 @@
+appId: com.atmosferacreativa.atora
+name: scorm-xhr
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "SCORM"
+- tapOn: "SCORM"
+- extendedWaitUntil:
+    visible: "SCORM XHR"
+    timeout: 30000
+
+# Con red: descargar el paquete y abrirlo.
+- tapOn: "SCORM XHR"
+- extendedWaitUntil:
+    visible: "Descargar y abrir"
+    timeout: 30000
+- tapOn: "Descargar y abrir"
+- extendedWaitUntil:
+    visible: "← Volver"
+    timeout: 90000
+- extendedWaitUntil:
+    visible: "ATORA XHR OK"
+    timeout: 60000
+- takeScreenshot: capturas/scorm-xhr-01-online
+
+# Sin red: debe abrir desde archivos locales y seguir pudiendo hacer fetch/XHR.
+- setAirplaneMode: enabled
+- tapOn: "← Volver"
+- tapOn: "← Volver"
+- tapOn: "SCORM"
+- extendedWaitUntil:
+    visible: "SCORM XHR"
+    timeout: 30000
+- tapOn: "SCORM XHR"
+- extendedWaitUntil:
+    visible: "← Volver"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "ATORA XHR OK"
+    timeout: 60000
+- takeScreenshot: capturas/scorm-xhr-02-offline
+

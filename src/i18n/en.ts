@@ -559,5 +559,7 @@ export const en: Record<string, string> = {
   "Necesitas conexión para iniciar el intento y descargar el paquete.": "You need a connection to start the attempt and download the package.",
   "No quedan intentos disponibles para este SCORM.": "No attempts are available for this SCORM.",
   "No fue posible descargar el SCORM.": "Could not download the SCORM.",
+  "Cargando...": "Loading...",
+  "SCORM: {text}": "SCORM: {text}",
   "SCORM": "SCORM",
 };

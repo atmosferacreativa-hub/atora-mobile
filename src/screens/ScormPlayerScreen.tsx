@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Network from 'expo-network';
 import * as FileSystem from 'expo-file-system/legacy';
+import Constants from 'expo-constants';
 import type { LessonResource } from '../types';
 import { colors, spacing } from '../theme';
 import { t } from '../i18n';
@@ -14,6 +15,7 @@ import { formatBytes } from '../offline/downloadsMath';
 import { buildScormInjectedRuntime } from '../scorm/runtime';
 import { isAllowedScormFileUrl } from '../scorm/urls';
 import { mergeScormValues } from '../scorm/values';
+import { startLocalScormServer } from '../scorm/localServer';
 
 type Props = {
   token: string;
@@ -30,10 +32,16 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [busy, setBusy] = useState(false);
   const [record, setRecord] = useState<DownloadRecord | null>(null);
   const [source, setSource] = useState('');
+  const [pageText, setPageText] = useState('');
   const [attemptId, setAttemptId] = useState(0);
   const [syncError, setSyncError] = useState('');
   const [initialValues, setInitialValues] = useState<Record<string, string>>({});
   const valuesRef = useRef<Record<string, string>>({});
+  const serverRef = useRef<{ stop: () => Promise<void> } | null>(null);
+  const serverTokenRef = useRef('');
+  const serverOriginRef = useRef('');
+
+  const isE2E = Boolean((Constants.expoConfig?.extra as { e2e?: boolean } | undefined)?.e2e);
 
   const libraryItemId = Number(resource.library_item_id ?? 0);
   const scormVersion = String(resource.scorm_version ?? '');
@@ -44,6 +52,16 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     void ScreenOrientation.unlockAsync().catch(() => undefined);
     return () => {
       void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const server = serverRef.current;
+      serverRef.current = null;
+      serverTokenRef.current = '';
+      serverOriginRef.current = '';
+      if (server) void server.stop().catch(() => undefined);
     };
   }, []);
 
@@ -131,6 +149,23 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
 
     valuesRef.current = values;
     setInitialValues(values);
+
+    // Android: algunos paquetes (Rise/Storyline) usan XHR/fetch y fallan con file://.
+    // Se sirven desde 127.0.0.1 con token en la ruta, sin exponer el token de la sesión.
+    if (Platform.OS === 'android') {
+      if (!serverRef.current) {
+        const server = await startLocalScormServer(base);
+        serverRef.current = { stop: server.stop };
+        serverTokenRef.current = server.token;
+        serverOriginRef.current = server.origin;
+      }
+      const origin = serverOriginRef.current;
+      const serverToken = serverTokenRef.current;
+      const path = href.replace(/^\//, '');
+      setSource(`${origin}/${serverToken}/${path}`);
+      return;
+    }
+
     setSource(localUri);
 	  }, [hasNetwork, launchHref, token, lessonId, libraryItemId]);
 
@@ -224,6 +259,10 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
         onMessage={(event) => {
           try {
             const msg = JSON.parse(event.nativeEvent.data) as any;
+            if (msg?.type === 'atora.pageText' && typeof msg.text === 'string') {
+              setPageText(msg.text.slice(0, 160));
+              return;
+            }
             if (msg?.type === 'scorm.commit' && typeof msg.attemptId === 'number' && msg.values && typeof msg.values === 'object') {
               // Snapshot local para reanudar sin conexión (el servidor valida el puntaje y estados).
               try {
@@ -242,11 +281,38 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
             // Mensaje ajeno.
           }
         }}
+        onLoadEnd={() => {
+          if (!isE2E) return;
+          try {
+            webRef.current?.injectJavaScript(`
+              (function(){
+                try {
+                  var title = (document && document.title) ? String(document.title).replace(/\s+/g,' ').trim() : '';
+                  var body = (document && document.body && document.body.innerText) ? String(document.body.innerText).replace(/\s+/g,' ').trim() : '';
+                  var text = (title ? (title + ' — ') : '') + body;
+                  text = String(text || '').trim().slice(0, 220);
+                  window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'atora.pageText', text: text || '(sin texto)' }));
+                } catch(e) {}
+              })();
+              true;
+            `);
+          } catch {
+            // Sin ref.
+          }
+        }}
         onShouldStartLoadWithRequest={({ url }) => {
           if (url === 'about:blank') return true;
           if (url.startsWith('file://')) {
             const base = record?.localUri ?? '';
             return base ? isAllowedScormFileUrl(url, base) : true;
+          }
+          if (/^http:\/\//i.test(url)) {
+            // Solo el server local del paquete.
+            const origin = serverOriginRef.current;
+            const tok = serverTokenRef.current;
+            if (origin && tok && url.startsWith(`${origin}/${tok}/`)) return true;
+            void Linking.openURL(url).catch(() => undefined);
+            return false;
           }
           if (/^https?:\/\//i.test(url)) {
             void Linking.openURL(url).catch(() => undefined);
@@ -254,6 +320,11 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
           return false;
         }}
       />
+      {isE2E ? (
+        <View style={styles.e2eBar}>
+          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: pageText || t('Cargando...') })}</Text>
+        </View>
+      ) : null}
       {syncError ? (
         <View style={styles.syncBar}>
           <Text style={styles.syncText}>{syncError}</Text>
@@ -275,5 +346,7 @@ const styles = StyleSheet.create({
   buttonText: { color: colors.paper, fontWeight: '900' },
   syncBar: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: '#fff3cd' },
   syncText: { color: colors.navy, fontWeight: '700', textAlign: 'center' },
+  e2eBar: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: '#e7f3ff' },
+  e2eText: { color: colors.navy, fontWeight: '700', fontSize: 12 },
 });
 
