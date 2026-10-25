@@ -112,6 +112,7 @@ async function deleteRecordFile(record: DownloadRecord): Promise<void> {
 
 async function validRecords(records: DownloadRecord[]): Promise<DownloadRecord[]> {
   const checked = await Promise.all(records.map(async (record) => {
+    if (record.error) return record;
     const info = await FileSystem.getInfoAsync(record.localUri);
     return info.exists ? record : null;
   }));

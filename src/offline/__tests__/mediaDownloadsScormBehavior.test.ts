@@ -109,7 +109,7 @@ describe('offline/mediaDownloads.downloadScormPackage', () => {
   });
 
   it('non-200 download status writes an error record and throws', async () => {
-    const { downloadScormPackage, listScormDownloads } = await import('../mediaDownloads');
+    const { downloadScormPackage, listScormDownloads, maintainDownloads } = await import('../mediaDownloads');
     const FileSystem = await import('expo-file-system/legacy');
     (FileSystem as any).downloadAsync.mockResolvedValueOnce({ uri: 'file:///doc/atora-offline/scorm/pkg-10-99-abc123.zip', status: 500 });
 
@@ -122,6 +122,11 @@ describe('offline/mediaDownloads.downloadScormPackage', () => {
     const records = await listScormDownloads(10);
     expect(records).toHaveLength(1);
     expect(records[0]!.error).toBe('El servidor no entregó el archivo.');
+
+    // El registro de error debe permanecer visible aunque no exista el archivo.
+    await maintainDownloads();
+    const after = await listScormDownloads(10);
+    expect(after).toHaveLength(1);
   });
 
   it('missing launch file writes an error record and throws', async () => {
