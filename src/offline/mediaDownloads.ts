@@ -18,6 +18,7 @@ import type { LessonDetail, LessonResource } from '../types';
 import { t } from '../i18n/core';
 import { unzipSync } from 'fflate';
 import { base64ToBytes, bytesToBase64 } from '../utils/base64';
+import { isAllowedDownloadSource } from './downloadSources';
 
 export type { DownloadRecord, DownloadSettings };
 
@@ -151,14 +152,7 @@ function safeExtension(sourceUrl: string, fallback = '.mp4'): string {
   return match ? `.${match[1]!.toLowerCase()}` : fallback;
 }
 
-/**
- * HTTP solo en desarrollo (Expo Go / dev client contra ATORA Lab local).
- * Las compilaciones preview y production siempre exigen HTTPS.
- */
-function isAllowedSource(sourceUrl: string): boolean {
-  if (sourceUrl.startsWith('https://')) return true;
-  return __DEV__ && sourceUrl.startsWith('http://');
-}
+const isAllowedSource = isAllowedDownloadSource;
 
 async function assertNetwork(settings: DownloadSettings, allowCellular = false): Promise<void> {
   const network = await Network.getNetworkStateAsync();
