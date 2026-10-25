@@ -312,10 +312,10 @@ jobs:
 
           echo "### E2E" >> "$GITHUB_STEP_SUMMARY"
           echo "- Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Recorridos solicitados: `${{ steps.flows.outputs.list }}`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Recorridos solicitados: \`${{ steps.flows.outputs.list }}\`" >> "$GITHUB_STEP_SUMMARY"
 
           if [ ! -f maestro-report.xml ]; then
-            echo "- Resultado: no se generó `maestro-report.xml`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Resultado: no se generó \`maestro-report.xml\`" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
