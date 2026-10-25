@@ -317,17 +317,75 @@ export async function downloadScormPackage(
   // iOS puede abrir file:// directo, pero mantenemos la misma ruta.
   const destDir = `${SCORM_DIR}serve/${checksum}/`;
 
+  const recordKey = `${lesson.id}:scorm:${libraryItemId}:${checksum}`;
+
+  const writeScormError = async (message: string) => {
+    const now = Date.now();
+    const failed: DownloadRecord = {
+      lessonId: lesson.id,
+      courseId: lesson.course_id,
+      sourceUrl,
+      localUri: destDir,
+      size: 0,
+      downloadedAt: now,
+      lastAccessedAt: now,
+      kind: 'scorm',
+      resourceKey: recordKey,
+      title: resource.title,
+      mime: 'application/zip',
+      serverUpdatedAt: resource.updated_at ?? null,
+      updateAvailable: false,
+      error: message,
+      failedAt: now,
+      scorm: {
+        libraryItemId,
+        libraryVersionId: link.library_version_id,
+        checksum,
+        launchHref: resource.launch_href || '',
+        scormVersion: link.scorm_version,
+        attemptId: link.attempt_id,
+      },
+    };
+
+    await withManifest(async () => {
+      const records = await readManifest();
+      await writeManifest([...records.filter((item) => item.resourceKey !== recordKey), failed]);
+    });
+  };
+
   const result = await FileSystem.downloadAsync(sourceUrl, zipPath, { headers: { Authorization: `Bearer ${token}` } });
   if (result.status < 200 || result.status >= 300) {
     await FileSystem.deleteAsync(result.uri, { idempotent: true });
-    throw new Error(t('El servidor no entregó el archivo.'));
+    const message = t('El servidor no entregó el archivo.');
+    await writeScormError(message);
+    throw new Error(message);
   }
 
-  // Extraer a carpeta dedicada y marcar completo (si falla, queda sin marcar).
-  const extracted = await unzipScormPackage(result.uri, destDir);
+  let extracted: { bytes: number; files: number };
+  try {
+    // Extraer a carpeta dedicada y marcar completo (si falla, queda sin marcar).
+    extracted = await unzipScormPackage(result.uri, destDir);
+  } catch {
+    const message = t('El paquete no es válido.');
+    await FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => undefined);
+    await FileSystem.deleteAsync(destDir, { idempotent: true }).catch(() => undefined);
+    await writeScormError(message);
+    throw new Error(message);
+  }
   await FileSystem.deleteAsync(result.uri, { idempotent: true });
 
-  const recordKey = `${lesson.id}:scorm:${libraryItemId}:${checksum}`;
+  // Validar que el archivo de lanzamiento exista: si no, el ZIP está incompleto.
+  const href = String(resource.launch_href || '').replace(/^\//, '');
+  if (href) {
+    const launchInfo = await FileSystem.getInfoAsync(`${destDir}${href}`);
+    if (!launchInfo.exists) {
+      const message = t('El paquete está incompleto.');
+      await FileSystem.deleteAsync(destDir, { idempotent: true }).catch(() => undefined);
+      await writeScormError(message);
+      throw new Error(message);
+    }
+  }
+
   const now = Date.now();
   const saved: DownloadRecord = {
     lessonId: lesson.id,
@@ -343,6 +401,8 @@ export async function downloadScormPackage(
     mime: 'application/zip',
     serverUpdatedAt: resource.updated_at ?? null,
     updateAvailable: false,
+    error: undefined,
+    failedAt: undefined,
     scorm: {
       libraryItemId,
       libraryVersionId: link.library_version_id,

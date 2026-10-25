@@ -90,7 +90,11 @@ export function DownloadsScreen({ courses, onBack }: Props) {
                     : <View style={styles.fileIcon}><Text style={styles.fileIconText}>{fileLabel(item)}</Text></View>}
                   <View style={styles.flex}>
                     <Text numberOfLines={2} style={styles.itemTitle}>{kindOf(item) === 'video' ? (item.videoKey && item.title ? item.title : t('Video')) : item.title || t('Material')}</Text>
-                    <Text style={styles.meta}>{formatBytes(item.size)}{item.updateAvailable ? ` · ${t('Actualización disponible')}` : ''}</Text>
+                    <Text style={styles.meta}>
+                      {formatBytes(item.size)}
+                      {item.updateAvailable ? ` · ${t('Actualización disponible')}` : ''}
+                      {item.error ? ` · ${item.error}` : ''}
+                    </Text>
                   </View>
                   <Pressable hitSlop={12} accessibilityRole="button" onPress={() => void removeDownloadFile(item.localUri).then(load)}>
                     <Text style={styles.remove}>{t('Eliminar')}</Text>
