@@ -317,8 +317,7 @@ export async function downloadScormPackage(
   // iOS puede abrir file:// directo, pero mantenemos la misma ruta.
   const destDir = `${SCORM_DIR}serve/${checksum}/`;
 
-  const { downloadAsync } = await import('expo-file-system');
-  const result = await downloadAsync(sourceUrl, zipPath, { headers: { Authorization: `Bearer ${token}` } });
+  const result = await FileSystem.downloadAsync(sourceUrl, zipPath, { headers: { Authorization: `Bearer ${token}` } });
   if (result.status < 200 || result.status >= 300) {
     await FileSystem.deleteAsync(result.uri, { idempotent: true });
     throw new Error(t('El servidor no entregó el archivo.'));
