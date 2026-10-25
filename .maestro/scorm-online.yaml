@@ -23,7 +23,7 @@ name: scorm-online
     visible: "← Volver"
     timeout: 30000
 - extendedWaitUntil:
-    visible: "SCORM:"
+    visible: "SCORM:.*"
     timeout: 60000
 - takeScreenshot: capturas/scorm-online-02-player-contenido
 

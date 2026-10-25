@@ -21,7 +21,7 @@ onFlowComplete:
     visible: "← Volver"
     timeout: 90000
 - extendedWaitUntil:
-    visible: "ATORA XHR OK"
+    visible: "ATORA XHR OK.*"
     timeout: 60000
 - extendedWaitUntil:
     visible: "ESCAPE:OK"
@@ -40,7 +40,7 @@ onFlowComplete:
     visible: "← Volver"
     timeout: 30000
 - extendedWaitUntil:
-    visible: "ATORA XHR OK"
+    visible: "ATORA XHR OK.*"
     timeout: 60000
 - extendedWaitUntil:
     visible: "ESCAPE:OK"
