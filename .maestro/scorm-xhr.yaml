@@ -14,9 +14,9 @@ onFlowComplete:
 # Con red: descargar el paquete y abrirlo.
 - tapOn: "SCORM XHR"
 - extendedWaitUntil:
-    visible: "Descargar y abrir"
+    visible: "Descargar y abrir.*"
     timeout: 30000
-- tapOn: "Descargar y abrir"
+- tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
     visible: "← Volver"
     timeout: 90000

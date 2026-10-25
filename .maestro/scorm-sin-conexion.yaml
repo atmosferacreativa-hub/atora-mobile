@@ -15,9 +15,9 @@ onFlowComplete:
 - setAirplaneMode: enabled
 - tapOn: "SCORM mínimo"
 - extendedWaitUntil:
-    visible: "Descargar y abrir"
+    visible: "Descargar y abrir.*"
     timeout: 30000
-- tapOn: "Descargar y abrir"
+- tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
     visible: "Necesitas conexión"
     timeout: 30000
@@ -25,7 +25,7 @@ onFlowComplete:
 
 # Con red: descarga el paquete (abre el intento en el servidor) y lo abre.
 - setAirplaneMode: disabled
-- tapOn: "Descargar y abrir"
+- tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
     visible: "← Volver"
     timeout: 90000

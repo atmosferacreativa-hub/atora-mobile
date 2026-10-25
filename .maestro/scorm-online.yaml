@@ -14,9 +14,9 @@ name: scorm-online
     element: "SCORM mínimo"
 - tapOn: "SCORM mínimo"
 - extendedWaitUntil:
-    visible: "Descargar y abrir"
+    visible: "Descargar y abrir.*"
     timeout: 30000
-- tapOn: "Descargar y abrir"
+- tapOn: "Descargar y abrir.*"
 
 # El contenido corre en un WebView local: en E2E mostramos un snippet del body.
 - extendedWaitUntil:
