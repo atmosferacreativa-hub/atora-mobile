@@ -6,11 +6,9 @@ name: scorm-online
 - scrollUntilVisible:
     element: "SCORM"
 - tapOn: "SCORM"
-- extendedWaitUntil:
-    visible: "SCORM mínimo"
-    timeout: 30000
+- scrollUntilVisible:
+    element: "SCORM mínimo"
 - takeScreenshot: capturas/scorm-online-01-leccion
-
 # Descargar y abrir el paquete (con red).
 - scrollUntilVisible:
     element: "SCORM mínimo"

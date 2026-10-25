@@ -8,9 +8,8 @@ onFlowComplete:
 - scrollUntilVisible:
     element: "SCORM"
 - tapOn: "SCORM"
-- extendedWaitUntil:
-    visible: "SCORM XHR"
-    timeout: 30000
+- scrollUntilVisible:
+    element: "SCORM XHR"
 
 # Con red: descargar el paquete y abrirlo.
 - tapOn: "SCORM XHR"
@@ -34,9 +33,8 @@ onFlowComplete:
 - tapOn: "← Volver"
 - tapOn: "← Volver"
 - tapOn: "SCORM"
-- extendedWaitUntil:
-    visible: "SCORM XHR"
-    timeout: 30000
+- scrollUntilVisible:
+    element: "SCORM XHR"
 - tapOn: "SCORM XHR"
 - extendedWaitUntil:
     visible: "← Volver"

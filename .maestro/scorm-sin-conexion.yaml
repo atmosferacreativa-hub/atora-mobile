@@ -8,9 +8,8 @@ onFlowComplete:
 - scrollUntilVisible:
     element: "SCORM"
 - tapOn: "SCORM"
-- extendedWaitUntil:
-    visible: "SCORM mínimo"
-    timeout: 30000
+- scrollUntilVisible:
+    element: "SCORM mínimo"
 
 # Sin red: no permite iniciar el intento por primera vez.
 - setAirplaneMode: enabled
@@ -40,9 +39,8 @@ onFlowComplete:
 - tapOn: "← Volver"
 - tapOn: "← Volver"
 - tapOn: "SCORM"
-- extendedWaitUntil:
-    visible: "SCORM mínimo"
-    timeout: 30000
+- scrollUntilVisible:
+    element: "SCORM mínimo"
 - tapOn: "SCORM mínimo"
 - extendedWaitUntil:
     visible: "← Volver"
