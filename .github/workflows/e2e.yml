@@ -4,7 +4,8 @@ name: Pruebas de pantalla
 # (Docker) con el plugin de `Atora-LMS-6` en `main` y los datos de
 # `wp atora seed-e2e`. Nunca contra el demo.
 #
-# - Cada PR: `login` y `leccion` (rápido).
+# - Cada PR: `login` y `leccion` + recorridos según archivos tocados.
+# - Etiqueta `e2e-completo` en el PR: suite completa.
 # - Al etiquetar (v*), al fusionar en main o a mano: todos los recorridos.
 # Las capturas quedan como artefacto de la ejecución.
 
@@ -44,6 +45,8 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Plugin ATORA LMS
         uses: actions/checkout@v4
@@ -55,13 +58,124 @@ jobs:
       - name: Recorridos a ejecutar
         id: flows
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "list=login,leccion,scorm-online,scorm-sin-conexion,scorm-xhr" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ inputs.flows }}" ] && [ "${{ inputs.flows }}" != "todos" ]; then
-            echo "list=${{ inputs.flows }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "list=todos" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          join_by() { local IFS="$1"; shift; echo "$*"; }
+
+          dedupe_csv() {
+            # Entrada: CSV (sin espacios). Salida: CSV sin duplicados, preserva orden.
+            local csv="${1:-}" out="" seen=","
+            IFS=',' read -r -a arr <<< "$csv"
+            for item in "${arr[@]}"; do
+              item="${item// /}"
+              [ -z "$item" ] && continue
+              if [[ "$seen" == *",$item,"* ]]; then
+                continue
+              fi
+              seen="$seen$item,"
+              out="${out:+$out,}$item"
+            done
+            echo "$out"
+          }
+
+          expand_docente() {
+            local flows=()
+            for f in .maestro/docente-*.yaml; do
+              [ -f "$f" ] || continue
+              flows+=("$(basename "$f" .yaml)")
+            done
+            join_by , "${flows[@]:-}"
+          }
+
+          # Push/tags/dispatch: respetar inputs (por compatibilidad con ejecuciones manuales).
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            if [ -n "${{ inputs.flows }}" ] && [ "${{ inputs.flows }}" != "todos" ]; then
+              echo "list=${{ inputs.flows }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "list=todos" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
           fi
+
+          # Etiqueta: correr la suite completa.
+          if ${{ contains(toJson(github.event.pull_request.labels), '"name":"e2e-completo"') }}; then
+            echo "list=todos" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"
+          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+
+          echo "Changed files:"; echo "$CHANGED" | sed 's/^/ - /'
+
+          # Suite completa si tocamos dependencias, config o navegación.
+          if echo "$CHANGED" | grep -Eq '^(package\.json|package-lock\.json|app\.json|app\.config\.js|plugins/|src/navigation/|App\.tsx)'; then
+            echo "list=todos" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          FLOWS=("login" "leccion")
+          REQUIRED=("login" "leccion")
+
+          add_flows() {
+            local -a items=("$@");
+            for item in "${items[@]}"; do
+              [ -z "$item" ] && continue
+              FLOWS+=("$item")
+              REQUIRED+=("$item")
+            done
+          }
+
+          # SCORM.
+          if echo "$CHANGED" | grep -Eq '^(src/scorm/|src/screens/ScormPlayerScreen\.tsx$|src/offline/mediaDownloads\.ts$|src/offline/downloadSources\.ts$)'; then
+            add_flows "scorm-online" "scorm-sin-conexion" "scorm-xhr"
+          fi
+
+          # Docente.
+          if echo "$CHANGED" | grep -Eq '^(src/screens/teacher/|src/api/teacher\.ts$|src/teacher/)' ; then
+            DOCENTE="$(expand_docente)"
+            if [ -n "$DOCENTE" ]; then
+              IFS=',' read -r -a doc_arr <<< "$DOCENTE"
+              add_flows "${doc_arr[@]}"
+            fi
+          fi
+
+          # Tarea.
+          if echo "$CHANGED" | grep -Eq '^(src/api/assignments\.ts$|src/screens/AssignmentScreen\.tsx$|src/offline/sync/)' ; then
+            add_flows "tarea"
+          fi
+
+          # Quiz.
+          if echo "$CHANGED" | grep -Eq '^(src/api/quizzes\.ts$|src/screens/QuizScreen\.tsx$|src/offline/quiz)' ; then
+            add_flows "quiz"
+          fi
+
+          # Mensajes.
+          if echo "$CHANGED" | grep -Eq '^(src/api/messages\.ts$|src/screens/(MessagesScreen|ThreadScreen)\.tsx$|src/messages/)' ; then
+            add_flows "mensajes"
+          fi
+
+          # Sin conexión / offline.
+          if echo "$CHANGED" | grep -Eq '^(src/offline/|src/screens/DownloadsScreen\.tsx$)' ; then
+            add_flows "sin-conexion"
+          fi
+
+          LIST="$(dedupe_csv "$(join_by , "${FLOWS[@]}")")"
+          REQ="$(dedupe_csv "$(join_by , "${REQUIRED[@]}")")"
+          echo "Selected flows: $LIST"
+          echo "Required flows: $REQ"
+
+          # Guardrail: si el PR toca algo que requiere recorridos, este job debe incluirlos.
+          for needed in $(echo "$REQ" | tr ',' ' '); do
+            echo "$LIST" | tr ',' '\n' | grep -qx "$needed" || {
+              echo "::error::Falta el recorrido requerido: $needed"
+              exit 1
+            }
+          done
+
+          echo "list=$LIST" >> "$GITHUB_OUTPUT"
 
       - name: WordPress temporal (Docker)
         run: |
