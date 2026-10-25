@@ -392,13 +392,24 @@ jobs:
           path: _plugin
 
       - name: Docker disponible
+        id: docker
         run: |
           set -euo pipefail
-          command -v docker
-          docker version
-          docker info
+          if command -v docker >/dev/null 2>&1 && docker version >/dev/null 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            docker info >/dev/null 2>&1 || true
+            exit 0
+          fi
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+
+      - name: iOS e2e omitido (Docker no disponible)
+        if: steps.docker.outputs.ok != 'true'
+        run: |
+          echo "### iOS e2e" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Docker no está disponible en el runner macOS; no se ejecuta WordPress ni Maestro iOS." >> "$GITHUB_STEP_SUMMARY"
 
       - name: WordPress temporal (Docker)
+        if: steps.docker.outputs.ok == 'true'
         run: |
           docker network create e2e
           docker run -d --name db --network e2e \
@@ -415,6 +426,7 @@ jobs:
           done
 
       - name: PHP Zip para SCORM (WordPress)
+        if: steps.docker.outputs.ok == 'true'
         run: |
           if docker exec wp php -m | grep -qi '^zip$'; then
             echo "ZipArchive OK"
@@ -426,6 +438,7 @@ jobs:
           fi
 
       - name: Instalar WordPress y sembrar datos
+        if: steps.docker.outputs.ok == 'true'
         run: |
           WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp wordpress:cli-php8.1 wp"
           for i in $(seq 1 40); do
@@ -442,16 +455,19 @@ jobs:
           curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
 
       - uses: actions/setup-node@v4
+        if: steps.docker.outputs.ok == 'true'
         with:
           node-version: 20
           cache: npm
 
       - name: Maestro
+        if: steps.docker.outputs.ok == 'true'
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
       - name: Build iOS (simulador)
+        if: steps.docker.outputs.ok == 'true'
         timeout-minutes: 45
         env:
           ATORA_E2E: '1'
@@ -499,6 +515,7 @@ jobs:
           xcrun simctl install booted "$APP_PATH"
 
       - name: Recorridos Maestro (iOS)
+        if: steps.docker.outputs.ok == 'true'
         run: |
           set -euo pipefail
           mkdir -p capturas
