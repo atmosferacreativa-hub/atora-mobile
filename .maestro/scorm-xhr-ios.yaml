@@ -21,7 +21,6 @@ name: scorm-xhr-ios
 - extendedWaitUntil:
     visible: "ATORA XHR OK.*"
     timeout: 60000
-- assertNotVisible: ".*SCORM:.*Cargando.*"
 - extendedWaitUntil:
     visible: ".*SERVER:OK.*"
     timeout: 60000

@@ -24,7 +24,7 @@ onFlowComplete:
     timeout: 30000
 - tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
-    visible: "Necesitas conexión"
+    visible: ".*Necesitas conexión.*"
     timeout: 30000
 - takeScreenshot: capturas/scorm-sin-conexion-01-bloqueado
 

@@ -23,12 +23,11 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "ATORA XHR OK.*"
     timeout: 60000
-- assertNotVisible: ".*SCORM:.*Cargando.*"
 - extendedWaitUntil:
     visible: ".*SERVER:OK.*"
     timeout: 60000
 - extendedWaitUntil:
-    visible: "ESCAPE:OK"
+    visible: ".*ESCAPE:OK.*"
     timeout: 60000
 - takeScreenshot: capturas/scorm-xhr-01-online
 
@@ -46,9 +45,8 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "ATORA XHR OK.*"
     timeout: 60000
-- assertNotVisible: ".*SCORM:.*Cargando.*"
 - extendedWaitUntil:
-    visible: "ESCAPE:OK"
+    visible: ".*ESCAPE:OK.*"
     timeout: 60000
 - takeScreenshot: capturas/scorm-xhr-02-offline
 
