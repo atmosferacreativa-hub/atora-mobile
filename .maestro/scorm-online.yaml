@@ -25,9 +25,9 @@ name: scorm-online
 - extendedWaitUntil:
     visible: "Play of the game"
     timeout: 60000
-- assertNotVisible: "SCORM:.*Cargando"
+- assertNotVisible: ".*SCORM:.*Cargando.*"
 - extendedWaitUntil:
-    visible: "SERVER:OK"
+    visible: ".*SERVER:OK.*"
     timeout: 60000
 - takeScreenshot: capturas/scorm-online-02-player-contenido
 

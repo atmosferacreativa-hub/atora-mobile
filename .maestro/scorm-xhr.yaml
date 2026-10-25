@@ -23,9 +23,9 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "ATORA XHR OK.*"
     timeout: 60000
-- assertNotVisible: "SCORM:.*Cargando"
+- assertNotVisible: ".*SCORM:.*Cargando.*"
 - extendedWaitUntil:
-    visible: "SERVER:OK"
+    visible: ".*SERVER:OK.*"
     timeout: 60000
 - extendedWaitUntil:
     visible: "ESCAPE:OK"
@@ -46,7 +46,7 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "ATORA XHR OK.*"
     timeout: 60000
-- assertNotVisible: "SCORM:.*Cargando"
+- assertNotVisible: ".*SCORM:.*Cargando.*"
 - extendedWaitUntil:
     visible: "ESCAPE:OK"
     timeout: 60000

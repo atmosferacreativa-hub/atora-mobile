@@ -11,13 +11,14 @@ onFlowComplete:
 - scrollUntilVisible:
     element: "SCORM mínimo"
 
+# Abrir el recurso (con red) para asegurar navegación al player.
+- tapOn: "SCORM mínimo"
+- extendedWaitUntil:
+    visible: "Descargar y abrir.*"
+    timeout: 30000
+
 # Sin red: no permite iniciar el intento por primera vez.
 - setAirplaneMode: enabled
-- scrollUntilVisible:
-    element: "SCORM mínimo"
-- tapOn: "SCORM mínimo"
-- scrollUntilVisible:
-    element: "Descargar y abrir.*"
 - extendedWaitUntil:
     visible: "Descargar y abrir.*"
     timeout: 30000
@@ -36,9 +37,9 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "Play of the game"
     timeout: 60000
-- assertNotVisible: "SCORM:.*Cargando"
+- assertNotVisible: ".*SCORM:.*Cargando.*"
 - extendedWaitUntil:
-    visible: "SERVER:OK"
+    visible: ".*SERVER:OK.*"
     timeout: 60000
 - takeScreenshot: capturas/scorm-sin-conexion-02-online
 
@@ -56,6 +57,6 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "Play of the game"
     timeout: 60000
-- assertNotVisible: "SCORM:.*Cargando"
+- assertNotVisible: ".*SCORM:.*Cargando.*"
 - takeScreenshot: capturas/scorm-sin-conexion-03-offline
 
