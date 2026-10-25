@@ -1,7 +1,7 @@
 import * as vm from 'vm';
 import { buildScormInjectedRuntime } from '../runtime';
 
-function runInjected(scormVersion: string, params?: { e2eProbe?: boolean }) {
+function runInjected(scormVersion: string) {
   const messages: any[] = [];
   const window: any = {
     ReactNativeWebView: {
@@ -14,7 +14,6 @@ function runInjected(scormVersion: string, params?: { e2eProbe?: boolean }) {
     attemptId: 123,
     scormVersion,
     initialValues: { 'cmi.foo': 'bar' },
-    e2eProbe: Boolean(params?.e2eProbe),
   }), context);
   return { window: (context as any).window as any, messages };
 }
@@ -60,13 +59,6 @@ describe('SCORM injected runtime', () => {
 
     expect(window.API_1484_11.SetValue('', 'x')).toBe('false');
     expect(window.API_1484_11.GetLastError()).toBe('201');
-  });
-
-  it('E2E probe: Initialize fuerza un commit temprano con un marcador', () => {
-    const { window, messages } = runInjected('1.2', { e2eProbe: true });
-
-    expect(window.API.LMSInitialize('')).toBe('true');
-    expect(messages.some((m) => m.type === 'scorm.commit' && m.values?.['cmi.suspend_data'] === 'ATORA_E2E_COMMIT')).toBe(true);
   });
 });
 

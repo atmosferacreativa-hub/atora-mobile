@@ -10,6 +10,7 @@ import { colors, spacing } from '../theme';
 import { t } from '../i18n';
 import { downloadScormPackage, findScormDownload, updateScormDownloadAttemptId, type DownloadRecord } from '../offline/mediaDownloads';
 import { enqueueScormCommit, isScormNoAttemptsError, scormGetValues, startScormAttempt, SCORM_COMMIT } from '../api/scorm';
+import { refreshLesson } from '../api/courses';
 import { flushOutbox, listOutbox, subscribeOutbox } from '../offline/outbox/runtime';
 import { formatBytes } from '../offline/downloadsMath';
 import { buildScormInjectedRuntime } from '../scorm/runtime';
@@ -45,11 +46,19 @@ function buildScormWrapperHtml(params: { launchPath: string; includeE2EProbes: b
           try {
             var w = frame && frame.contentWindow;
             var d = frame && frame.contentDocument;
-            if (d) {
-              var title = d.title ? String(d.title) : '';
-              var body = (d.body && d.body.innerText) ? String(d.body.innerText) : '';
-              var text = normalizeText((title ? (title + ' — ') : '') + body);
-              post({ type: 'atora.pageText', text: text || '(sin texto)' });
+            function sample(){
+              try {
+                if (!d) return;
+                var title = d.title ? String(d.title) : '';
+                var body = (d.body && d.body.innerText) ? String(d.body.innerText) : '';
+                var text = normalizeText((title ? (title + ' — ') : '') + body);
+                post({ type: 'atora.pageText', text: text || '(sin texto)' });
+              } catch(e) {}
+            }
+            sample();
+            // XHR/fetch: el texto puede aparecer después del load.
+            for (var i = 1; i <= 10; i += 1) {
+              setTimeout(sample, i * 500);
             }
             // Hardening: no permitir escapar a carpeta padre ni acceder a "otro paquete".
             // Solo aplicable a http(s) (server local). En file:// no hacemos fetch.
@@ -99,9 +108,9 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [wrapperUri, setWrapperUri] = useState('');
   const [pageText, setPageText] = useState('');
   const [escapeCheckText, setEscapeCheckText] = useState('');
-  const [serverCommitText, setServerCommitText] = useState('');
+  const [serverStateText, setServerStateText] = useState('');
   const [attemptId, setAttemptId] = useState(0);
-  const [syncError, setSyncError] = useState('');
+  const [syncNotice, setSyncNotice] = useState('');
   const [initialValues, setInitialValues] = useState<Record<string, string>>({});
   const valuesRef = useRef<Record<string, string>>({});
   const statePathRef = useRef('');
@@ -177,20 +186,46 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     return Boolean(network?.isConnected && network.isInternetReachable !== false);
   }, []);
 
-  const refreshSyncError = useCallback(async () => {
+  const refreshSyncNotice = useCallback(async () => {
     if (!attemptId) {
-      setSyncError('');
+      setSyncNotice('');
       return;
     }
     const all = await listOutbox().catch(() => ({ pending: [], failed: [] }));
-    const mine = all.failed.filter((event) => event.type === SCORM_COMMIT && (event.payload as any)?.attemptId === attemptId);
-    setSyncError(mine.length ? t('Último intento: {error}', { error: mine[0]!.lastError || t('Error desconocido') }) : '');
+    const mineFailed = all.failed.filter((event) => event.type === SCORM_COMMIT && (event.payload as any)?.attemptId === attemptId);
+    if (mineFailed.length) {
+      setSyncNotice(t('Último intento: {error}', { error: mineFailed[0]!.lastError || t('Error desconocido') }));
+      return;
+    }
+    const minePending = all.pending.filter((event) => event.type === SCORM_COMMIT && (event.payload as any)?.attemptId === attemptId);
+    setSyncNotice(minePending.length ? t('Pendiente · se enviará al tener conexión') : '');
   }, [attemptId]);
 
   useEffect(() => {
-    void refreshSyncError();
-    return subscribeOutbox(() => void refreshSyncError());
-  }, [refreshSyncError]);
+    void refreshSyncNotice();
+    return subscribeOutbox(() => void refreshSyncNotice());
+  }, [refreshSyncNotice]);
+
+  const refreshServerState = useCallback(async (currentAttemptId: number) => {
+    if (!isE2E || !currentAttemptId) return;
+
+    const online = await hasNetwork();
+    if (!online) return;
+
+    const values = await scormGetValues(token, currentAttemptId).catch(() => null);
+    const status = String(values?.values?.['cmi.core.lesson_status'] ?? values?.values?.['cmi.completion_status'] ?? '').toLowerCase();
+    const score = String(values?.values?.['cmi.core.score.raw'] ?? values?.values?.['cmi.score.raw'] ?? '').trim();
+    const location = String(values?.values?.['cmi.core.lesson_location'] ?? values?.values?.['cmi.location'] ?? '').trim();
+    const parts: string[] = [];
+    if (status) parts.push(`STATUS:${status}`);
+    if (score) parts.push(`SCORE:${score}`);
+    if (!status && !score && location) parts.push(`LOC:${location.slice(0, 18)}`);
+
+    const lesson = await refreshLesson(lessonId, token).catch(() => null);
+    if (lesson) parts.push(lesson.completed ? 'LESSON:OK' : 'LESSON:NO');
+
+    setServerStateText(parts.length ? `SERVER:${parts.join(',')}` : '');
+  }, [hasNetwork, isE2E, lessonId, token]);
 
   const openFromRecord = useCallback(async (saved: DownloadRecord) => {
     const base = saved.localUri;
@@ -326,25 +361,31 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     attemptId,
     scormVersion: scormVersion || '1.2',
     initialValues,
-    e2eProbe: isE2E,
   }), [attemptId, scormVersion, initialValues]);
 
-  const verifyServerCommit = useCallback(async (currentAttemptId: number) => {
-    if (!isE2E || !currentAttemptId) return;
-    // Evita spamear: si ya está OK, no volver a comprobar.
-    if (serverCommitText === 'SERVER:OK') return;
+  useEffect(() => {
+    if (!attemptId) return;
+    let timer: any = null;
+    let active = true;
+    const tick = async () => {
+      if (!active) return;
+      const online = await hasNetwork();
+      if (!online) return;
+      const all = await listOutbox().catch(() => ({ pending: [], failed: [] }));
+      const minePending = all.pending.filter((event) => event.type === SCORM_COMMIT && (event.payload as any)?.attemptId === attemptId);
+      if (!minePending.length) return;
+      await flushOutbox(token).catch(() => undefined);
+      await refreshSyncNotice();
+      await refreshServerState(attemptId);
+    };
 
-    setServerCommitText('SERVER:WAIT');
-    for (let i = 0; i < 12; i += 1) {
-      const values = await scormGetValues(token, currentAttemptId).catch(() => null);
-      if (values?.values?.['cmi.suspend_data'] === 'ATORA_E2E_COMMIT') {
-        setServerCommitText('SERVER:OK');
-        return;
-      }
-      await new Promise((r) => setTimeout(r, 500));
-    }
-    setServerCommitText('SERVER:FAIL');
-  }, [isE2E, token, serverCommitText]);
+    // Reintenta la cola mientras haya commits pendientes para este intento.
+    timer = setInterval(() => void tick(), 2_000);
+    return () => {
+      active = false;
+      if (timer) clearInterval(timer);
+    };
+  }, [attemptId, hasNetwork, refreshServerState, refreshSyncNotice, token]);
 
   if (!baseUrl || !launchPath || (Platform.OS === 'ios' && !wrapperUri)) {
     return (
@@ -412,8 +453,8 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               }
               void enqueueScormCommit(msg.attemptId, msg.values as Record<string, string>)
                 .then(() => flushOutbox(token))
-                .then(() => verifyServerCommit(msg.attemptId))
-                .then(() => refreshSyncError())
+                .then(() => refreshServerState(msg.attemptId))
+                .then(() => refreshSyncNotice())
                 .catch(() => undefined);
             }
           } catch {
@@ -443,12 +484,12 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       />
       {isE2E ? (
         <View style={styles.e2eBar}>
-          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: [pageText || t('Cargando...'), escapeCheckText, serverCommitText].filter(Boolean).join(' · ') })}</Text>
+          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: [pageText || t('Cargando...'), escapeCheckText, serverStateText].filter(Boolean).join(' · ') })}</Text>
         </View>
       ) : null}
-      {syncError ? (
+      {syncNotice ? (
         <View style={styles.syncBar}>
-          <Text style={styles.syncText}>{syncError}</Text>
+          <Text style={styles.syncText}>{syncNotice}</Text>
         </View>
       ) : null}
     </View>

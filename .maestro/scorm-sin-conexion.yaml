@@ -9,19 +9,16 @@ onFlowComplete:
     element: "SCORM"
 - tapOn: "SCORM"
 - scrollUntilVisible:
-    element: "SCORM mínimo"
+    element: "SCORM XHR"
 
 # Abrir el recurso (con red) para asegurar navegación al player.
-- tapOn: "SCORM mínimo"
+- tapOn: "SCORM XHR"
 - extendedWaitUntil:
     visible: "Descargar y abrir.*"
     timeout: 30000
 
 # Sin red: no permite iniciar el intento por primera vez.
 - setAirplaneMode: enabled
-- extendedWaitUntil:
-    visible: "Descargar y abrir.*"
-    timeout: 30000
 - tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
     visible: ".*Necesitas conexión.*"
@@ -35,28 +32,29 @@ onFlowComplete:
     visible: "← Volver"
     timeout: 90000
 - extendedWaitUntil:
-    visible: "Play of the game"
+    visible: "ATORA XHR OK.*"
     timeout: 60000
 - assertNotVisible: ".*SCORM:.*Cargando.*"
-- extendedWaitUntil:
-    visible: ".*SERVER:OK.*"
-    timeout: 60000
 - takeScreenshot: capturas/scorm-sin-conexion-02-online
 
-# Luego, sin red: vuelve a abrir desde archivos locales.
+# Luego, sin red: marca completado/80 desde el paquete, queda pendiente y al volver la red sincroniza.
 - setAirplaneMode: enabled
-- tapOn: "← Volver"
-- tapOn: "← Volver"
-- tapOn: "SCORM"
-- scrollUntilVisible:
-    element: "SCORM mínimo"
-- tapOn: "SCORM mínimo"
+
+# El paquete muestra un botón grande centrado: tap por coordenadas dentro del WebView.
+- tapOn:
+    point: "50%,55%"
 - extendedWaitUntil:
-    visible: "← Volver"
+    visible: ".*COMPLETED 80.*"
     timeout: 30000
 - extendedWaitUntil:
-    visible: "Play of the game"
+    visible: "Pendiente · se enviará al tener conexión"
+    timeout: 30000
+- takeScreenshot: capturas/scorm-sin-conexion-03-pendiente
+
+# Con red: la cola se envía y el servidor refleja completed + score 80 y la lección queda completada.
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: ".*SERVER:.*STATUS:completed.*SCORE:80.*LESSON:OK.*"
     timeout: 60000
-- assertNotVisible: ".*SCORM:.*Cargando.*"
-- takeScreenshot: capturas/scorm-sin-conexion-03-offline
+- takeScreenshot: capturas/scorm-sin-conexion-04-sincronizado
 

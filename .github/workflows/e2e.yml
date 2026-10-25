@@ -130,8 +130,8 @@ jobs:
 
           # SCORM.
           if echo "$CHANGED" | grep -Eq '^(src/scorm/|src/screens/ScormPlayerScreen\.tsx$|src/offline/mediaDownloads\.ts$|src/offline/downloadSources\.ts$)'; then
-            # Orden: primero sin-conexión (descarga), luego online (puede reutilizar la descarga), luego XHR.
-            add_flows "scorm-sin-conexion" "scorm-online" "scorm-xhr"
+            # Cada recorrido limpia estado (`launchApp clearState: true`), así que no dependen del orden.
+            add_flows "scorm-online" "scorm-sin-conexion" "scorm-xhr"
           fi
 
           # Docente.

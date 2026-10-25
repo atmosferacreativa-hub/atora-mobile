@@ -24,7 +24,7 @@ onFlowComplete:
     visible: "ATORA XHR OK.*"
     timeout: 60000
 - extendedWaitUntil:
-    visible: ".*SERVER:OK.*"
+    visible: ".*SERVER:LOC:.*"
     timeout: 60000
 - extendedWaitUntil:
     visible: ".*ESCAPE:OK.*"
