@@ -134,6 +134,7 @@ export const en: Record<string, string> = {
   "El estudiante verá la nota y recibirá un aviso. La nota se aplica a todos los integrantes del grupo.": "The student will see the grade and get a notification. The grade applies to every group member.",
   "el primer nivel": "the first level",
   "El servidor no entregó el archivo.": "The server did not return the file.",
+  "El paquete está incompleto.": "The package is incomplete.",
   "El tiempo terminó": "Time is up",
   "El tiempo terminó. Intenta entregar tus respuestas.": "Time is up. Try to submit your answers.",
   "El video dejará de estar disponible sin conexión. Podrás volver a descargarlo cuando tengas Wi-Fi.": "The video will no longer be available offline. You can download it again on Wi-Fi.",
