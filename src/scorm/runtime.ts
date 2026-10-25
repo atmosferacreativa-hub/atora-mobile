@@ -57,7 +57,8 @@ export function buildScormInjectedRuntime(input: {
           // E2E: forzar un commit temprano para poder comprobar que el servidor lo recibió.
           try {
             if (cfg.e2eProbe) {
-              setValue('cmi.location', 'ATORA_E2E_COMMIT');
+              // 'cmi.suspend_data' es ampliamente soportado (SCORM 1.2/2004) y se guarda como estado del intento.
+              setValue('cmi.suspend_data', 'ATORA_E2E_COMMIT');
               flush();
             }
           } catch(e) {}

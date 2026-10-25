@@ -130,7 +130,8 @@ jobs:
 
           # SCORM.
           if echo "$CHANGED" | grep -Eq '^(src/scorm/|src/screens/ScormPlayerScreen\.tsx$|src/offline/mediaDownloads\.ts$|src/offline/downloadSources\.ts$)'; then
-            add_flows "scorm-online" "scorm-sin-conexion" "scorm-xhr"
+            # Orden: primero sin-conexión (descarga), luego online (puede reutilizar la descarga), luego XHR.
+            add_flows "scorm-sin-conexion" "scorm-online" "scorm-xhr"
           fi
 
           # Docente.

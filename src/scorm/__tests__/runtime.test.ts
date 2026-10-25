@@ -66,7 +66,7 @@ describe('SCORM injected runtime', () => {
     const { window, messages } = runInjected('1.2', { e2eProbe: true });
 
     expect(window.API.LMSInitialize('')).toBe('true');
-    expect(messages.some((m) => m.type === 'scorm.commit' && m.values?.['cmi.location'] === 'ATORA_E2E_COMMIT')).toBe(true);
+    expect(messages.some((m) => m.type === 'scorm.commit' && m.values?.['cmi.suspend_data'] === 'ATORA_E2E_COMMIT')).toBe(true);
   });
 });
 

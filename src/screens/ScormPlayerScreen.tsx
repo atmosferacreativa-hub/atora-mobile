@@ -337,7 +337,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     setServerCommitText('SERVER:WAIT');
     for (let i = 0; i < 12; i += 1) {
       const values = await scormGetValues(token, currentAttemptId).catch(() => null);
-      if (values?.values?.['cmi.location'] === 'ATORA_E2E_COMMIT') {
+      if (values?.values?.['cmi.suspend_data'] === 'ATORA_E2E_COMMIT') {
         setServerCommitText('SERVER:OK');
         return;
       }
