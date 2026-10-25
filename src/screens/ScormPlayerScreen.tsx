@@ -38,7 +38,6 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [initialValues, setInitialValues] = useState<Record<string, string>>({});
   const valuesRef = useRef<Record<string, string>>({});
   const serverRef = useRef<{ stop: () => Promise<void> } | null>(null);
-  const serverTokenRef = useRef('');
   const serverOriginRef = useRef('');
 
   const isE2E = Boolean((Constants.expoConfig?.extra as { e2e?: boolean } | undefined)?.e2e);
@@ -59,7 +58,6 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     return () => {
       const server = serverRef.current;
       serverRef.current = null;
-      serverTokenRef.current = '';
       serverOriginRef.current = '';
       if (server) void server.stop().catch(() => undefined);
     };
@@ -151,18 +149,20 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     setInitialValues(values);
 
     // Android: algunos paquetes (Rise/Storyline) usan XHR/fetch y fallan con file://.
-    // Se sirven desde 127.0.0.1 con token en la ruta, sin exponer el token de la sesión.
+    // Se sirven desde 127.0.0.1 con puerto aleatorio y token (carpeta) en la ruta.
     if (Platform.OS === 'android') {
+      const segments = base.split('/').filter(Boolean);
+      const tokenDir = segments[segments.length - 1] ?? '';
+      const serveBase = base.replace(/\/[^/]+\/?$/, '/');
+
       if (!serverRef.current) {
-        const server = await startLocalScormServer(base);
+        const server = await startLocalScormServer(serveBase);
         serverRef.current = { stop: server.stop };
-        serverTokenRef.current = server.token;
         serverOriginRef.current = server.origin;
       }
       const origin = serverOriginRef.current;
-      const serverToken = serverTokenRef.current;
       const path = href.replace(/^\//, '');
-      setSource(`${origin}/${serverToken}/${path}`);
+      setSource(`${origin}/${tokenDir}/${path}`);
       return;
     }
 
@@ -309,7 +309,8 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
           if (/^http:\/\//i.test(url)) {
             // Solo el server local del paquete.
             const origin = serverOriginRef.current;
-            const tok = serverTokenRef.current;
+            const segments = (record?.localUri ?? '').split('/').filter(Boolean);
+            const tok = segments[segments.length - 1] ?? '';
             if (origin && tok && url.startsWith(`${origin}/${tok}/`)) return true;
             void Linking.openURL(url).catch(() => undefined);
             return false;

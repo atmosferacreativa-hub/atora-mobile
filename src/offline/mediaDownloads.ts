@@ -319,7 +319,9 @@ export async function downloadScormPackage(
 
   const checksum = link.version_checksum_sha256 || `v${link.library_version_id}`;
   const zipPath = `${SCORM_DIR}pkg-${lesson.id}-${libraryItemId}-${checksum}.zip`;
-  const destDir = `${SCORM_DIR}pkg-${lesson.id}-${libraryItemId}-${checksum}/`;
+  // Android: el servidor local usa el nombre de carpeta como token en la ruta.
+  // iOS puede abrir file:// directo, pero mantenemos la misma ruta.
+  const destDir = `${SCORM_DIR}serve/${checksum}/`;
 
   const { downloadAsync } = await import('expo-file-system');
   const result = await downloadAsync(sourceUrl, zipPath, { headers: { Authorization: `Bearer ${token}` } });

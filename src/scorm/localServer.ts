@@ -1,34 +1,21 @@
-import Server, { getActiveServer } from '@dr.pogodin/react-native-static-server';
-import * as Crypto from 'expo-crypto';
+import StaticServer from 'react-native-static-server';
 
 type LocalScormServer = {
   origin: string;
-  token: string;
   stop: () => Promise<void>;
 };
 
-export async function startLocalScormServer(fileDir: string): Promise<LocalScormServer> {
-  const token = Crypto.randomUUID();
-  const active = getActiveServer();
-  if (active) {
-    try {
-      await active.stop();
-    } catch {
-      // Si algo dejó un server colgado, preferimos seguir sin romper la pantalla.
-    }
-  }
+function pathFromFileUri(fileUri: string): string {
+  const raw = String(fileUri || '');
+  return raw.startsWith('file://') ? raw.slice('file://'.length) : raw;
+}
 
-  const extraConfig = [
-    'server.modules += ("mod_rewrite")',
-    // Token en la ruta: /<token>/... → /...
-    `url.rewrite-once = ("^/${token}/(.*)$" => "/$1")`,
-  ].join('\n');
-
-  const server = new Server({ fileDir, port: 0, extraConfig });
+export async function startLocalScormServer(serverRootDirFileUri: string): Promise<LocalScormServer> {
+  const root = pathFromFileUri(serverRootDirFileUri);
+  const server = new StaticServer(0, root, { localOnly: true });
   const origin = await server.start();
   return {
     origin,
-    token,
     stop: async () => {
       try {
         await server.stop();
