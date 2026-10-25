@@ -33,8 +33,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WP_URL: http://10.0.2.2:8080
-  API_URL: http://10.0.2.2:8080/wp-json/atora-mobile/v1
+  # CI: el emulador no siempre puede alcanzar 10.0.2.2. Usamos 127.0.0.1
+  # dentro del emulador, con `adb reverse` (ver scripts/e2e-run.sh).
+  WP_URL: http://127.0.0.1:8080
+  API_URL: http://127.0.0.1:8080/wp-json/atora-mobile/v1
 
 jobs:
   e2e:

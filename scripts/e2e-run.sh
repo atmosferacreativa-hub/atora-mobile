@@ -5,6 +5,12 @@ set -euo pipefail
 
 flows="${1:-todos}"
 adb install -r atora-e2e.apk
+
+# CI: `adb reverse` hace que 127.0.0.1:8080 dentro del emulador apunte al
+# WordPress del runner. Esto evita depender de 10.0.2.2 (a veces inaccesible
+# en GitHub Actions / KVM).
+adb reverse --remove-all || true
+adb reverse tcp:8080 tcp:8080
 mkdir -p capturas
 
 args=()
