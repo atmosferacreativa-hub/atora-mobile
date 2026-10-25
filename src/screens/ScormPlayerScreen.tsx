@@ -31,7 +31,10 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [record, setRecord] = useState<DownloadRecord | null>(null);
-  const [source, setSource] = useState('');
+  // `baseUrl`: carpeta raíz (file://) o base HTTP del server local (incluye token y termina en "/").
+  const [baseUrl, setBaseUrl] = useState('');
+  // `launchPath`: ruta dentro del paquete (sin "/" inicial).
+  const [launchPath, setLaunchPath] = useState('');
   const [pageText, setPageText] = useState('');
   const [escapeCheckText, setEscapeCheckText] = useState('');
   const [attemptId, setAttemptId] = useState(0);
@@ -68,7 +71,8 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               serverRef.current = { stop: server.stop };
               serverOriginRef.current = server.origin;
               serverTokenRef.current = server.token;
-              setSource(`${server.origin}/${server.token}/${pending.launchPath}`);
+              setLaunchPath(pending.launchPath);
+              setBaseUrl(`${server.origin}/${server.token}/`);
             })
             .catch(() => undefined);
         }
@@ -127,11 +131,12 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
 
   const openFromRecord = useCallback(async (saved: DownloadRecord) => {
     const base = saved.localUri;
+    const baseDir = base.endsWith('/') ? base : `${base}/`;
     const complete = await FileSystem.getInfoAsync(`${base}.atora-complete`).catch(() => ({ exists: false } as any));
     if (!complete.exists) throw new Error(t('La descarga del paquete no está completa. Vuelve a descargarlo.'));
     const href = saved.scorm?.launchHref || launchHref;
     if (!href) throw new Error(t('El paquete SCORM no tiene launch file.'));
-    const localUri = `${base}${href.replace(/^\//, '')}`;
+    const localUri = `${baseDir}${href.replace(/^\//, '')}`;
     const info = await FileSystem.getInfoAsync(localUri).catch(() => ({ exists: false } as any));
     if (!info.exists) throw new Error(t('El archivo principal no existe. Vuelve a descargar el paquete.'));
 
@@ -185,24 +190,25 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
 
     // La ruta de lanzamiento dentro del paquete (sin "/" inicial).
     const launchPath = String(href || 'index.html').replace(/^\//, '');
-    androidServeRef.current = { packageDir: base, launchPath };
+    setLaunchPath(launchPath);
+    androidServeRef.current = { packageDir: baseDir, launchPath };
 
     // Android: algunos paquetes (Rise/Storyline) usan XHR/fetch y fallan con file://.
     // Se sirven desde 127.0.0.1 con puerto aleatorio y token (carpeta) en la ruta.
     if (Platform.OS === 'android') {
       if (!serverRef.current) {
-        const server = await startLocalScormServer(base);
+        const server = await startLocalScormServer(baseDir);
         serverRef.current = { stop: server.stop };
         serverOriginRef.current = server.origin;
         serverTokenRef.current = server.token;
       }
       const origin = serverOriginRef.current;
       const tok = serverTokenRef.current;
-      setSource(`${origin}/${tok}/${launchPath}`);
+      setBaseUrl(`${origin}/${tok}/`);
       return;
     }
 
-    setSource(localUri);
+    setBaseUrl(baseDir);
 	  }, [hasNetwork, launchHref, token, lessonId, libraryItemId]);
 
   useEffect(() => {
@@ -250,7 +256,63 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     initialValues,
   }), [attemptId, scormVersion, initialValues]);
 
-  if (!source) {
+  const wrapperHtml = useMemo(() => {
+    if (!launchPath) return '';
+    const safeLaunch = String(launchPath).replace(/"/g, '%22');
+    // La API SCORM vive en el documento padre (wrapper). El paquete corre en un iframe.
+    // Esto es compatible con paquetes que buscan el adaptador solo en el `parent`.
+    return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>html,body{margin:0;padding:0;height:100%;overflow:hidden}iframe{border:0;width:100%;height:100%}</style>
+  </head>
+  <body>
+    <iframe id="atora_scorm" src="${safeLaunch}" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" allow="fullscreen"></iframe>
+    <script>
+      (function(){
+        var isE2E = ${isE2E ? 'true' : 'false'};
+        var frame = document.getElementById('atora_scorm');
+        function post(msg){
+          try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch(e) {}
+        }
+        function normalizeText(text){
+          return String(text || '').replace(/\s+/g,' ').trim().slice(0,220);
+        }
+        function onFrameLoaded(){
+          if (!isE2E) return;
+          try {
+            var w = frame && frame.contentWindow;
+            var d = frame && frame.contentDocument;
+            if (d) {
+              var title = d.title ? String(d.title) : '';
+              var body = (d.body && d.body.innerText) ? String(d.body.innerText) : '';
+              var text = normalizeText((title ? (title + ' — ') : '') + body);
+              post({ type: 'atora.pageText', text: text || '(sin texto)' });
+            }
+            // Hardening: no permitir escapar a carpeta padre ni acceder a "otro paquete".
+            // Solo aplicable a http(s) (server local). En file:// no hacemos fetch.
+            if (w && w.location && (w.location.protocol === 'http:' || w.location.protocol === 'https:') && typeof w.fetch === 'function') {
+              var seg = (w.location.pathname || '').split('/').filter(Boolean)[0] || '';
+              var other = seg ? (seg + 'x') : 'other';
+              Promise.all([
+                w.fetch('../').then(function(r){return r && r.ok;}).catch(function(){return false;}),
+                w.fetch('/' + other + '/index.html').then(function(r){return r && r.ok;}).catch(function(){return false;}),
+              ]).then(function(res){
+                post({ type: 'atora.escapeCheck', parentOk: !!res[0], otherOk: !!res[1] });
+              });
+            }
+          } catch(e) {}
+        }
+        try { frame && frame.addEventListener('load', onFrameLoaded); } catch(e) {}
+      })();
+    </script>
+  </body>
+</html>`;
+  }, [launchPath, isE2E]);
+
+  if (!baseUrl || !launchPath) {
     return (
       <View style={styles.screen}>
         <View style={styles.bar}>
@@ -284,7 +346,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       </View>
       <WebView
         ref={webRef}
-        source={{ uri: source }}
+        source={{ html: wrapperHtml, baseUrl }}
         originWhitelist={['file://*', 'http://*', 'https://*']}
         allowingReadAccessToURL={record?.localUri}
         allowFileAccess
@@ -323,39 +385,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
             // Mensaje ajeno.
           }
         }}
-        onLoadEnd={() => {
-          if (!isE2E) return;
-          try {
-            webRef.current?.injectJavaScript(`
-              (function(){
-                try {
-                  var title = (document && document.title) ? String(document.title).replace(/\s+/g,' ').trim() : '';
-                  var body = (document && document.body && document.body.innerText) ? String(document.body.innerText).replace(/\s+/g,' ').trim() : '';
-                  var text = (title ? (title + ' — ') : '') + body;
-                  text = String(text || '').trim().slice(0, 220);
-                  window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'atora.pageText', text: text || '(sin texto)' }));
-                } catch(e) {}
-
-                // Hardening: no permitir escapar a carpeta padre ni acceder a "otro paquete".
-                // Desde /{token}/index.html, ../ resuelve a / (raíz). Debe fallar.
-                // También probamos /{token}x/... como si fuese otro paquete.
-                try {
-                  var seg = (location && location.pathname) ? String(location.pathname).split('/').filter(Boolean)[0] : '';
-                  var other = seg ? (seg + 'x') : 'other';
-                  Promise.all([
-                    fetch('../').then(function(r){return r && r.ok;}).catch(function(){return false;}),
-                    fetch('/' + other + '/index.html').then(function(r){return r && r.ok;}).catch(function(){return false;}),
-                  ]).then(function(res){
-                    window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'atora.escapeCheck', parentOk: !!res[0], otherOk: !!res[1] }));
-                  });
-                } catch(e) {}
-              })();
-              true;
-            `);
-          } catch {
-            // Sin ref.
-          }
-        }}
+        onLoadEnd={() => undefined}
         onShouldStartLoadWithRequest={({ url }) => {
           if (url === 'about:blank') return true;
           if (url.startsWith('file://')) {
