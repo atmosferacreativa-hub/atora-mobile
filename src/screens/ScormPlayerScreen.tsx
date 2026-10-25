@@ -99,6 +99,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [wrapperUri, setWrapperUri] = useState('');
   const [pageText, setPageText] = useState('');
   const [escapeCheckText, setEscapeCheckText] = useState('');
+  const [serverCommitText, setServerCommitText] = useState('');
   const [attemptId, setAttemptId] = useState(0);
   const [syncError, setSyncError] = useState('');
   const [initialValues, setInitialValues] = useState<Record<string, string>>({});
@@ -325,7 +326,25 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     attemptId,
     scormVersion: scormVersion || '1.2',
     initialValues,
+    e2eProbe: isE2E,
   }), [attemptId, scormVersion, initialValues]);
+
+  const verifyServerCommit = useCallback(async (currentAttemptId: number) => {
+    if (!isE2E || !currentAttemptId) return;
+    // Evita spamear: si ya está OK, no volver a comprobar.
+    if (serverCommitText === 'SERVER:OK') return;
+
+    setServerCommitText('SERVER:WAIT');
+    for (let i = 0; i < 12; i += 1) {
+      const values = await scormGetValues(token, currentAttemptId).catch(() => null);
+      if (values?.values?.['cmi.location'] === 'ATORA_E2E_COMMIT') {
+        setServerCommitText('SERVER:OK');
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    setServerCommitText('SERVER:FAIL');
+  }, [isE2E, token, serverCommitText]);
 
   if (!baseUrl || !launchPath || (Platform.OS === 'ios' && !wrapperUri)) {
     return (
@@ -393,6 +412,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               }
               void enqueueScormCommit(msg.attemptId, msg.values as Record<string, string>)
                 .then(() => flushOutbox(token))
+                .then(() => verifyServerCommit(msg.attemptId))
                 .then(() => refreshSyncError())
                 .catch(() => undefined);
             }
@@ -423,7 +443,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       />
       {isE2E ? (
         <View style={styles.e2eBar}>
-          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: [pageText || t('Cargando...'), escapeCheckText].filter(Boolean).join(' · ') })}</Text>
+          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: [pageText || t('Cargando...'), escapeCheckText, serverCommitText].filter(Boolean).join(' · ') })}</Text>
         </View>
       ) : null}
       {syncError ? (

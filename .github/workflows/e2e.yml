@@ -365,3 +365,154 @@ jobs:
             ~/.maestro/tests/
           if-no-files-found: warn
           retention-days: 30
+
+  ios-e2e:
+    # iOS e2e (simulador) solo cuando se pide explícitamente.
+    # - PR con etiqueta `e2e-completo`
+    # - o tags v*
+    if: >-
+      (github.event_name == 'pull_request' && contains(toJson(github.event.pull_request.labels), '"name":"e2e-completo"'))
+      || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      WP_URL: http://127.0.0.1:8080
+      API_URL: http://127.0.0.1:8080/wp-json/atora-mobile/v1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Plugin ATORA LMS
+        uses: actions/checkout@v4
+        with:
+          repository: atmosferacreativa-hub/Atora-LMS-6
+          ref: ${{ inputs.plugin_ref || 'main' }}
+          path: _plugin
+
+      - name: Docker disponible
+        run: |
+          set -euo pipefail
+          command -v docker
+          docker version
+          docker info
+
+      - name: WordPress temporal (Docker)
+        run: |
+          docker network create e2e
+          docker run -d --name db --network e2e \
+            -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=wp -e MYSQL_USER=wp -e MYSQL_PASSWORD=wp \
+            mysql:8.0
+          docker run -d --name wp --network e2e -p 8080:80 \
+            -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp \
+            -e WORDPRESS_CONFIG_EXTRA="define('WP_ENVIRONMENT_TYPE','local'); define('ATORA_E2E', true); define('ATORA_AI_FAKE', true);" \
+            -v "$PWD/_plugin:/var/www/html/wp-content/plugins/atora-lms" \
+            wordpress:6.8-php8.1-apache
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://localhost:8080/wp-admin/install.php; then break; fi
+            sleep 3
+          done
+
+      - name: PHP Zip para SCORM (WordPress)
+        run: |
+          if docker exec wp php -m | grep -qi '^zip$'; then
+            echo "ZipArchive OK"
+          else
+            echo "Instalando extensión zip..."
+            docker exec wp bash -lc 'apt-get update && apt-get install -y --no-install-recommends g++ make autoconf libzip-dev zlib1g-dev unzip && docker-php-ext-install zip'
+            docker exec wp apache2ctl -k restart
+            docker exec wp php -m | grep -i '^zip$'
+          fi
+
+      - name: Instalar WordPress y sembrar datos
+        run: |
+          WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp wordpress:cli-php8.1 wp"
+          for i in $(seq 1 40); do
+            if docker exec db mysqladmin ping -uwp -pwp --silent 2>/dev/null && $WP db check >/dev/null 2>&1; then break; fi
+            sleep 3
+          done
+          $WP core install --url="$WP_URL" --title="ATORA E2E" --admin_user=admin --admin_password=admin --admin_email=admin@e2e.test --skip-email
+          $WP rewrite structure '/%postname%/' --hard
+          $WP plugin activate atora-lms
+          docker exec wp mkdir -p /var/www/html/e2e-media
+          docker cp e2e/media/. wp:/var/www/html/e2e-media/
+          docker exec wp chown -R 33:33 /var/www/html/e2e-media
+          $WP atora seed-e2e --yes --video-dir=/var/www/html/e2e-media | tee seed.json
+          curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Build iOS (simulador)
+        timeout-minutes: 45
+        env:
+          ATORA_E2E: '1'
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+          EXPO_PUBLIC_ATORA_API_URL: ${{ env.API_URL }}
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          npm ci
+          npx expo prebuild --platform ios --no-install
+          cd ios
+          pod install
+
+          DERIVED="$RUNNER_TEMP/atora-ios"
+          rm -rf "$DERIVED"
+          mkdir -p "$DERIVED"
+
+          WORKSPACE=""
+          if [ -f ATORA.xcworkspace/contents.xcworkspacedata ]; then WORKSPACE="ATORA.xcworkspace"; fi
+          if [ -f Atora.xcworkspace/contents.xcworkspacedata ]; then WORKSPACE="Atora.xcworkspace"; fi
+          if [ -z "$WORKSPACE" ]; then
+            echo "::error::No se encontró .xcworkspace (pod install falló o no generó workspace)."
+            ls -la
+            exit 1
+          fi
+
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme ATORA \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath "$DERIVED" \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            build
+
+          APP_PATH="$DERIVED/Build/Products/Debug-iphonesimulator/ATORA.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::No se encontró la app compilada en $APP_PATH"
+            find "$DERIVED" -maxdepth 5 -type d -name '*.app' -print
+            exit 1
+          fi
+
+          xcrun simctl boot 'iPhone 15' || true
+          xcrun simctl bootstatus 'iPhone 15' -b
+          xcrun simctl install booted "$APP_PATH"
+
+      - name: Recorridos Maestro (iOS)
+        run: |
+          set -euo pipefail
+          mkdir -p capturas
+          maestro test --format junit --output maestro-report.xml .maestro/scorm-online.yaml .maestro/scorm-xhr-ios.yaml
+
+      - name: Capturas y registros (iOS)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-ios-${{ github.run_number }}
+          path: |
+            capturas/
+            .maestro/capturas/
+            maestro-report.xml
+            seed.json
+            ~/.maestro/tests/
+          if-no-files-found: warn
+          retention-days: 30

@@ -34,7 +34,11 @@ onFlowComplete:
     visible: "← Volver"
     timeout: 90000
 - extendedWaitUntil:
-    visible: "SCORM:.*"
+    visible: "Play of the game"
+    timeout: 60000
+- assertNotVisible: "SCORM:.*Cargando"
+- extendedWaitUntil:
+    visible: "SERVER:OK"
     timeout: 60000
 - takeScreenshot: capturas/scorm-sin-conexion-02-online
 
@@ -50,7 +54,8 @@ onFlowComplete:
     visible: "← Volver"
     timeout: 30000
 - extendedWaitUntil:
-    visible: "SCORM:.*"
+    visible: "Play of the game"
     timeout: 60000
+- assertNotVisible: "SCORM:.*Cargando"
 - takeScreenshot: capturas/scorm-sin-conexion-03-offline
 

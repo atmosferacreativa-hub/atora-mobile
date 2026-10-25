@@ -4,11 +4,14 @@ export function buildScormInjectedRuntime(input: {
   attemptId: number;
   scormVersion: string;
   initialValues: Record<string, string>;
+  /** Solo para pruebas e2e: fuerza un commit temprano para validar la sincronización. */
+  e2eProbe?: boolean;
 }): string {
   const payload = JSON.stringify({
     attemptId: input.attemptId,
     scormVersion: input.scormVersion,
     initialValues: input.initialValues,
+    e2eProbe: Boolean(input.e2eProbe),
   });
 
   return `
@@ -48,7 +51,18 @@ export function buildScormInjectedRuntime(input: {
           lastError = '0';
           return 'true';
         }
-        function init(){ lastError = '0'; post({ type: 'scorm.init', attemptId: attemptId, version: version }); return 'true'; }
+        function init(){
+          lastError = '0';
+          post({ type: 'scorm.init', attemptId: attemptId, version: version });
+          // E2E: forzar un commit temprano para poder comprobar que el servidor lo recibió.
+          try {
+            if (cfg.e2eProbe) {
+              setValue('cmi.location', 'ATORA_E2E_COMMIT');
+              flush();
+            }
+          } catch(e) {}
+          return 'true';
+        }
         function term(){ flush(); post({ type: 'scorm.terminate', attemptId: attemptId }); lastError = '0'; return 'true'; }
         function error(){ return String(lastError || '0'); }
         function errorString(code){ return String(code || '0'); }
