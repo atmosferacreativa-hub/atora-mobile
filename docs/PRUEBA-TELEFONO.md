@@ -100,4 +100,5 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 ## 1.1.0 — SCORM
 
 59. [ ] **Paquete Rise/Storyline sin conexión**: descargar un SCORM exportado de Articulate Rise o Storyline, activar modo avión, abrirlo desde la lección y comprobar que carga completo (incluye sus XHR a archivos locales) y que el intento se sincroniza al volver la conexión.
+60. [ ] **SCORM en iPhone**: en un iPhone, abrir un SCORM publicado (mínimo y XHR), comprobar que no queda en blanco y que se sincroniza al volver la red.
 
