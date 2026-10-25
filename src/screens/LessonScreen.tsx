@@ -11,11 +11,13 @@ import { MediaImage } from '../components/MediaImage';
 import { ensureLocalThumbnail, getLocalThumbnail, needsLocalThumbnail } from '../offline/videoThumbnails';
 import {
   downloadLessonMedia,
+  downloadScormPackage,
   downloadResource,
   findLessonDownload,
   findVideoDownload,
   removeVideoDownload,
   listResourceDownloads,
+  listScormDownloads,
   reconcileLessonResources,
   removeDownloadFile,
   removeLessonDownload,
@@ -43,6 +45,8 @@ type Props = {
   onOpenQuiz: () => void;
   onOpenAssignment: () => void;
   onOpenResource: (params: OpenResourceParams) => void;
+  /** 1.1.0: visor SCORM local. */
+  onOpenScorm?: (courseId: number, resource: LessonResource) => void;
   /** 0.9.0: asistente de IA (solo si el servidor declara `ai_assistant`). */
   onAsk?: (title: string) => void;
 };
@@ -54,6 +58,7 @@ const NEAR_END_SECONDS = 5;
 
 const RESOURCE_LABELS: Record<string, string> = {
   pdf: 'PDF', guia: 'Guía', presentacion: 'Presentación', audio: 'Audio', video: 'Video', link: 'Enlace', archivo: 'Archivo', file: 'Archivo',
+  scorm: 'SCORM',
 };
 
 /** Un video de la lección: el que el estudiante eligió (0.4.1) o el único (servidores anteriores). */
@@ -330,7 +335,7 @@ function LessonContent({
                 ? saved.updateAvailable ? 'Actualización disponible' : 'Disponible sin conexión'
                 : resource.downloadable ? 'Se puede descargar' : 'Solo con conexión';
               return (
-                <View key={`${resource.url}-${index}`} style={styles.resourceCard}>
+                <View key={`${key}-${index}`} style={styles.resourceCard}>
                   <Pressable accessibilityRole="button" onPress={() => onResourcePress(resource)} style={styles.resourceMeta}>
                     <Text style={styles.resourceType}>
                       {(RESOURCE_LABELS[resource.type] ?? resource.type ?? 'Recurso').toUpperCase()}{size ? ` · ${size}` : ''}
@@ -448,7 +453,7 @@ function toPlayable(lesson: LessonDetail, multi: boolean): PlayableVideo[] {
 
 const slot = (video: PlayableVideo) => video.key ?? `#${video.index}`;
 
-export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource, onAsk }: Props) {
+export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource, onOpenScorm, onAsk }: Props) {
   const { offline } = useNetworkState();
   const [assignmentsSupported, setAssignmentsSupported] = useState(false);
   const [assistantSupported, setAssistantSupported] = useState(false);
@@ -474,7 +479,9 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
   const mediaUri = currentDownload?.localUri || playableUrl;
 
   const loadSavedResources = useCallback(async (id: number) => {
-    const records = await listResourceDownloads(id).catch(() => []);
+    const resources = await listResourceDownloads(id).catch(() => []);
+    const scorm = await listScormDownloads(id).catch(() => []);
+    const records = [...resources, ...scorm];
     setSavedResources(Object.fromEntries(records.filter((r) => r.resourceKey).map((r) => [r.resourceKey as string, r])));
   }, []);
 
@@ -547,6 +554,14 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 
   const pressResource = async (resource: LessonResource) => {
     if (!lesson) return;
+    if (resource.type === 'scorm') {
+      if (!onOpenScorm) {
+        setNotice(t('Este teléfono no tiene soporte para SCORM.'));
+        return;
+      }
+      onOpenScorm(lesson.course_id, resource);
+      return;
+    }
     const saved = savedResources[resourceKey(lesson.id, resource)];
     if (saved) {
       await openLocal(saved, resource.title);
@@ -567,7 +582,11 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
     setResourceBusy(key);
     setNotice('');
     try {
-      await downloadResource(lesson, resource);
+      if (resource.type === 'scorm') {
+        await downloadScormPackage(lesson, resource, token);
+      } else {
+        await downloadResource(lesson, resource);
+      }
       await loadSavedResources(lesson.id);
       setNotice(t('Material guardado: se abre sin conexión.'));
     } catch (reason) {
