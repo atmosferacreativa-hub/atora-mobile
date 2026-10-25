@@ -1,5 +1,6 @@
 import { ApiError, apiRequest } from './client';
 import { enqueueEvent, newEventId, OutboxDefinitiveError, registerOutboxHandler } from '../offline/outbox/runtime';
+import { buildScormCommitBody, type ScormCommitOutboxPayload } from '../scorm/outboxCommitHandler';
 
 export type ScormStartAttemptResponse = {
   attempt_id: number;
@@ -61,16 +62,12 @@ export async function scormCommit(
 }
 
 export const SCORM_COMMIT = 'scorm.commit';
-export type ScormCommitPayload = { attemptId: number; values: Record<string, string>; deviceTime: string };
+export type ScormCommitPayload = ScormCommitOutboxPayload;
 
 registerOutboxHandler<ScormCommitPayload>(SCORM_COMMIT, async (event, { token }) => {
   const payload = event.payload as ScormCommitPayload;
   if (!payload?.attemptId) throw new OutboxDefinitiveError('Falta attemptId');
-  await scormCommit(token, payload.attemptId, {
-    values: payload.values ?? {},
-    client_event_id: event.id,
-    device_time: payload.deviceTime || new Date().toISOString(),
-  });
+  await scormCommit(token, payload.attemptId, buildScormCommitBody(event as any));
 });
 
 export async function enqueueScormCommit(attemptId: number, values: Record<string, string>): Promise<string | null> {
