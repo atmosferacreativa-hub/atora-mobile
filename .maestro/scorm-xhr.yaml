@@ -24,6 +24,9 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: "ATORA XHR OK"
     timeout: 60000
+- extendedWaitUntil:
+    visible: "ESCAPE:OK"
+    timeout: 60000
 - takeScreenshot: capturas/scorm-xhr-01-online
 
 # Sin red: debe abrir desde archivos locales y seguir pudiendo hacer fetch/XHR.
@@ -40,6 +43,9 @@ onFlowComplete:
     timeout: 30000
 - extendedWaitUntil:
     visible: "ATORA XHR OK"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "ESCAPE:OK"
     timeout: 60000
 - takeScreenshot: capturas/scorm-xhr-02-offline
 

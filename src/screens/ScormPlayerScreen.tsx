@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Network from 'expo-network';
@@ -33,12 +33,16 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [record, setRecord] = useState<DownloadRecord | null>(null);
   const [source, setSource] = useState('');
   const [pageText, setPageText] = useState('');
+  const [escapeCheckText, setEscapeCheckText] = useState('');
   const [attemptId, setAttemptId] = useState(0);
   const [syncError, setSyncError] = useState('');
   const [initialValues, setInitialValues] = useState<Record<string, string>>({});
   const valuesRef = useRef<Record<string, string>>({});
+  const statePathRef = useRef('');
   const serverRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const serverOriginRef = useRef('');
+  const serverTokenRef = useRef('');
+  const androidServeRef = useRef<{ packageDir: string; launchPath: string } | null>(null);
 
   const isE2E = Boolean((Constants.expoConfig?.extra as { e2e?: boolean } | undefined)?.e2e);
 
@@ -55,10 +59,37 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   }, []);
 
   useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        const pending = androidServeRef.current;
+        if (Platform.OS === 'android' && pending && !serverRef.current) {
+          void startLocalScormServer(pending.packageDir)
+            .then((server) => {
+              serverRef.current = { stop: server.stop };
+              serverOriginRef.current = server.origin;
+              serverTokenRef.current = server.token;
+              setSource(`${server.origin}/${server.token}/${pending.launchPath}`);
+            })
+            .catch(() => undefined);
+        }
+        return;
+      }
+      // Inactivo / background: detener server.
+      const server = serverRef.current;
+      serverRef.current = null;
+      serverOriginRef.current = '';
+      serverTokenRef.current = '';
+      if (server) void server.stop().catch(() => undefined);
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
     return () => {
       const server = serverRef.current;
       serverRef.current = null;
       serverOriginRef.current = '';
+      serverTokenRef.current = '';
       if (server) void server.stop().catch(() => undefined);
     };
   }, []);
@@ -124,7 +155,11 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     if (!online && !resolvedAttemptId) throw new Error(t('Necesitas conexión para iniciar el intento por primera vez.'));
     setAttemptId(resolvedAttemptId);
 
-    const statePath = `${base}.atora-cmi.json`;
+    const stateDir = `${FileSystem.documentDirectory}atora-offline/scorm-state/`;
+    await FileSystem.makeDirectoryAsync(stateDir, { intermediates: true }).catch(() => undefined);
+    const safeKey = String(saved.resourceKey || saved.localUri).replace(/[^a-zA-Z0-9:_-]+/g, '_');
+    const statePath = `${stateDir}${safeKey}-a${resolvedAttemptId || 0}.atora-cmi.json`;
+    statePathRef.current = statePath;
     let localValues: Record<string, string> = {};
     const stored = await FileSystem.readAsStringAsync(statePath).catch(() => '');
     if (stored) {
@@ -148,21 +183,22 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     valuesRef.current = values;
     setInitialValues(values);
 
+    // La ruta de lanzamiento dentro del paquete (sin "/" inicial).
+    const launchPath = String(href || 'index.html').replace(/^\//, '');
+    androidServeRef.current = { packageDir: base, launchPath };
+
     // Android: algunos paquetes (Rise/Storyline) usan XHR/fetch y fallan con file://.
     // Se sirven desde 127.0.0.1 con puerto aleatorio y token (carpeta) en la ruta.
     if (Platform.OS === 'android') {
-      const segments = base.split('/').filter(Boolean);
-      const tokenDir = segments[segments.length - 1] ?? '';
-      const serveBase = base.replace(/\/[^/]+\/?$/, '/');
-
       if (!serverRef.current) {
-        const server = await startLocalScormServer(serveBase);
+        const server = await startLocalScormServer(base);
         serverRef.current = { stop: server.stop };
         serverOriginRef.current = server.origin;
+        serverTokenRef.current = server.token;
       }
       const origin = serverOriginRef.current;
-      const path = href.replace(/^\//, '');
-      setSource(`${origin}/${tokenDir}/${path}`);
+      const tok = serverTokenRef.current;
+      setSource(`${origin}/${tok}/${launchPath}`);
       return;
     }
 
@@ -263,11 +299,17 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               setPageText(msg.text.slice(0, 160));
               return;
             }
+            if (msg?.type === 'atora.escapeCheck' && msg && typeof msg === 'object') {
+              const parentOk = Boolean(msg.parentOk);
+              const otherOk = Boolean(msg.otherOk);
+              setEscapeCheckText(parentOk || otherOk ? 'ESCAPE:FAIL' : 'ESCAPE:OK');
+              return;
+            }
             if (msg?.type === 'scorm.commit' && typeof msg.attemptId === 'number' && msg.values && typeof msg.values === 'object') {
               // Snapshot local para reanudar sin conexión (el servidor valida el puntaje y estados).
               try {
                 valuesRef.current = { ...valuesRef.current, ...(msg.values as Record<string, string>) };
-                const path = record?.localUri ? `${record.localUri}.atora-cmi.json` : '';
+                const path = statePathRef.current;
                 if (path) void FileSystem.writeAsStringAsync(path, JSON.stringify(valuesRef.current)).catch(() => undefined);
               } catch {
                 // Sin persistencia.
@@ -293,6 +335,20 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
                   text = String(text || '').trim().slice(0, 220);
                   window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'atora.pageText', text: text || '(sin texto)' }));
                 } catch(e) {}
+
+                // Hardening: no permitir escapar a carpeta padre ni acceder a "otro paquete".
+                // Desde /{token}/index.html, ../ resuelve a / (raíz). Debe fallar.
+                // También probamos /{token}x/... como si fuese otro paquete.
+                try {
+                  var seg = (location && location.pathname) ? String(location.pathname).split('/').filter(Boolean)[0] : '';
+                  var other = seg ? (seg + 'x') : 'other';
+                  Promise.all([
+                    fetch('../').then(function(r){return r && r.ok;}).catch(function(){return false;}),
+                    fetch('/' + other + '/index.html').then(function(r){return r && r.ok;}).catch(function(){return false;}),
+                  ]).then(function(res){
+                    window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'atora.escapeCheck', parentOk: !!res[0], otherOk: !!res[1] }));
+                  });
+                } catch(e) {}
               })();
               true;
             `);
@@ -309,8 +365,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
           if (/^http:\/\//i.test(url)) {
             // Solo el server local del paquete.
             const origin = serverOriginRef.current;
-            const segments = (record?.localUri ?? '').split('/').filter(Boolean);
-            const tok = segments[segments.length - 1] ?? '';
+            const tok = serverTokenRef.current;
             if (origin && tok && url.startsWith(`${origin}/${tok}/`)) return true;
             void Linking.openURL(url).catch(() => undefined);
             return false;
@@ -323,7 +378,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       />
       {isE2E ? (
         <View style={styles.e2eBar}>
-          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: pageText || t('Cargando...') })}</Text>
+          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: [pageText || t('Cargando...'), escapeCheckText].filter(Boolean).join(' · ') })}</Text>
         </View>
       ) : null}
       {syncError ? (
