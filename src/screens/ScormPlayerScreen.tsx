@@ -25,6 +25,66 @@ type Props = {
   onBack: () => void;
 };
 
+function buildScormWrapperHtml(params: { launchPath: string; includeE2EProbes: boolean }): string {
+  const launchPath = String(params.launchPath || '').replace(/^\//, '');
+  const safeLaunch = launchPath.replace(/"/g, '%22');
+  const includeE2EProbes = Boolean(params.includeE2EProbes);
+
+  const e2eScript = includeE2EProbes
+    ? `
+    <script>
+      (function(){
+        var frame = document.getElementById('atora_scorm');
+        function post(msg){
+          try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch(e) {}
+        }
+        function normalizeText(text){
+          return String(text || '').replace(/\s+/g,' ').trim().slice(0,220);
+        }
+        function onFrameLoaded(){
+          try {
+            var w = frame && frame.contentWindow;
+            var d = frame && frame.contentDocument;
+            if (d) {
+              var title = d.title ? String(d.title) : '';
+              var body = (d.body && d.body.innerText) ? String(d.body.innerText) : '';
+              var text = normalizeText((title ? (title + ' — ') : '') + body);
+              post({ type: 'atora.pageText', text: text || '(sin texto)' });
+            }
+            // Hardening: no permitir escapar a carpeta padre ni acceder a "otro paquete".
+            // Solo aplicable a http(s) (server local). En file:// no hacemos fetch.
+            if (w && w.location && (w.location.protocol === 'http:' || w.location.protocol === 'https:') && typeof w.fetch === 'function') {
+              var seg = (w.location.pathname || '').split('/').filter(Boolean)[0] || '';
+              var other = seg ? (seg + 'x') : 'other';
+              Promise.all([
+                w.fetch('../').then(function(r){return r && r.ok;}).catch(function(){return false;}),
+                w.fetch('/' + other + '/index.html').then(function(r){return r && r.ok;}).catch(function(){return false;}),
+              ]).then(function(res){
+                post({ type: 'atora.escapeCheck', parentOk: !!res[0], otherOk: !!res[1] });
+              });
+            }
+          } catch(e) {}
+        }
+        try { frame && frame.addEventListener('load', onFrameLoaded); } catch(e) {}
+      })();
+    </script>
+`
+    : '';
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>html,body{margin:0;padding:0;height:100%;overflow:hidden}iframe{border:0;width:100%;height:100%}</style>
+  </head>
+  <body>
+    <iframe id="atora_scorm" src="${safeLaunch}" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals" allow="fullscreen"></iframe>
+    ${e2eScript}
+  </body>
+</html>`;
+}
+
 /** Reproductor SCORM (1.1.0) desde archivos locales, con commits vía outbox. */
 export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack }: Props) {
   const webRef = useRef<WebView>(null);
@@ -35,6 +95,8 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [baseUrl, setBaseUrl] = useState('');
   // `launchPath`: ruta dentro del paquete (sin "/" inicial).
   const [launchPath, setLaunchPath] = useState('');
+  // iOS: wrapper guardado dentro del paquete (no HTML inline + baseUrl file://).
+  const [wrapperUri, setWrapperUri] = useState('');
   const [pageText, setPageText] = useState('');
   const [escapeCheckText, setEscapeCheckText] = useState('');
   const [attemptId, setAttemptId] = useState(0);
@@ -193,6 +255,15 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     setLaunchPath(launchPath);
     androidServeRef.current = { packageDir: baseDir, launchPath };
 
+    // iOS: el wrapper debe ser un archivo dentro del paquete.
+    // (HTML inline + baseUrl file:// no siempre permite cargar el iframe).
+    if (Platform.OS === 'ios') {
+      const wrapperPath = `${baseDir}.atora-wrapper.html`;
+      const html = buildScormWrapperHtml({ launchPath, includeE2EProbes: isE2E });
+      await FileSystem.writeAsStringAsync(wrapperPath, html).catch(() => undefined);
+      setWrapperUri(wrapperPath);
+    }
+
     // Android: algunos paquetes (Rise/Storyline) usan XHR/fetch y fallan con file://.
     // Se sirven desde 127.0.0.1 con puerto aleatorio y token (carpeta) en la ruta.
     if (Platform.OS === 'android') {
@@ -256,63 +327,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     initialValues,
   }), [attemptId, scormVersion, initialValues]);
 
-  const wrapperHtml = useMemo(() => {
-    if (!launchPath) return '';
-    const safeLaunch = String(launchPath).replace(/"/g, '%22');
-    // La API SCORM vive en el documento padre (wrapper). El paquete corre en un iframe.
-    // Esto es compatible con paquetes que buscan el adaptador solo en el `parent`.
-    return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>html,body{margin:0;padding:0;height:100%;overflow:hidden}iframe{border:0;width:100%;height:100%}</style>
-  </head>
-  <body>
-    <iframe id="atora_scorm" src="${safeLaunch}" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" allow="fullscreen"></iframe>
-    <script>
-      (function(){
-        var isE2E = ${isE2E ? 'true' : 'false'};
-        var frame = document.getElementById('atora_scorm');
-        function post(msg){
-          try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch(e) {}
-        }
-        function normalizeText(text){
-          return String(text || '').replace(/\s+/g,' ').trim().slice(0,220);
-        }
-        function onFrameLoaded(){
-          if (!isE2E) return;
-          try {
-            var w = frame && frame.contentWindow;
-            var d = frame && frame.contentDocument;
-            if (d) {
-              var title = d.title ? String(d.title) : '';
-              var body = (d.body && d.body.innerText) ? String(d.body.innerText) : '';
-              var text = normalizeText((title ? (title + ' — ') : '') + body);
-              post({ type: 'atora.pageText', text: text || '(sin texto)' });
-            }
-            // Hardening: no permitir escapar a carpeta padre ni acceder a "otro paquete".
-            // Solo aplicable a http(s) (server local). En file:// no hacemos fetch.
-            if (w && w.location && (w.location.protocol === 'http:' || w.location.protocol === 'https:') && typeof w.fetch === 'function') {
-              var seg = (w.location.pathname || '').split('/').filter(Boolean)[0] || '';
-              var other = seg ? (seg + 'x') : 'other';
-              Promise.all([
-                w.fetch('../').then(function(r){return r && r.ok;}).catch(function(){return false;}),
-                w.fetch('/' + other + '/index.html').then(function(r){return r && r.ok;}).catch(function(){return false;}),
-              ]).then(function(res){
-                post({ type: 'atora.escapeCheck', parentOk: !!res[0], otherOk: !!res[1] });
-              });
-            }
-          } catch(e) {}
-        }
-        try { frame && frame.addEventListener('load', onFrameLoaded); } catch(e) {}
-      })();
-    </script>
-  </body>
-</html>`;
-  }, [launchPath, isE2E]);
-
-  if (!baseUrl || !launchPath) {
+  if (!baseUrl || !launchPath || (Platform.OS === 'ios' && !wrapperUri)) {
     return (
       <View style={styles.screen}>
         <View style={styles.bar}>
@@ -346,7 +361,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       </View>
       <WebView
         ref={webRef}
-        source={{ html: wrapperHtml, baseUrl }}
+        source={Platform.OS === 'ios' ? { uri: wrapperUri } : { html: buildScormWrapperHtml({ launchPath, includeE2EProbes: isE2E }), baseUrl }}
         originWhitelist={['file://*', 'http://*', 'https://*']}
         allowingReadAccessToURL={record?.localUri}
         allowFileAccess
