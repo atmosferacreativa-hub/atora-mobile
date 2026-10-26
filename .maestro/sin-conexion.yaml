@@ -37,7 +37,7 @@ onFlowComplete:
     id: "thread-input"
 - tapOn: "Enviar"
 - extendedWaitUntil:
-    visible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
+    visible: "Pendiente · se enviará al tener conexión"
     timeout: 15000
 - takeScreenshot: capturas/sin-conexion-03-en-cola
 - setAirplaneMode: disabled
@@ -45,7 +45,7 @@ onFlowComplete:
     visible: "NET:WIFI"
     timeout: 60000
 - extendedWaitUntil:
-    notVisible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
+    notVisible: "Pendiente · se enviará al tener conexión"
     timeout: 90000
 - assertVisible: "Escrito sin conexión."
 - takeScreenshot: capturas/sin-conexion-04-enviado

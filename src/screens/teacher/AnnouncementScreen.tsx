@@ -38,7 +38,7 @@ export function AnnouncementScreen({ token, courseId, title, sections, onBack }:
     }
     setSubject('');
     setBody('');
-    setNotice(offline ? t('Guardado. Se enviará cuando tengas conexión.') : t('Enviando…'));
+    setNotice(offline ? t('Pendiente · se enviará al tener conexión') : t('Enviando…'));
     refreshPending();
     if (!offline) void flushOutbox(token).finally(refreshPending);
   };

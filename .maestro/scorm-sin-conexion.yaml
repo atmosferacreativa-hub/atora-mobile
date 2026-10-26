@@ -47,7 +47,7 @@ onFlowComplete:
     visible: ".*COMPLETED 80.*"
     timeout: 30000
 - extendedWaitUntil:
-    visible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
+    visible: "Pendiente · se enviará al tener conexión"
     timeout: 30000
 - takeScreenshot: capturas/scorm-sin-conexion-03-pendiente
 

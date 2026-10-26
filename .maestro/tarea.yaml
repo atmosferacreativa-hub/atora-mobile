@@ -24,7 +24,7 @@ name: tarea
 - tapOn: "Entregar"
 # Con conexión sale enseguida: el aviso de "guardada" desaparece y el intento queda en el historial.
 - extendedWaitUntil:
-    notVisible: "Guardada. Se enviará cuando tengas conexión."
+    notVisible: "Pendiente · se enviará al tener conexión"
     timeout: 60000
 - scrollUntilVisible:
     element: "Intento \\d+ · (En revisión|Entregada)"
