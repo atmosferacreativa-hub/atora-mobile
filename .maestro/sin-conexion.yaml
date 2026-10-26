@@ -42,6 +42,9 @@ onFlowComplete:
 - takeScreenshot: capturas/sin-conexion-03-en-cola
 - setAirplaneMode: disabled
 - extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
+- extendedWaitUntil:
     notVisible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
     timeout: 90000
 - assertVisible: "Escrito sin conexión."

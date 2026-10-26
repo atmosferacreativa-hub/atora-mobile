@@ -27,6 +27,9 @@ onFlowComplete:
 
 # Con red: descarga el paquete (abre el intento en el servidor) y lo abre.
 - setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
 - tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
     visible: "← Volver"
@@ -53,6 +56,9 @@ onFlowComplete:
 
 # Con red: la cola se envía y el servidor refleja completed + score 80 y la lección queda completada.
 - setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
 - extendedWaitUntil:
     visible: ".*SERVER:.*STATUS:completed.*SCORE:80.*LESSON:OK.*"
     timeout: 60000

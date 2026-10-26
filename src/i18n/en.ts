@@ -1,5 +1,8 @@
 /** Catálogo en inglés: clave = texto en español (1.0.0). */
 export const en: Record<string, string> = {
+  "NET:{label}": "NET:{label}",
+  "OUTBOX:{pending}/{failed}": "OUTBOX:{pending}/{failed}",
+  "SCORM_ERR:{error}": "SCORM_ERR:{error}",
   "No se pudo abrir el enlace": "Could not open the link",
   "Soporte": "Support",
   "Política de privacidad": "Privacy policy",
@@ -134,7 +137,6 @@ export const en: Record<string, string> = {
   "El estudiante verá la nota y recibirá un aviso. La nota se aplica a todos los integrantes del grupo.": "The student will see the grade and get a notification. The grade applies to every group member.",
   "el primer nivel": "the first level",
   "El servidor no entregó el archivo.": "The server did not return the file.",
-  "El paquete está incompleto.": "The package is incomplete.",
   "El tiempo terminó": "Time is up",
   "El tiempo terminó. Intenta entregar tus respuestas.": "Time is up. Try to submit your answers.",
   "El video dejará de estar disponible sin conexión. Podrás volver a descargarlo cuando tengas Wi-Fi.": "The video will no longer be available offline. You can download it again on Wi-Fi.",
@@ -560,9 +562,5 @@ export const en: Record<string, string> = {
   "Necesitas conexión para iniciar el intento y descargar el paquete.": "You need a connection to start the attempt and download the package.",
   "No quedan intentos disponibles para este SCORM.": "No attempts are available for this SCORM.",
   "No fue posible descargar el SCORM.": "Could not download the SCORM.",
-  "Cargando...": "Loading...",
-  "Descargando...": "Downloading...",
-  "Listo": "Ready",
-  "SCORM: {text}": "SCORM: {text}",
   "SCORM": "SCORM",
 };

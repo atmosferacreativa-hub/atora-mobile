@@ -47,6 +47,9 @@ onFlowComplete:
 
 # Imagen: visor fullscreen con zoom.
 - setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
 - scrollUntilVisible:
     element: "Imagen de ejemplo"
 - tapOn: "Imagen de ejemplo"
