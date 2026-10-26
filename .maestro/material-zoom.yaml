@@ -52,6 +52,10 @@ onFlowComplete:
     timeout: 60000
 - scrollUntilVisible:
     element: "Imagen de ejemplo"
+- tapOn: "Descargar"
+- extendedWaitUntil:
+    visible: "Disponible sin conexión"
+    timeout: 60000
 - tapOn: "Imagen de ejemplo"
 - extendedWaitUntil:
     visible:

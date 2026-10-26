@@ -43,9 +43,8 @@ onFlowComplete:
 # Luego, sin red: marca completado/80 desde el paquete, queda pendiente y al volver la red sincroniza.
 - setAirplaneMode: enabled
 
-# El paquete muestra un botón grande centrado: tap por coordenadas dentro del WebView.
-- tapOn:
-    point: "50%,55%"
+# El paquete muestra un botón grande: tocarlo para completar y enviar.
+- tapOn: "Completar \\(80\\) y enviar"
 - extendedWaitUntil:
     visible: ".*COMPLETED 80.*"
     timeout: 30000
