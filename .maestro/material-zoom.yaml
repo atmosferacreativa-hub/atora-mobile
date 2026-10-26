@@ -7,6 +7,14 @@ onFlowComplete:
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
 
+# Entrar a una lección para ver la sección "Materiales".
+- scrollUntilVisible:
+    element: "Videos"
+- tapOn: "Videos"
+- extendedWaitUntil:
+    visible: "Video 1"
+    timeout: 30000
+
 # Materiales: PDF
 - scrollUntilVisible:
     element: "Materiales"

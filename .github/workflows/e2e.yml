@@ -368,12 +368,10 @@ jobs:
           retention-days: 30
 
   ios-e2e:
-    # iOS e2e (simulador) solo cuando se pide explícitamente.
-    # - PR con etiqueta `e2e-completo`
-    # - o tags v*
+    # iOS e2e (simulador) solo en tags `v*`.
+    # En PRs, si no corre, debe reportarse explícitamente como "iOS NO EJECUTADO".
     if: >-
-      (github.event_name == 'pull_request' && contains(join(github.event.pull_request.labels.*.name, ','), 'e2e-completo'))
-      || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-latest
     timeout-minutes: 90
     env:

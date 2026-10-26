@@ -31,6 +31,28 @@ function buildScormWrapperHtml(params: { launchPath: string; includeE2EProbes: b
   const safeLaunch = launchPath.replace(/"/g, '%22');
   const includeE2EProbes = Boolean(params.includeE2EProbes);
 
+  // SCORM packages sometimes expect `window.API` / `window.API_1484_11` to exist in their own window
+  // (not only in the parent frame). We expose the injected API objects into the iframe as soon as
+  // it loads, keeping the token on the native side.
+  const bridgeScript = `
+    <script>
+      (function(){
+        var frame = document.getElementById('atora_scorm');
+        function exposeApi(){
+          try {
+            var w = frame && frame.contentWindow;
+            if (!w) return;
+            if (window.API) w.API = window.API;
+            if (window.API_1484_11) w.API_1484_11 = window.API_1484_11;
+          } catch(e) {}
+        }
+        try { frame && frame.addEventListener('load', exposeApi); } catch(e) {}
+        setTimeout(exposeApi, 0);
+        setTimeout(exposeApi, 200);
+      })();
+    </script>
+`;
+
   const e2eScript = includeE2EProbes
     ? `
     <script>
@@ -75,6 +97,9 @@ function buildScormWrapperHtml(params: { launchPath: string; includeE2EProbes: b
           } catch(e) {}
         }
         try { frame && frame.addEventListener('load', onFrameLoaded); } catch(e) {}
+        // Si el iframe carga demasiado rápido, puede perderse el evento `load`.
+        setTimeout(onFrameLoaded, 0);
+        setTimeout(onFrameLoaded, 200);
       })();
     </script>
 `
@@ -89,6 +114,7 @@ function buildScormWrapperHtml(params: { launchPath: string; includeE2EProbes: b
   </head>
   <body>
     <iframe id="atora_scorm" src="${safeLaunch}" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals" allow="fullscreen"></iframe>
+    ${bridgeScript}
     ${e2eScript}
   </body>
 </html>`;
@@ -219,7 +245,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     const parts: string[] = [];
     if (status) parts.push(`STATUS:${status}`);
     if (score) parts.push(`SCORE:${score}`);
-    if (!status && !score && location) parts.push(`LOC:${location.slice(0, 18)}`);
+    if (location) parts.push(`LOC:${location.slice(0, 18)}`);
 
     const lesson = await refreshLesson(lessonId, token).catch(() => null);
     if (lesson) parts.push(lesson.completed ? 'LESSON:OK' : 'LESSON:NO');
