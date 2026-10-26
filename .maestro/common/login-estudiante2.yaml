@@ -1,5 +1,6 @@
 appId: com.atmosferacreativa.atora
 ---
+- setAirplaneMode: disabled
 - retry:
     maxRetries: 2
     commands:
