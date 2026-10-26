@@ -395,16 +395,28 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     if (!attemptId) return;
     let timer: any = null;
     let active = true;
+    let hadPending = false;
     const tick = async () => {
       if (!active) return;
       const online = await hasNetwork();
       if (!online) return;
       const all = await listOutbox().catch(() => ({ pending: [], failed: [] }));
       const minePending = all.pending.filter((event) => event.type === SCORM_COMMIT && (event.payload as any)?.attemptId === attemptId);
-      if (!minePending.length) return;
-      await flushOutbox(token).catch(() => undefined);
-      await refreshSyncNotice();
-      await refreshServerState(attemptId);
+      if (minePending.length) {
+        hadPending = true;
+        await flushOutbox(token).catch(() => undefined);
+        await refreshSyncNotice();
+        await refreshServerState(attemptId);
+        return;
+      }
+
+      // Si hubo pendiente y ahora se vació (tal vez por otro flusher), refrescar
+      // una vez el estado del servidor para reflejar lo que se sincronizó.
+      if (hadPending) {
+        hadPending = false;
+        await refreshSyncNotice();
+        await refreshServerState(attemptId);
+      }
     };
 
     // Reintenta la cola mientras haya commits pendientes para este intento.
