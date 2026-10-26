@@ -36,9 +36,11 @@ onFlowComplete:
 # Sin red: debe abrir desde archivos locales y seguir pudiendo hacer fetch/XHR.
 - setAirplaneMode: enabled
 - tapOn: "← Volver"
-- scrollUntilVisible:
-    element: "^SCORM$"
-- tapOn: "^SCORM$"
+# Al volver del player normalmente quedamos en la lista de recursos de la lección.
+# No forzar navegación por el listado del curso (intermitente por scroll).
+- extendedWaitUntil:
+    visible: "SCORM XHR"
+    timeout: 30000
 - scrollUntilVisible:
     element: "SCORM XHR"
 - tapOn: "SCORM XHR"

@@ -453,6 +453,10 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
         <View style={styles.right} />
       </View>
       <WebView
+        // El runtime inyectado captura `attemptId` en el load. Cuando se abre el
+        // paquete, el primer render puede tener `attemptId=0` y si no se fuerza
+        // el remount el commit quedaría encolado con attemptId=0.
+        key={`${wrapperUri}:${attemptId || 0}`}
         ref={webRef}
         source={{ uri: wrapperUri }}
         originWhitelist={['file://*', 'http://*', 'https://*']}
