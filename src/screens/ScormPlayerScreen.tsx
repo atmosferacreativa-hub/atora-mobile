@@ -480,6 +480,12 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               return;
             }
             if (msg?.type === 'scorm.commit' && typeof msg.attemptId === 'number' && msg.values && typeof msg.values === 'object') {
+              // `attemptId` puede quedar en 0 si el runtime se inyectó antes
+              // de que el estado nativo terminara de resolver el intento.
+              // El attemptId del estado nativo es la fuente de verdad.
+              const effectiveAttemptId = Number(msg.attemptId || attemptId || 0);
+              if (!effectiveAttemptId) return;
+
               // Snapshot local para reanudar sin conexión (el servidor valida el puntaje y estados).
               try {
                 valuesRef.current = { ...valuesRef.current, ...(msg.values as Record<string, string>) };
@@ -488,12 +494,12 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               } catch {
                 // Sin persistencia.
               }
-              void enqueueScormCommit(msg.attemptId, msg.values as Record<string, string>)
+              void enqueueScormCommit(effectiveAttemptId, msg.values as Record<string, string>)
                 // Siempre reflejar el estado local aunque no haya red.
                 .then(() => refreshSyncNotice())
                 // Si hay red, intentar enviar y luego refrescar estado de servidor.
                 .then(() => flushOutbox(token).catch(() => undefined))
-                .then(() => refreshServerState(msg.attemptId))
+                .then(() => refreshServerState(effectiveAttemptId))
                 .then(() => refreshSyncNotice())
                 .catch(() => undefined);
             }
