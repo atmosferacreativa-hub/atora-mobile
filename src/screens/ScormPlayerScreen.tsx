@@ -171,6 +171,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               serverTokenRef.current = server.token;
               setLaunchPath(pending.launchPath);
               setBaseUrl(`${server.origin}/${server.token}/`);
+              setWrapperUri(`${server.origin}/${server.token}/.atora-wrapper.html`);
             })
             .catch(() => undefined);
         }
@@ -317,14 +318,14 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     setLaunchPath(launchPath);
     androidServeRef.current = { packageDir: baseDir, launchPath };
 
-    // iOS: el wrapper debe ser un archivo dentro del paquete.
-    // (HTML inline + baseUrl file:// no siempre permite cargar el iframe).
-    if (Platform.OS === 'ios') {
-      const wrapperPath = `${baseDir}.atora-wrapper.html`;
-      const html = buildScormWrapperHtml({ launchPath, includeE2EProbes: isE2E });
-      await FileSystem.writeAsStringAsync(wrapperPath, html).catch(() => undefined);
-      setWrapperUri(wrapperPath);
-    }
+    // El wrapper debe ser un archivo dentro del paquete.
+    // - iOS: WebView + file:// requiere un archivo + allowingReadAccessToURL.
+    // - Android: el wrapper por URI HTTP garantiza mismo origen con el iframe (API accesible).
+    const wrapperPath = `${baseDir}.atora-wrapper.html`;
+    const html = buildScormWrapperHtml({ launchPath, includeE2EProbes: isE2E });
+    await FileSystem.writeAsStringAsync(wrapperPath, html).catch(() => undefined);
+
+    if (Platform.OS === 'ios') setWrapperUri(wrapperPath);
 
     // Android: algunos paquetes (Rise/Storyline) usan XHR/fetch y fallan con file://.
     // Se sirven desde 127.0.0.1 con puerto aleatorio y token (carpeta) en la ruta.
@@ -338,6 +339,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       const origin = serverOriginRef.current;
       const tok = serverTokenRef.current;
       setBaseUrl(`${origin}/${tok}/`);
+      setWrapperUri(`${origin}/${tok}/.atora-wrapper.html`);
       return;
     }
 
@@ -413,7 +415,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     };
   }, [attemptId, hasNetwork, refreshServerState, refreshSyncNotice, token]);
 
-  if (!baseUrl || !launchPath || (Platform.OS === 'ios' && !wrapperUri)) {
+  if (!baseUrl || !launchPath || !wrapperUri) {
     return (
       <View style={styles.screen}>
         <View style={styles.bar}>
@@ -432,6 +434,11 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
             </Pressable>
           ) : null}
         </View>
+        {isE2E ? (
+          <View style={styles.e2eBar}>
+            <Text style={styles.e2eText}>{t('SCORM: {text}', { text: notice || (busy ? t('Descargando...') : t('Listo')) })}</Text>
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -447,7 +454,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       </View>
       <WebView
         ref={webRef}
-        source={Platform.OS === 'ios' ? { uri: wrapperUri } : { html: buildScormWrapperHtml({ launchPath, includeE2EProbes: isE2E }), baseUrl }}
+        source={{ uri: wrapperUri }}
         originWhitelist={['file://*', 'http://*', 'https://*']}
         allowingReadAccessToURL={record?.localUri}
         allowFileAccess

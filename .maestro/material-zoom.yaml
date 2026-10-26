@@ -24,7 +24,7 @@ onFlowComplete:
     text: "Descargar"
     index: 0
 - extendedWaitUntil:
-    visible: "Disponible sin conexión"
+    visible: "Material guardado: se abre sin conexión."
     timeout: 60000
 - tapOn: "Guía PDF"
 - extendedWaitUntil:
