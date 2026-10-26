@@ -97,7 +97,7 @@ function buildScormWrapperHtml(params: { launchPath: string; includeE2EProbes: b
           } catch(e) {}
         }
         try { frame && frame.addEventListener('load', onFrameLoaded); } catch(e) {}
-        // Si el iframe carga demasiado rápido, puede perderse el evento `load`.
+        // Si el iframe carga demasiado rápido, puede perderse el evento 'load'.
         setTimeout(onFrameLoaded, 0);
         setTimeout(onFrameLoaded, 200);
       })();
