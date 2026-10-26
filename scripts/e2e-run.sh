@@ -12,6 +12,29 @@ adb shell cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
 adb shell settings put global airplane_mode_on 0 >/dev/null 2>&1 || true
 adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state false >/dev/null 2>&1 || true
 
+enable_wifi() {
+  adb shell svc wifi enable >/dev/null 2>&1 || true
+  adb shell cmd wifi set-wifi-enabled enabled >/dev/null 2>&1 || true
+  adb shell cmd wifi connect-network AndroidWifi open >/dev/null 2>&1 || true
+}
+
+wait_for_wifi() {
+  # `expo-network` reporta WIFI solo si el emulador expone `TRANSPORT_WIFI`.
+  # En API 34 el emulador trae la red virtual `AndroidWifi`.
+  for _ in $(seq 1 30); do
+    if adb shell dumpsys connectivity 2>/dev/null | tr -d '\r' | grep -q 'TRANSPORT_WIFI'; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+enable_wifi
+if ! wait_for_wifi; then
+  echo "WARN: el emulador no reporta TRANSPORT_WIFI (expo-network puede ver otra red)." >&2
+fi
+
 # CI: `adb reverse` hace que 127.0.0.1:8080 dentro del emulador apunte al
 # WordPress del runner. Esto evita depender de 10.0.2.2 (a veces inaccesible
 # en GitHub Actions / KVM).
