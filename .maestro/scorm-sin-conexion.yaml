@@ -7,6 +7,10 @@ onFlowComplete:
 - runFlow: common/abrir-curso.yaml
 
 - scrollUntilVisible:
+    element: "^SCORM$"
+- tapOn: "^SCORM$"
+
+- scrollUntilVisible:
     element: "SCORM XHR"
 
 # Abrir el recurso (con red) para asegurar navegación al player.
