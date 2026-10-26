@@ -5,9 +5,7 @@ onFlowComplete:
 ---
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
-- scrollUntilVisible:
-    element: "SCORM"
-- tapOn: "SCORM"
+
 - scrollUntilVisible:
     element: "SCORM XHR"
 
@@ -49,7 +47,7 @@ onFlowComplete:
     visible: ".*COMPLETED 80.*"
     timeout: 30000
 - extendedWaitUntil:
-    visible: "Pendiente · se enviará al tener conexión"
+    visible: "Pendiente · se enviará al tener conexión|Sin conexión: se enviará al volver"
     timeout: 30000
 - takeScreenshot: capturas/scorm-sin-conexion-03-pendiente
 

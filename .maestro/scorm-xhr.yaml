@@ -5,9 +5,7 @@ onFlowComplete:
 ---
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
-- scrollUntilVisible:
-    element: "SCORM"
-- tapOn: "SCORM"
+
 - scrollUntilVisible:
     element: "SCORM XHR"
 

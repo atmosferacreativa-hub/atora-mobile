@@ -3,9 +3,7 @@ name: scorm-online
 ---
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
-- scrollUntilVisible:
-    element: "SCORM"
-- tapOn: "SCORM"
+
 - scrollUntilVisible:
     element: "SCORM mínimo"
 - takeScreenshot: capturas/scorm-online-01-leccion

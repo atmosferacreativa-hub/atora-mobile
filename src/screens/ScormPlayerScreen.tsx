@@ -485,7 +485,10 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
                 // Sin persistencia.
               }
               void enqueueScormCommit(msg.attemptId, msg.values as Record<string, string>)
-                .then(() => flushOutbox(token))
+                // Siempre reflejar el estado local aunque no haya red.
+                .then(() => refreshSyncNotice())
+                // Si hay red, intentar enviar y luego refrescar estado de servidor.
+                .then(() => flushOutbox(token).catch(() => undefined))
                 .then(() => refreshServerState(msg.attemptId))
                 .then(() => refreshSyncNotice())
                 .catch(() => undefined);

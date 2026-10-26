@@ -26,6 +26,10 @@ onFlowComplete:
 - inputText: "No entiendo el tema"
 - assertVisible:
     id: "assistant-input"
+# Tras cualquier flow previo, esperar a recuperar Wi-Fi real antes de pedir IA.
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
 - tapOn:
     id: "assistant-send"
 - extendedWaitUntil:
