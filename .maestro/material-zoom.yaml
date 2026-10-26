@@ -20,6 +20,14 @@ onFlowComplete:
     element: "Materiales"
 - scrollUntilVisible:
     element: "Guía PDF"
+# Los recorridos deben ser independientes del orden: si ya estaba descargado,
+# borrarlo primero.
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn:
+    text: "Eliminar"
+    optional: true
 - tapOn: "Descargar"
 - extendedWaitUntil:
     visible: "Disponible sin conexión"
@@ -52,6 +60,12 @@ onFlowComplete:
     timeout: 60000
 - scrollUntilVisible:
     element: "Imagen de ejemplo"
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn:
+    text: "Eliminar"
+    optional: true
 - tapOn: "Descargar"
 - extendedWaitUntil:
     visible: "Disponible sin conexión"
