@@ -498,9 +498,13 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
                 // Siempre reflejar el estado local aunque no haya red.
                 .then(() => refreshSyncNotice())
                 // Si hay red, intentar enviar y luego refrescar estado de servidor.
-                .then(() => flushOutbox(token).catch(() => undefined))
-                .then(() => refreshServerState(effectiveAttemptId))
-                .then(() => refreshSyncNotice())
+                .then(async () => {
+                  const online = await hasNetwork();
+                  if (!online) return;
+                  await flushOutbox(token).catch(() => undefined);
+                  await refreshServerState(effectiveAttemptId);
+                  await refreshSyncNotice();
+                })
                 .catch(() => undefined);
             }
           } catch {
