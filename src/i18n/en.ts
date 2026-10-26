@@ -561,6 +561,8 @@ export const en: Record<string, string> = {
   "No quedan intentos disponibles para este SCORM.": "No attempts are available for this SCORM.",
   "No fue posible descargar el SCORM.": "Could not download the SCORM.",
   "Cargando...": "Loading...",
+  "Descargando...": "Downloading...",
+  "Listo": "Ready",
   "SCORM: {text}": "SCORM: {text}",
   "SCORM": "SCORM",
 };

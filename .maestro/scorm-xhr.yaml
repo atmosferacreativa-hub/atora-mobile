@@ -34,7 +34,8 @@ onFlowComplete:
 # Sin red: debe abrir desde archivos locales y seguir pudiendo hacer fetch/XHR.
 - setAirplaneMode: enabled
 - tapOn: "← Volver"
-- tapOn: "← Volver"
+- scrollUntilVisible:
+    element: "SCORM"
 - tapOn: "SCORM"
 - scrollUntilVisible:
     element: "SCORM XHR"

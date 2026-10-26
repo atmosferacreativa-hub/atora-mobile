@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Network from 'expo-network';
+import Constants from 'expo-constants';
 import { getSessionUserId } from '../api/session';
 import { scormDownloadLink } from '../api/scorm';
 import {
@@ -41,6 +42,8 @@ async function settingsKey(): Promise<string> {
 }
 const DEFAULT_MAX_BYTES = 1024 * 1024 * 1024;
 
+const isE2E = Boolean((Constants.expoConfig?.extra as { e2e?: boolean } | undefined)?.e2e);
+
 export type StorageSummary = {
   count: number;
   usedBytes: number;
@@ -48,7 +51,7 @@ export type StorageSummary = {
 };
 
 const defaults: DownloadSettings = {
-  wifiOnly: true,
+  wifiOnly: isE2E ? false : true,
   lowDataMode: true,
   maxBytes: DEFAULT_MAX_BYTES,
   retentionDays: 30,

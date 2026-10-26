@@ -20,11 +20,9 @@ onFlowComplete:
     element: "Materiales"
 - scrollUntilVisible:
     element: "Guía PDF"
-- tapOn:
-    text: "Descargar"
-    index: 0
+- tapOn: "Descargar"
 - extendedWaitUntil:
-    visible: "Material guardado: se abre sin conexión."
+    visible: "Disponible sin conexión"
     timeout: 60000
 - tapOn: "Guía PDF"
 - extendedWaitUntil:
