@@ -53,6 +53,16 @@ onFlowComplete:
 - takeScreenshot: capturas/material-zoom-02-pdf-offline-zoom
 - back
 
+# Limpiar el PDF para que el resto del recorrido no herede "Disponible sin conexión".
+- scrollUntilVisible:
+    element: "Guía PDF"
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn:
+    text: "Eliminar"
+    optional: true
+
 # Imagen: visor fullscreen con zoom.
 - setAirplaneMode: disabled
 - extendedWaitUntil:
