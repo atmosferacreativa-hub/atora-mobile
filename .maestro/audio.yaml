@@ -22,7 +22,6 @@ name: audio
 - extendedWaitUntil:
     visible: "Reproducir"
     timeout: 30000
-- assertVisible: "Transcripción de prueba del audio de la clase."
 - tapOn: "Reproducir"
 # El tiempo avanza (el audio dura 3 s).
 - extendedWaitUntil:
@@ -31,4 +30,9 @@ name: audio
 - tapOn: "Velocidad 1×"
 - assertVisible: "Velocidad 1,25×"
 - takeScreenshot: capturas/audio-02-reproductor
+# La transcripción está debajo del reproductor: en pantallas chicas hay que desplazarse.
+- scrollUntilVisible:
+    element: "Transcripción de prueba del audio de la clase."
+    timeout: 15000
+- takeScreenshot: capturas/audio-03-transcripcion
 - tapOn: "← Volver"
