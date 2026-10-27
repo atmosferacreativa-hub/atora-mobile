@@ -372,7 +372,7 @@ jobs:
           force-avd-creation: false
           script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
 
-      - name: Recorridos en el emulador (fallback: recrear AVD)
+      - name: "Recorridos en el emulador (fallback: recrear AVD)"
         if: steps.avd_cache.outputs.cache-hit != 'true' || steps.e2e_cached_avd.outcome == 'failure'
         uses: reactivecircus/android-emulator-runner@v2
         with:
