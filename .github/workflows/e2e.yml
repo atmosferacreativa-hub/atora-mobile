@@ -428,6 +428,7 @@ jobs:
 
           if [ ! -f maestro-report.xml ]; then
             if [ ! -f .e2e/maestro-started ]; then
+              echo "::error title=E2E INFRA::falló antes de correr Maestro"
               echo "- Resultado: **INFRA** (falló antes de correr Maestro)" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "- Resultado: Maestro se ejecutó pero no generó \`maestro-report.xml\`" >> "$GITHUB_STEP_SUMMARY"
@@ -464,6 +465,9 @@ jobs:
           lines = ['\n**Recorridos**']
           for name, status in results:
             lines.append(f"- {name}: {status}")
+            # También como anotación: se lee por la API sin descargar artefactos.
+            level = 'notice' if status == 'OK' else 'error'
+            print(f"::{level} title=E2E {status}::{name}")
           Path('/tmp/atora-e2e-summary.txt').write_text('\n'.join(lines), encoding='utf-8')
           PY
 
