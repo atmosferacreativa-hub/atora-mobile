@@ -20,6 +20,7 @@ import { unzipSync } from 'fflate';
 import { base64ToBytes, bytesToBase64 } from '../utils/base64';
 import { isAllowedDownloadSource } from './downloadSources';
 import { DownloadBlockedError } from './downloadErrors';
+import { getE2ENetworkOverride } from '../e2e/networkOverride';
 
 export type { DownloadRecord, DownloadSettings };
 
@@ -161,7 +162,9 @@ async function assertNetwork(settings: DownloadSettings, allowCellular = false):
   if (!network.isConnected || network.isInternetReachable === false) {
     throw new Error(t('Necesitas conexión para descargar.'));
   }
-  if (settings.wifiOnly && !allowCellular && network.type !== Network.NetworkStateType.WIFI) {
+  const override = getE2ENetworkOverride();
+  const isWifi = override === 'cell' ? false : network.type === Network.NetworkStateType.WIFI;
+  if (settings.wifiOnly && !allowCellular && !isWifi) {
     throw new DownloadBlockedError('wifi_only', t('Las descargas están limitadas a Wi-Fi.'));
   }
 }
