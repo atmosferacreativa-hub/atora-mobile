@@ -163,6 +163,11 @@ jobs:
             add_flows "sin-conexion"
           fi
 
+          # Material en línea cuando la descarga se bloquea.
+          if echo "$CHANGED" | grep -Eq '^(src/offline/resourceDownloadAndOpen\.ts$|src/offline/mediaDownloads\.ts$|src/screens/LessonScreen\.tsx$|src/screens/ResourceViewerScreen\.tsx$|src/viewer/)' ; then
+            add_flows "material-en-linea"
+          fi
+
           LIST="$(dedupe_csv "$(join_by , "${FLOWS[@]}")")"
           REQ="$(dedupe_csv "$(join_by , "${REQUIRED[@]}")")"
           echo "Selected flows: $LIST"

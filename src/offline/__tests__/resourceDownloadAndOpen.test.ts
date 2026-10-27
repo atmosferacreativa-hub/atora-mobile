@@ -1,10 +1,17 @@
 jest.mock('../../i18n/core', () => ({ t: (s: string) => s }));
+jest.mock('expo-constants', () => ({ expoConfig: { extra: { e2e: false } } }));
 
-jest.mock('../mediaDownloads', () => ({
-  downloadResource: jest.fn(async () => {
-    throw new Error('Las descargas están limitadas a Wi-Fi.');
-  }),
-}));
+jest.mock('../../runtimeConfig', () => ({ getApiBaseUrlSync: jest.fn(() => '') }));
+
+jest.mock('../mediaDownloads', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DownloadBlockedError } = require('../downloadErrors');
+  return {
+    downloadResource: jest.fn(async () => {
+      throw new DownloadBlockedError('wifi_only', 'Las descargas están limitadas a Wi-Fi.');
+    }),
+  };
+});
 
 jest.mock('../../viewer/files', () => ({
   viewerKind: jest.fn((mime: string | undefined, uri: string) => {
@@ -25,15 +32,19 @@ jest.mock('expo-network', () => ({
 
 jest.mock('expo-file-system/legacy', () => ({
   documentDirectory: 'file:///doc/',
+  cacheDirectory: 'file:///cache/',
   makeDirectoryAsync: jest.fn(async () => undefined),
   deleteAsync: jest.fn(async () => undefined),
   getInfoAsync: jest.fn(async () => ({ exists: false, isDirectory: false, size: 0 })),
-  downloadAsync: jest.fn(async () => ({ uri: 'file:///doc/x', status: 200 })),
+  downloadAsync: jest.fn(async () => ({ uri: 'file:///cache/x.pdf', status: 200 })),
 }));
 
 describe('offline/resourceDownloadAndOpen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const runtime = require('../../runtimeConfig');
+    runtime.getApiBaseUrlSync.mockReturnValue('');
   });
 
   it('wifiOnly + cellular opens online (in-app viewer) without downloading', async () => {
@@ -65,16 +76,55 @@ describe('offline/resourceDownloadAndOpen', () => {
       setNotice,
     });
 
-    expect((FileSystem as any).downloadAsync).not.toHaveBeenCalled();
+    expect((FileSystem as any).downloadAsync).toHaveBeenCalledTimes(1);
+    const call = ((FileSystem as any).downloadAsync as jest.Mock).mock.calls[0];
+    expect(call[0]).toBe('https://example.test/guia.pdf');
+    expect(String(call[1])).toMatch(/^file:\/\/\/cache\/atora-online\/res-\d+\.pdf$/);
     expect(openLocal).not.toHaveBeenCalled();
     expect(onOpenResource).toHaveBeenCalledWith({
       title: 'Guía',
-      localUri: 'https://example.test/guia.pdf',
+      localUri: 'file:///cache/x.pdf',
       kind: 'pdf',
       mime: 'application/pdf',
     });
     expect(openUrl).not.toHaveBeenCalled();
     expect(setNotice).toHaveBeenCalledWith('Para guardarlo sin conexión, conéctate a Wi-Fi.');
+  });
+
+  it('adds Authorization header when opening an API-protected resource online', async () => {
+    const runtime = await import('../../runtimeConfig');
+    (runtime.getApiBaseUrlSync as unknown as jest.Mock).mockReturnValue('https://api.test/wp-json/atora-mobile/v1');
+    const { downloadAndOpenResourceOrOpenOnline } = await import('../resourceDownloadAndOpen');
+    const FileSystem = await import('expo-file-system/legacy');
+
+    const onOpenResource = jest.fn();
+    const openUrl = jest.fn(async () => undefined);
+    const openLocal = jest.fn(async () => undefined);
+    const setNotice = jest.fn();
+    const loadSavedResources = jest.fn(async () => undefined);
+
+    await downloadAndOpenResourceOrOpenOnline({
+      lesson: { id: 1, course_id: 2 },
+      token: 'token-123',
+      resource: {
+        id: 7,
+        type: 'pdf',
+        title: 'Guía',
+        mime: 'application/pdf',
+        downloadable: true,
+        url: 'https://api.test/wp-json/atora-mobile/v1/protected.pdf',
+        download_url: 'https://api.test/wp-json/atora-mobile/v1/protected.pdf',
+        updated_at: null,
+      } as any,
+      loadSavedResources,
+      openLocal,
+      onOpenResource,
+      openUrl,
+      setNotice,
+    });
+
+    const opts = ((FileSystem as any).downloadAsync as jest.Mock).mock.calls[0]?.[2];
+    expect(opts?.headers?.Authorization).toBe('Bearer token-123');
   });
 });
 

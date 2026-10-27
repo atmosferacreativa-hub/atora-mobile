@@ -594,6 +594,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
         await downloadAndOpenResourceOrOpenOnline({
           lesson,
           resource,
+          token,
           loadSavedResources,
           openLocal,
           onOpenResource,

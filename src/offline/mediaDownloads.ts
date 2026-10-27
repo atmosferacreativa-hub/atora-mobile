@@ -19,6 +19,7 @@ import { t } from '../i18n/core';
 import { unzipSync } from 'fflate';
 import { base64ToBytes, bytesToBase64 } from '../utils/base64';
 import { isAllowedDownloadSource } from './downloadSources';
+import { DownloadBlockedError } from './downloadErrors';
 
 export type { DownloadRecord, DownloadSettings };
 
@@ -161,7 +162,7 @@ async function assertNetwork(settings: DownloadSettings, allowCellular = false):
     throw new Error(t('Necesitas conexión para descargar.'));
   }
   if (settings.wifiOnly && !allowCellular && network.type !== Network.NetworkStateType.WIFI) {
-    throw new Error(t('Las descargas están limitadas a Wi-Fi.'));
+    throw new DownloadBlockedError('wifi_only', t('Las descargas están limitadas a Wi-Fi.'));
   }
 }
 
@@ -175,7 +176,16 @@ async function fetchToManifest(
     throw new Error(t('Solo se permiten descargas protegidas por HTTPS.'));
   }
   await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, { intermediates: true });
-  const result = await FileSystem.downloadAsync(sourceUrl, `${DOWNLOAD_DIR}${fileName}`);
+  let result: Awaited<ReturnType<typeof FileSystem.downloadAsync>>;
+  try {
+    result = await FileSystem.downloadAsync(sourceUrl, `${DOWNLOAD_DIR}${fileName}`);
+  } catch (reason) {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    if (/ENOSPC|no space/i.test(message)) {
+      throw new DownloadBlockedError('no_space', t('No hay espacio disponible dentro del límite configurado.'));
+    }
+    throw reason;
+  }
   if (result.status < 200 || result.status >= 300) {
     await FileSystem.deleteAsync(result.uri, { idempotent: true });
     throw new Error(t('El servidor no entregó el archivo.'));
@@ -197,7 +207,7 @@ async function fetchToManifest(
   });
   const maintained = await maintainDownloads();
   const kept = maintained.find((item) => item.localUri === saved.localUri);
-  if (!kept) throw new Error(t('No hay espacio disponible dentro del límite configurado.'));
+  if (!kept) throw new DownloadBlockedError('quota', t('No hay espacio disponible dentro del límite configurado.'));
   return kept;
 }
 

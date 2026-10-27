@@ -1,0 +1,57 @@
+appId: com.atmosferacreativa.atora
+name: material-en-linea
+# 1.1.0: si la descarga se bloquea (solo Wi-Fi), el material se abre en línea.
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+
+# Entrar a una lección para ver la sección "Materiales".
+- scrollUntilVisible:
+    element: "Videos"
+- tapOn: "Videos"
+- extendedWaitUntil:
+    visible: "Video 1"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element: "Materiales"
+- scrollUntilVisible:
+    element: "Guía PDF"
+
+# El recorrido debe ser independiente del orden: si ya estaba descargado,
+# borrarlo primero.
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn:
+    text: "Eliminar"
+    optional: true
+
+# Simular red celular (E2E): con wifiOnly activo, la descarga se bloquea.
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
+- tapOn:
+    id: "e2e-network-toggle"
+- extendedWaitUntil:
+    visible: "NET:CELL"
+    timeout: 15000
+
+# Abrir el PDF: debe cargar en el visor aunque no se guarde sin conexión.
+- tapOn: "Guía PDF"
+- extendedWaitUntil:
+    visible:
+      id: "resource-ready"
+    timeout: 60000
+- takeScreenshot: capturas/material-en-linea-01-pdf
+- back
+
+# Restaurar para no afectar otros recorridos.
+- tapOn:
+    id: "e2e-network-toggle"
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 30000
+
