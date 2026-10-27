@@ -36,6 +36,7 @@ import type { LessonDetail, LessonResource } from '../types';
 import { t } from '../i18n';
 import { allowDriveNavigation } from '../viewer/drive';
 import { loadFontScale, saveFontScale, stepFontScale } from '../reading/fontScale';
+import { audioMetaLine } from '../audio/audioMeta';
 
 export type OpenResourceParams = { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 
@@ -49,6 +50,8 @@ type Props = {
   onOpenResource: (params: OpenResourceParams) => void;
   /** 1.1.0: visor SCORM local. */
   onOpenScorm?: (courseId: number, resource: LessonResource) => void;
+  /** 1.2.0: audio de la lección (descargado o en línea). */
+  onOpenAudio?: (resource: LessonResource, localUri?: string, localBytes?: number | null) => void;
   /** 0.9.0: asistente de IA (solo si el servidor declara `ai_assistant`). */
   onAsk?: (title: string) => void;
 };
@@ -342,7 +345,9 @@ function LessonContent({
                 <View key={`${key}-${index}`} style={styles.resourceCard}>
                   <Pressable accessibilityRole="button" onPress={() => onResourcePress(resource)} style={styles.resourceMeta}>
                     <Text style={styles.resourceType}>
-                      {(RESOURCE_LABELS[resource.type] ?? resource.type ?? 'Recurso').toUpperCase()}{size ? ` · ${size}` : ''}
+                      {(RESOURCE_LABELS[resource.type] ?? resource.type ?? 'Recurso').toUpperCase()}{resource.type === 'audio'
+                        ? (audioMetaLine(resource, saved?.size) ? ` · ${audioMetaLine(resource, saved?.size)}` : '')
+                        : size ? ` · ${size}` : ''}
                     </Text>
                     <Text style={styles.resourceTitle}>{resource.title}</Text>
                     {resource.description ? (
@@ -466,7 +471,7 @@ function toPlayable(lesson: LessonDetail, multi: boolean): PlayableVideo[] {
 
 const slot = (video: PlayableVideo) => video.key ?? `#${video.index}`;
 
-export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource, onOpenScorm, onAsk }: Props) {
+export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz, onOpenAssignment, onOpenResource, onOpenScorm, onOpenAudio, onAsk }: Props) {
   const { offline } = useNetworkState();
   const [assignmentsSupported, setAssignmentsSupported] = useState(false);
   const [assistantSupported, setAssistantSupported] = useState(false);
@@ -576,6 +581,12 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       return;
     }
     const saved = savedResources[resourceKey(lesson.id, resource)];
+    // 1.2.0: el audio se escucha en el reproductor de la app (descargado o en línea).
+    if (resource.type === 'audio' && onOpenAudio && !saved?.error) {
+      const usable = isUsableSavedDownload(saved);
+      onOpenAudio(resource, usable ? saved!.localUri : undefined, usable ? saved!.size ?? null : null);
+      return;
+    }
     const action = resolveResourcePressAction(resource, saved);
     if (action === 'show_error') {
       setNotice(saved?.error || t('No fue posible descargar el material.'));

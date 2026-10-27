@@ -103,3 +103,10 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 60. [ ] **SCORM en iPhone**: en un iPhone, abrir un SCORM publicado (mínimo y XHR), comprobar que no queda en blanco y que se sincroniza al volver la red.
 61. [ ] **Material sin Wi‑Fi**: con el ajuste por defecto (descargas solo por Wi‑Fi) y usando datos móviles, tocar un PDF descargable: se abre **en línea** en el visor de la app y muestra "Para guardarlo sin conexión, conéctate a Wi‑Fi".
 
+
+## 1.2.0 — Audio
+
+62. [ ] **Audio en línea (Android)**: en una lección con un audio MP3, ver duración, tamaño y formato antes de tocarlo; reproducir, pausar, ±15 s, cambiar la velocidad, salir y volver: continúa donde quedó.
+63. [ ] **Audio sin conexión**: descargar el audio, activar modo avión, abrirlo y escucharlo completo; al volver la conexión, la posición llega al servidor (se ve igual en otro teléfono o tras reinstalar).
+64. [ ] **Audio en iPhone**: MP3 y M4A se reproducen; un OGG muestra el aviso de compatibilidad (y comprobar si se reproduce o no, para la matriz de `docs/AUDIO.md` del plugin).
+65. [ ] **Audio en el navegador del teléfono**: la misma lección en Chrome (Android) y Safari (iPhone): reproductor, velocidad, posición recordada y transcripción.

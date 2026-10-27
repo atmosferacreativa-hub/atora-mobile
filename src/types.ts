@@ -132,6 +132,14 @@ export type LessonResource = {
   version_checksum_sha256?: string;
   scorm_version?: string;
   launch_href?: string;
+
+  /** 1.2.0 (audio, plugin 6.37.0). */
+  duration_seconds?: number | null;
+  audio_format?: string;
+  compatibility?: { status: string; note: string };
+  transcript?: string;
+  position_key?: string;
+  resume_position_seconds?: number;
 };
 
 export type QuizAnswer = string | string[];
