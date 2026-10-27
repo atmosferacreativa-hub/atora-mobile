@@ -135,6 +135,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
   const [pageText, setPageText] = useState('');
   const [escapeCheckText, setEscapeCheckText] = useState('');
   const [serverStateText, setServerStateText] = useState('');
+  const [lastCommitText, setLastCommitText] = useState('');
   const [attemptId, setAttemptId] = useState(0);
   const [syncNotice, setSyncNotice] = useState('');
   const [initialValues, setInitialValues] = useState<Record<string, string>>({});
@@ -506,6 +507,27 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
               } catch {
                 // Sin persistencia.
               }
+
+              if (isE2E) {
+                try {
+                  const values = msg.values as Record<string, string>;
+                  const status = String(values['cmi.core.lesson_status'] ?? values['cmi.completion_status'] ?? '').toLowerCase();
+                  const score = String(values['cmi.core.score.raw'] ?? values['cmi.score.raw'] ?? '').trim();
+                  const location = String(values['cmi.core.lesson_location'] ?? values['cmi.location'] ?? '').trim();
+                  const parts: string[] = [];
+                  if (status) parts.push(`STATUS:${status}`);
+                  if (score) parts.push(`SCORE:${score}`);
+                  if (location) parts.push(`LOC:${location.slice(0, 18)}`);
+                  if (!parts.length) {
+                    const keys = Object.keys(values).slice(0, 6);
+                    if (keys.length) parts.push(`KEYS:${keys.join('|')}`);
+                  }
+                  setLastCommitText(parts.length ? `LOCAL:${parts.join(',')}` : '');
+                } catch {
+                  setLastCommitText('');
+                }
+              }
+
               void enqueueScormCommit(effectiveAttemptId, msg.values as Record<string, string>)
                 // Siempre reflejar el estado local aunque no haya red.
                 .then(() => refreshSyncNotice())
@@ -546,7 +568,7 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
       />
       {isE2E ? (
         <View style={styles.e2eBar}>
-          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: [pageText || t('Cargando...'), escapeCheckText, serverStateText].filter(Boolean).join(' · ') })}</Text>
+          <Text style={styles.e2eText}>{t('SCORM: {text}', { text: [pageText || t('Cargando...'), escapeCheckText, serverStateText, lastCommitText].filter(Boolean).join(' · ') })}</Text>
         </View>
       ) : null}
       {syncNotice ? (

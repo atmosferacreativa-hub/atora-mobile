@@ -584,6 +584,23 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       await openLocal(saved, resource.title);
       return;
     }
+
+    if (action === 'download_and_open') {
+      const key = resourceKey(lesson.id, resource);
+      setResourceBusy(key);
+      setNotice('');
+      try {
+        const downloaded = await downloadResource(lesson, resource);
+        await loadSavedResources(lesson.id);
+        await openLocal(downloaded, resource.title);
+      } catch (reason) {
+        setNotice(reason instanceof Error ? reason.message : t('No fue posible descargar el material.'));
+      } finally {
+        setResourceBusy('');
+      }
+      return;
+    }
+
     if (action === 'open_url') {
       const target = resource.download_url || resource.url;
       if (!target) return;
