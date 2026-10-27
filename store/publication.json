@@ -1,0 +1,31 @@
+{
+  "publisher": {
+    "name": "Atora Studio",
+    "developedBy": "Atmósfera Creativa",
+    "legalName": null,
+    "country": null,
+    "supportEmail": null,
+    "privacyEmail": null
+  },
+  "privacy": {
+    "url": "https://atora.studio/privacidad/",
+    "publishedVerified": false,
+    "inAppLinkVerified": false
+  },
+  "review": {
+    "academyUrl": "https://demo.atora.studio",
+    "studentUsername": "revisor-estudiante",
+    "teacherUsername": "revisor-docente",
+    "accountsVerified": false,
+    "credentialsDelivery": "store-consoles-only"
+  },
+  "assets": {
+    "androidScreenshotsVerified": false,
+    "iosScreenshotsVerified": false,
+    "playFeatureGraphicVerified": false
+  },
+  "builds": {
+    "androidProductionVerified": false,
+    "iosProductionVerified": false
+  }
+}

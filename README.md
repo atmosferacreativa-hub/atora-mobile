@@ -107,3 +107,7 @@ Eso corre en la nube de EAS (no localmente) y al terminar da un link de descarga
 ## Versión
 
 Ver [CHANGELOG.md](CHANGELOG.md). Cada versión publicada lleva su etiqueta `vX.Y.Z`.
+
+## Preparación de tiendas
+
+Editor: Atora Studio, un desarrollo de Atmósfera Creativa. Estado y datos públicos en `store/publication.json`; comprobar con `npm run store:check`. El cierre estricto (`npm run store:release-check`) falla si faltan datos o verificaciones. Seguir [PUBLICACION-TIENDAS.md](docs/PUBLICACION-TIENDAS.md). Las credenciales de revisión nunca van al repo. Los artefactos Android del workflow interno no acreditan firma de producción.

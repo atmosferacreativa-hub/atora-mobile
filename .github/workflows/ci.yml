@@ -18,6 +18,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install
+      - run: npm run store:check
       - run: npm run typecheck
       - run: npm test -- --ci
       # Dependencias nativas duplicadas o peers faltantes hacen que la APK se cierre al abrir.

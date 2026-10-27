@@ -1,4 +1,8 @@
-# Ficha de tienda — ATORA 1.0.0 (borrador para aprobación del titular)
+# Ficha de tienda — ATORA
+
+Corte de documentación: app 1.0.2 en `main`. La versión del envío debe ser la que informe `npm run store:check` después de integrar el cierre móvil. No anunciar 1.1.0 mientras esté pendiente.
+
+Editor: **Atora Studio, un desarrollo de Atmósfera Creativa**. Datos públicos y estado de cierre: [`../store/publication.json`](../store/publication.json). Procedimiento único: [PUBLICACION-TIENDAS.md](PUBLICACION-TIENDAS.md).
 
 ## Datos básicos
 
@@ -7,12 +11,13 @@
 | Nombre de la app | ATORA |
 | Subtítulo (App Store, 30 caracteres) | ES: "Tu academia en el teléfono" · EN: "Your academy on your phone" |
 | Categoría | Google Play: Educación · App Store: Educación (secundaria: Productividad) |
-| Clasificación | Para todos / 4+ (sin contenido generado por otros usuarios fuera de la academia; mensajes solo entre miembros de la academia) |
+| Clasificación | Completar los cuestionarios de cada consola según el contenido y funciones reales; no asumir una clasificación automática. |
 | Precio | Gratis, sin compras dentro de la app |
 | Idiomas | Español (principal), inglés |
-| Correo de contacto | […titular…] |
+| Editor | Atora Studio, un desarrollo de Atmósfera Creativa |
+| Correo de contacto | Pendiente: `publisher.supportEmail` en `store/publication.json` |
 | Sitio web | https://atora.studio |
-| Política de privacidad | […URL en atora.studio…] |
+| Política de privacidad | https://atora.studio/privacidad/ — ruta acordada, publicación y acceso público pendientes de verificar |
 
 ## Descripción corta (Google Play, 80 caracteres)
 
@@ -65,24 +70,33 @@ No ads or tracking. Your password is not stored on the phone, connections are en
 
 ATORA requires an account from an academy running ATORA LMS. There is no sign-up in the app.
 
-## Novedades (1.0.0)
+## Novedades del envío
 
-- **ES:** Primera versión pública: cursos, tareas, evaluaciones, notas, certificados en PDF, mensajes, agenda, modo docente y asistente con IA. En español e inglés.
-- **EN:** First public release: courses, assignments, quizzes, grades, PDF certificates, messages, calendar, teacher mode and AI assistant. In Spanish and English.
+Revisar contra la compilación final. Este texto corresponde al alcance integrado en `main` (1.0.2); no incluye SCORM móvil pendiente de cierre.
+
+- **ES:** Cursos, tareas, evaluaciones, notas, certificados, mensajes, agenda y modo docente. Lectura de PDF e imágenes con zoom y ajuste del texto de las lecciones. IA si la academia la activa. En español e inglés.
+- **EN:** Courses, assignments, quizzes, grades, certificates, messages, calendar and teacher mode. Zoom PDF files and images, and adjust lesson text size. AI when enabled by the academy. In Spanish and English.
 
 ## Palabras clave (App Store, 100 caracteres)
 
 - **ES:** academia,cursos,lms,estudiantes,docentes,tareas,notas,certificados,educación,aprendizaje
 - **EN:** academy,courses,lms,students,teachers,assignments,grades,certificates,education,learning
 
-## Capturas
+## Materiales gráficos
 
-Generadas por las pruebas de pantalla del CI en una pantalla de 1080 × 2400 (modo `tienda` de `.github/workflows/e2e.yml`) y adaptadas a cada tienda con `scripts/store-screenshots.sh`:
+Usar capturas de la compilación final, con datos de demostración y sin contraseñas, tokens, conversaciones reales ni información personal. La mayoría debe mostrar funciones en uso, no solo el ingreso o la pantalla inicial.
 
-| Tienda | Tamaño | Carpeta |
+| Destino | Fuente | Preparación |
 |---|---|---|
-| Google Play (teléfono) | 1080 × 2400 (9:20) | `store/play/` |
-| App Store 6,9" (obligatoria) | 1320 × 2868 | `store/ios-6.9/` |
-| App Store 6,5" | 1284 × 2778 | `store/ios-6.5/` |
+| Google Play | APK final ejecutada en Android; el modo `tienda` del CI puede aportar capturas de esa plataforma | `bash scripts/store-screenshots.sh android CARPETA_ORIGEN` |
+| App Store | App final ejecutada en iPhone o simulador iOS | `bash scripts/store-screenshots.sh ios CARPETA_ORIGEN` |
+| Gráfico destacado de Google Play | Pieza de marca de 1024 × 500, revisada contra la app real | Guardar en `store/feature-graphic.png` al aprobarlo |
 
-Orden propuesto: Hoy · Lección con videos · Tarea · Notas y evolución · Certificado PDF · Mensajes · Asistente IA · Calificar (docente). Gráfico destacado de Google Play (1024 × 500): pendiente del titular (logo y marca).
+El script conserva los píxeles originales y separa `store/play/` y `store/ios/`. **No transforma capturas de Android en supuestas capturas de iPhone.** Confirmar tamaños admitidos en cada consola antes de subir.
+
+Orden: Hoy · Lección con varios vídeos · PDF con zoom · Tarea · Notas · Certificado · Mensajes · Calificar (docente). Incluir IA solo si está disponible para las cuentas de revisión.
+
+Referencias oficiales:
+- Apple, capturas fieles a la app: https://developer.apple.com/help/app-review/guideline-reference/2-3-3-screenshots/
+- Apple, tamaños: https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
+- Google Play, recursos gráficos: https://support.google.com/googleplay/android-developer/answer/9866151

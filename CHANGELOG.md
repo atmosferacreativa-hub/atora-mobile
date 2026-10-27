@@ -1,5 +1,11 @@
 # Changelog — ATORA Mobile
 
+## Preparación de publicación (sin cambio de versión de la app)
+
+- Centraliza editor confirmado, URL prevista y datos pendientes de tiendas.
+- Separa capturas reales de Android/iOS y añade comprobación de preparación.
+- Documenta evidencia de firma de producción y credenciales privadas para revisión.
+
 Toda versión publicada lleva su etiqueta `vX.Y.Z` y su entrada aquí en el mismo PR que sube el número.
 
 ## 1.0.2 (2026-10-23)

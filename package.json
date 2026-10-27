@@ -13,7 +13,9 @@
     "build:apk": "eas build --platform android --profile preview",
     "build:android": "eas build --platform android --profile production",
     "test": "jest",
-    "postinstall": "node scripts/vendor-pdfjs.js"
+    "postinstall": "node scripts/vendor-pdfjs.js",
+    "store:check": "node scripts/check-store-readiness.cjs",
+    "store:release-check": "node scripts/check-store-readiness.cjs --release"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
