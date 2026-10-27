@@ -53,6 +53,20 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/dist/atora-android-preview.apk"
           cp app/build/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/dist/atora-android.aab"
 
+      - name: Páginas de 16 KB (Google Play)
+        run: |
+          set -euo pipefail
+          ZIPALIGN=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)zipalign
+          echo "zipalign: $ZIPALIGN"
+          "$ZIPALIGN" -c -P 16 -v 4 dist/atora-android-preview.apk > dist/zipalign-16kb.txt 2>&1 && echo "zipalign -P 16: OK" | tee -a dist/16kb-report.txt || { echo "zipalign -P 16: FAIL" | tee -a dist/16kb-report.txt; tail -20 dist/zipalign-16kb.txt; exit 1; }
+          python3 scripts/check-16kb.py dist/atora-android-preview.apk dist/atora-android.aab | tee -a dist/16kb-report.txt
+          {
+            echo "### Páginas de 16 KB"
+            echo '```'
+            cat dist/16kb-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Mark artifacts as internal QA
         run: |
           echo "INTERNAL QA ONLY. Production signing, certificate identity and store acceptance have not been verified by this workflow." > dist/INTERNAL-QA-ONLY.txt
@@ -60,7 +74,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-internal-qa-${{ inputs.ref }}
+          name: android-internal-qa-${{ github.run_id }}
           path: dist/
           if-no-files-found: error
 
