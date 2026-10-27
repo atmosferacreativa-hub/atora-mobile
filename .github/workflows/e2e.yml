@@ -274,9 +274,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          # `sdkmanager` está preinstalado en `ubuntu-latest`, pero no siempre queda en PATH.
+          # Infra hardening: no depender del PATH (ni de `bash -lc`, que lo resetea).
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
-          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          SDKMANAGER=""
+          if command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="sdkmanager"
+          else
+            SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager 2>/dev/null | head -n 1 || true)"
+          fi
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: no se encontró sdkmanager (SDK_ROOT=$SDK_ROOT)" >&2
+            ls -la "$SDK_ROOT" || true
+            find "$SDK_ROOT" -maxdepth 4 -type d -print | head -n 200 || true
+            exit 1
+          fi
+
+          # Para steps posteriores.
+          if [ "$SDKMANAGER" != "sdkmanager" ]; then
+            echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          fi
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
 
           retry() {
@@ -291,9 +308,9 @@ jobs:
               sleep $((n*10))
             done
           }
-          retry bash -lc 'yes | sdkmanager --licenses > /dev/null'
-          retry bash -lc "sdkmanager --install 'build-tools;37.0.0' platform-tools 'platforms;android-34' emulator > /dev/null"
-          retry bash -lc "sdkmanager --install 'system-images;android-34;google_apis;x86_64' --channel=0 > /dev/null"
+          retry bash -c "yes | '$SDKMANAGER' --licenses > /dev/null"
+          retry bash -c "'$SDKMANAGER' --install 'build-tools;37.0.0' platform-tools 'platforms;android-34' emulator > /dev/null"
+          retry bash -c "'$SDKMANAGER' --install 'system-images;android-34;google_apis;x86_64' --channel=0 > /dev/null"
 
       - name: ADB daemon (reintentos)
         run: |
