@@ -101,4 +101,5 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 
 59. [ ] **Paquete Rise/Storyline sin conexión**: descargar un SCORM exportado de Articulate Rise o Storyline, activar modo avión, abrirlo desde la lección y comprobar que carga completo (incluye sus XHR a archivos locales) y que el intento se sincroniza al volver la conexión.
 60. [ ] **SCORM en iPhone**: en un iPhone, abrir un SCORM publicado (mínimo y XHR), comprobar que no queda en blanco y que se sincroniza al volver la red.
+61. [ ] **Material sin Wi‑Fi**: con el ajuste por defecto (descargas solo por Wi‑Fi) y usando datos móviles, tocar un PDF descargable: se abre **en línea** en el visor de la app y muestra "Para guardarlo sin conexión, conéctate a Wi‑Fi".
 

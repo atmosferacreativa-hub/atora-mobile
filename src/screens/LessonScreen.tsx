@@ -30,6 +30,7 @@ import { perfMark, perfNow } from '../perf';
 import { offlineMessage } from '../ai/conversation';
 import { openWithSystem, viewerKind } from '../viewer/files';
 import { isUsableSavedDownload, resolveResourcePressAction } from '../offline/resourceOpenLogic';
+import { downloadAndOpenResourceOrOpenOnline } from '../offline/resourceDownloadAndOpen';
 import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
 import { t } from '../i18n';
@@ -590,11 +591,18 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       setResourceBusy(key);
       setNotice('');
       try {
-        const downloaded = await downloadResource(lesson, resource);
-        await loadSavedResources(lesson.id);
-        await openLocal(downloaded, resource.title);
-      } catch (reason) {
-        setNotice(reason instanceof Error ? reason.message : t('No fue posible descargar el material.'));
+        await downloadAndOpenResourceOrOpenOnline({
+          lesson,
+          resource,
+          loadSavedResources,
+          openLocal,
+          onOpenResource,
+          openUrl: async (url) => { await Linking.openURL(url); },
+          setNotice,
+          download: downloadResource,
+        });
+      } catch {
+        setNotice(t('No fue posible descargar el material.'));
       } finally {
         setResourceBusy('');
       }
