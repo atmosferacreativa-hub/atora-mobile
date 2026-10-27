@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
-# Adapta las capturas del modo "tienda" del CI (1080 × 2400) a los tamaños de cada tienda.
-# Uso (macOS, usa sips): scripts/store-screenshots.sh <carpeta con las capturas PNG> [destino=store]
+# Conserva capturas reales de la plataforma indicada; nunca simula otra plataforma.
+# Uso: bash scripts/store-screenshots.sh android|ios ORIGEN [DESTINO=store]
 set -euo pipefail
-SRC="${1:?carpeta de capturas}"
-DEST="${2:-store}"
-BG="F3F6FF" # fondo de la app
-mkdir -p "$DEST/play" "$DEST/ios-6.9" "$DEST/ios-6.5"
+PLATFORM="${1:?indica android o ios}"
+SRC="${2:?indica la carpeta de capturas originales}"
+DEST="${3:-store}"
+case "$PLATFORM" in
+ android) TARGET="$DEST/play" ;;
+ ios) TARGET="$DEST/ios" ;;
+ *) echo 'Plataforma inválida: usa android o ios, con capturas de esa plataforma.' >&2; exit 2 ;;
+esac
+[[ -d "$SRC" ]] || { echo 'No existe la carpeta de origen.' >&2; exit 2; }
+mkdir -p "$TARGET"
+SRC_ABS="$(cd "$SRC" && pwd -P)"
+TARGET_ABS="$(cd "$TARGET" && pwd -P)"
+case "$TARGET_ABS/" in "$SRC_ABS/"*) echo 'El destino no puede estar dentro del origen.' >&2; exit 2;; esac
 n=0
-while IFS= read -r file; do
-  n=$((n + 1))
-  name=$(printf '%02d-%s' "$n" "$(basename "$file")")
-  cp "$file" "$DEST/play/$name"
-  for spec in "ios-6.9:1320:2868" "ios-6.5:1284:2778"; do
-    IFS=: read -r dir w h <<< "$spec"
-    cp "$file" "$DEST/$dir/$name"
-    sips --resampleHeight "$h" "$DEST/$dir/$name" >/dev/null 2>&1
-    sips --padToHeightWidth "$h" "$w" --padColor "$BG" "$DEST/$dir/$name" >/dev/null 2>&1
-  done
-done < <(find "$SRC" -name '*.png' | sort)
-echo "$n capturas en $DEST/{play,ios-6.9,ios-6.5}"
+while IFS= read -r -d '' file; do
+ n=$((n+1))
+ name=$(printf '%02d-%s' "$n" "$(basename "$file")")
+ [[ ! -e "$TARGET/$name" ]] || { echo "Ya existe $name; usa otro destino para no sobrescribir." >&2; exit 2; }
+ cp "$file" "$TARGET/$name"
+done < <(find "$SRC" -type f -name '*.png' -print0)
+(( n > 0 )) || { echo 'No hay capturas PNG; no se generó material de tienda.' >&2; exit 1; }
+echo "$n capturas originales de $PLATFORM en $TARGET. Verifica tamaños y contenido en la consola."

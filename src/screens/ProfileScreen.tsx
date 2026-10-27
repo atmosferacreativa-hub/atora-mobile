@@ -1,3 +1,4 @@
+import { LegalLinks } from '../components/LegalLinks';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -322,6 +323,7 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
           {deleting ? <ActivityIndicator color={colors.red} /> : <Text style={styles.deleteAccountText}>{t('Eliminar mi cuenta')}</Text>}
         </Pressable>
       ) : null}
+      <LegalLinks />
     </ScrollView>
       <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
     </View>

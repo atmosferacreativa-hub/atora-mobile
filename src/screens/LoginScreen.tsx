@@ -1,3 +1,4 @@
+import { LegalLinks } from '../components/LegalLinks';
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -109,6 +110,7 @@ export function LoginScreen({ onLogin }: Props) {
         </Pressable>
         <Text style={styles.security}>{t('Sesión protegida y revocable. Tu contraseña no se guarda.')}</Text>
       </View>
+      <LegalLinks />
     </KeyboardScroll>
       <AcademyEndpointModal visible={setupOpen} onClose={() => setSetupOpen(false)} />
     </View>

@@ -1,6 +1,6 @@
-# Datos y permisos para las tiendas — ATORA 1.0.0
+# Datos y permisos para las tiendas — ATORA — preparación del envío
 
-Respuestas preparadas a partir del código de la app 1.0.0 y del plugin ATORA LMS 6.33.0, para copiar en Google Play Console (Seguridad de los datos) y App Store Connect (Privacidad de la app). El titular las revisa antes de enviar. Ver también `POLITICA-PRIVACIDAD-APP.md`.
+Respuestas preparadas con referencia inicial a la app 1.0.0 y al plugin ATORA LMS 6.33.0; revisar de nuevo contra la compilación final (versión móvil preparada: 1.0.3, plugin 6.34.1), para copiar en Google Play Console (Seguridad de los datos) y App Store Connect (Privacidad de la app). El titular las revisa antes de enviar. Ver también `POLITICA-PRIVACIDAD-APP.md`.
 
 ## Resumen
 
@@ -11,7 +11,7 @@ Respuestas preparadas a partir del código de la app 1.0.0 y del plugin ATORA LM
 | ¿El usuario puede pedir la eliminación? | **Sí**: en la app (Yo → Eliminar mi cuenta) y en la web de cada academia: `https://{academia}/eliminar-cuenta/`. Para la ficha de Google Play se informa la de la academia del demo: `https://demo.atora.studio/eliminar-cuenta/`. |
 | ¿Publicidad o seguimiento? | **No**. Sin SDK de anuncios ni de analítica. |
 | ¿Cuenta obligatoria? | Sí, la crea la academia (no hay registro desde la app). |
-| Política de privacidad | `https://atora.studio/…` (la publica el titular). |
+| Política de privacidad | `https://atora.studio/privacidad/` (ruta acordada; publicación pendiente de verificar). |
 
 ## Google Play — Seguridad de los datos
 
@@ -56,3 +56,9 @@ El token de notificaciones no es un dato que Apple pida declarar como identifica
 | Ambas | Almacenamiento para descargas | Almacenamiento privado de la app. | Sin permiso: no hace falta. |
 
 **Quitados en 1.0.0** (los traía la plantilla y la app no los usa): `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` y `SYSTEM_ALERT_WINDOW` (`android.blockedPermissions` en `app.json`). iOS no declara textos de permiso (`NS…UsageDescription`) porque la app no usa cámara, fotos, micrófono, ubicación ni contactos. `ITSAppUsesNonExemptEncryption = false`: solo usa el cifrado estándar del sistema (HTTPS).
+
+## Revisión de la compilación final
+
+No copiar respuestas solo porque estén en este documento. Comprobar proveedores y variables efectivas de la compilación enviada, especialmente `EXPO_PUBLIC_SENTRY_DSN`, configuración de IA y notificaciones. En el código actual, Sentry se inicializa solo con DSN y con autorización de la academia. Un SDK incluido no demuestra que el envío esté activo, y una variable ausente del repositorio no demuestra que esté ausente en EAS.
+
+Las respuestas sobre datos, retención y eliminación deben coincidir con el servicio desplegado y la política publicada. Referencia oficial: https://support.google.com/googleplay/android-developer/answer/10144311

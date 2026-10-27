@@ -1,11 +1,13 @@
-# Cuentas e instrucciones para la revisión de las tiendas — ATORA 1.0.0
+# Cuentas e instrucciones para la revisión de las tiendas — ATORA
+
+Editor: **Atora Studio, un desarrollo de Atmósfera Creativa**. Usar la versión informada por `npm run store:check` y confirmar que coincide con la compilación enviada. Ver [PUBLICACION-TIENDAS.md](PUBLICACION-TIENDAS.md).
 
 ## Preparar las cuentas (titular, una vez, en el demo)
 
 En el servidor del demo (`demo.atora.studio`), con WP-CLI:
 
 ```bash
-wp atora review-accounts --yes --password='<contraseña de al menos 12 caracteres>' --courses=<id1>,<id2>
+wp atora review-accounts --yes --password=CLAVE_PRIVADA_DE_REVISION --courses=<id1>,<id2>
 ```
 
 - Crea (o actualiza) `revisor-estudiante` y `revisor-docente` con esa contraseña.
@@ -14,6 +16,14 @@ wp atora review-accounts --yes --password='<contraseña de al menos 12 caractere
 - Elegir cursos con contenido real: videos, una tarea, una evaluación y, si es posible, un certificado disponible.
 - Para que el revisor vea el asistente y la sugerencia de IA, activarlas en ATORA LMS → Uso de IA (con un proveedor configurado).
 - Configurar la plantilla del certificado (logo y firmas) en ATORA LMS → Plantilla de certificado.
+
+## Credenciales privadas
+
+Los nombres `revisor-estudiante` y `revisor-docente` no acreditan que las cuentas ya existan. El titular debe crearlas y probarlas en el demo con ambas plataformas. No usar las cuentas del CI (`estudiante_e2e` / `docente_e2e`) ni sus claves de prueba.
+
+Las contraseñas se guardan en un gestor privado y se introducen directamente en **Acceso a la app** de Google Play Console y **Notas para la revisión** de App Store Connect. No escribirlas en este repositorio, issues, PR, capturas, logs o artefactos. Sustituir `<contraseña>` / `<password>` únicamente al pegar el texto en la consola.
+
+El comando anterior requiere una contraseña real en el servidor autorizado; evitar dejarla en el historial o en logs. Esta preparación documental no ejecuta el comando ni crea cuentas en producción.
 
 ## Texto para los revisores (Google Play: "Acceso a la app"; Apple: "Notas para la revisión")
 
@@ -50,12 +60,18 @@ ATORA is the app for academies running ATORA LMS. There is no sign-up in the app
 ## Datos para los formularios
 
 - Eliminación de cuenta (Google Play): `https://demo.atora.studio/eliminar-cuenta/` (cada academia tiene la suya en `/eliminar-cuenta/`).
-- Política de privacidad: la URL que publique el titular en atora.studio (`docs/POLITICA-PRIVACIDAD-APP.md`).
+- Política de privacidad: `https://atora.studio/privacidad/` (publicar y verificar sin sesión antes del envío).
 - Seguridad de los datos / etiquetas de privacidad: `docs/TIENDAS-DATOS.md`.
-- Contacto del revisor: […correo y teléfono del titular…].
+- Titular: Inversiones ATM-CAP 1783 C.A. · Nombre comercial: Atmósfera Creativa · País: Venezuela.
+- Correo público de soporte y privacidad: admin@atora.studio.
+- Persona y teléfono de contacto del revisor: completar directamente en las consolas si se solicitan; no se deducen de la marca.
 
 ## Antes de enviar (titular)
 
 - Cambiar `<contraseña>` en los textos por la real.
 - Comprobar que las dos cuentas entran en el demo y que el curso tiene un certificado disponible.
 - No eliminar ni anonimizar las cuentas de revisión mientras la app esté en revisión (si un revisor pide la eliminación, aparece en ATORA LMS → Solicitudes de eliminación: dejarla pendiente o anonimizar después de la aprobación).
+
+## Registro de prueba
+
+Registrar de forma privada: fecha, versión/build, plataforma, resultado de ingreso de ambas cuentas, curso usado, prueba de entrega y borrador/publicación de nota. Marcar `review.accountsVerified` solo después de comprobar ambas cuentas. Revisar también IA, notificaciones y certificado si se anuncian en la ficha.

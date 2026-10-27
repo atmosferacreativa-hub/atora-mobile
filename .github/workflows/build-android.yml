@@ -1,4 +1,4 @@
-name: Build Android artifacts
+name: Build Android artifacts (internal QA)
 
 on:
   workflow_dispatch:
@@ -53,10 +53,14 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/dist/atora-android-preview.apk"
           cp app/build/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/dist/atora-android.aab"
 
+      - name: Mark artifacts as internal QA
+        run: |
+          echo "INTERNAL QA ONLY. Production signing, certificate identity and store acceptance have not been verified by this workflow." > dist/INTERNAL-QA-ONLY.txt
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-artifacts-${{ inputs.ref }}
+          name: android-internal-qa-${{ inputs.ref }}
           path: dist/
           if-no-files-found: error
 

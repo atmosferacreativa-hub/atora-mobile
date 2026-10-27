@@ -1,0 +1,33 @@
+{
+  "publisher": {
+    "name": "Atora Studio",
+    "developedBy": "Atmósfera Creativa",
+    "legalName": "Inversiones ATM-CAP 1783 C.A.",
+    "country": "Venezuela",
+    "supportEmail": "admin@atora.studio",
+    "privacyEmail": "admin@atora.studio",
+    "tradeName": "Atmósfera Creativa"
+  },
+  "privacy": {
+    "url": "https://atora.studio/privacidad/",
+    "publishedVerified": true,
+    "inAppLinkVerified": false,
+    "publishedVerifiedAt": "2026-10-27"
+  },
+  "review": {
+    "academyUrl": "https://demo.atora.studio",
+    "studentUsername": "revisor-estudiante",
+    "teacherUsername": "revisor-docente",
+    "accountsVerified": false,
+    "credentialsDelivery": "store-consoles-only"
+  },
+  "assets": {
+    "androidScreenshotsVerified": false,
+    "iosScreenshotsVerified": false,
+    "playFeatureGraphicVerified": false
+  },
+  "builds": {
+    "androidProductionVerified": false,
+    "iosProductionVerified": false
+  }
+}
