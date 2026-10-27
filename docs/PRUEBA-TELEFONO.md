@@ -110,3 +110,5 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 63. [ ] **Audio sin conexión**: descargar el audio, activar modo avión, abrirlo y escucharlo completo; al volver la conexión, la posición llega al servidor (se ve igual en otro teléfono o tras reinstalar).
 64. [ ] **Audio en iPhone**: MP3 y M4A se reproducen; un OGG muestra el aviso de compatibilidad (y comprobar si se reproduce o no, para la matriz de `docs/AUDIO.md` del plugin).
 65. [ ] **Audio en el navegador del teléfono**: la misma lección en Chrome (Android) y Safari (iPhone): reproductor, velocidad, posición recordada y transcripción.
+66. [ ] **Clase en vivo (Zoom/Meet/Teams)**: en una lección con clase programada, la hora aparece en la zona del teléfono y la cuenta regresiva baja; «Unirse a la clase» aparece 10 min antes sin salir y volver a entrar, y abre la app del proveedor (o el navegador si no está instalada).
+67. [ ] **Grabación de la clase**: después de la clase, «Ver la grabación» abre el enlace o el video; si el docente eligió «sin grabación», se dice que no se grabó.

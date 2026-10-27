@@ -139,6 +139,11 @@ jobs:
             add_flows "audio" "material-zoom"
           fi
 
+          # Clase en vivo (1.2.0).
+          if echo "$CHANGED" | grep -Eq '^(src/live/|src/components/LiveClassCard\.tsx$|src/screens/LessonScreen\.tsx$)'; then
+            add_flows "clase-en-vivo"
+          fi
+
           # Docente.
           if echo "$CHANGED" | grep -Eq '^(src/screens/teacher/|src/api/teacher\.ts$|src/teacher/)' ; then
             DOCENTE="$(expand_docente)"
