@@ -10,8 +10,9 @@
   },
   "privacy": {
     "url": "https://atora.studio/privacidad/",
-    "publishedVerified": false,
-    "inAppLinkVerified": false
+    "publishedVerified": true,
+    "inAppLinkVerified": false,
+    "publishedVerifiedAt": "2026-10-27"
   },
   "review": {
     "academyUrl": "https://demo.atora.studio",
