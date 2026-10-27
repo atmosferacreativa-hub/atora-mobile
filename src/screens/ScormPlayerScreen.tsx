@@ -17,6 +17,7 @@ import { buildScormInjectedRuntime } from '../scorm/runtime';
 import { isAllowedScormFileUrl } from '../scorm/urls';
 import { mergeScormValues } from '../scorm/values';
 import { startLocalScormServer } from '../scorm/localServer';
+import { decideScormOutboxTick } from '../scorm/outboxTickDecision';
 
 type Props = {
   token: string;
@@ -399,22 +400,16 @@ export function ScormPlayerScreen({ token, lessonId, courseId, resource, onBack 
     let hadPending = false;
     const tick = async () => {
       if (!active) return;
-      const online = await hasNetwork();
-      if (!online) return;
       const all = await listOutbox().catch(() => ({ pending: [], failed: [] }));
       const minePending = all.pending.filter((event) => event.type === SCORM_COMMIT && (event.payload as any)?.attemptId === attemptId);
-      if (minePending.length) {
-        hadPending = true;
+      const online = await hasNetwork();
+      const decision = decideScormOutboxTick({ online, pendingCount: minePending.length, hadPending });
+      hadPending = decision.hadPending;
+      if (!online) return;
+      if (decision.shouldFlush) {
         await flushOutbox(token).catch(() => undefined);
-        await refreshSyncNotice();
-        await refreshServerState(attemptId);
-        return;
       }
-
-      // Si hubo pendiente y ahora se vació (tal vez por otro flusher), refrescar
-      // una vez el estado del servidor para reflejar lo que se sincronizó.
-      if (hadPending) {
-        hadPending = false;
+      if (decision.shouldRefreshServerState) {
         await refreshSyncNotice();
         await refreshServerState(attemptId);
       }
