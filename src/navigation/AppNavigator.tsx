@@ -22,6 +22,7 @@ import { CourseGradesScreen } from '../screens/CourseGradesScreen';
 import { EvolutionScreen } from '../screens/EvolutionScreen';
 import { ResourceViewerScreen } from '../screens/ResourceViewerScreen';
 import { ScormPlayerScreen } from '../screens/ScormPlayerScreen';
+import { AudioPlayerScreen } from '../screens/AudioPlayerScreen';
 import { AgendaScreen } from '../screens/AgendaScreen';
 import { ComposeScreen } from '../screens/ComposeScreen';
 import { MessagesScreen } from '../screens/MessagesScreen';
@@ -83,6 +84,7 @@ export type LearningStackParams = {
   Resource: { title: string; localUri: string; kind: 'pdf' | 'image' | 'html'; mime?: string };
   /** 1.1.0: SCORM (visor local). */
   Scorm: { lessonId: number; courseId: number; resource: LessonResource };
+  Audio: { lessonId: number; resource: LessonResource; localUri?: string; localBytes?: number | null };
   CourseGrades: { courseId: number; title: string };
   /** 0.6.0: buzón. */
   Thread: { threadId?: number; title?: string; recipient?: { id: number; name: string; courseId?: number } };
@@ -214,6 +216,7 @@ function LessonRoute({ route, navigation }: LearningProps<'Lesson'>) {
       onOpenAssignment={() => navigation.push('Assignment', { lessonId: route.params.lessonId })}
       onOpenResource={(params) => navigation.push('Resource', params)}
       onOpenScorm={(courseId, resource) => navigation.push('Scorm', { lessonId: route.params.lessonId, courseId, resource })}
+      onOpenAudio={(resource, localUri, localBytes) => navigation.push('Audio', { lessonId: route.params.lessonId, resource, localUri, localBytes })}
       onAsk={mode === 'student' ? (title) => navigation.push('Assistant', { lessonId: route.params.lessonId, title }) : undefined}
     />
   );
@@ -227,6 +230,18 @@ function ScormRoute({ route, navigation }: LearningProps<'Scorm'>) {
       lessonId={route.params.lessonId}
       courseId={route.params.courseId}
       resource={route.params.resource}
+      onBack={() => navigation.goBack()}
+    />
+  );
+}
+
+function AudioRoute({ route, navigation }: LearningProps<'Audio'>) {
+  return (
+    <AudioPlayerScreen
+      lessonId={route.params.lessonId}
+      resource={route.params.resource}
+      localUri={route.params.localUri}
+      localBytes={route.params.localBytes}
       onBack={() => navigation.goBack()}
     />
   );
@@ -478,6 +493,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Assignment" component={AssignmentRoute} />
         <Stack.Screen name="Resource" component={ResourceRoute} />
         <Stack.Screen name="Scorm" component={ScormRoute} />
+        <Stack.Screen name="Audio" component={AudioRoute} />
         <Stack.Screen name="CourseGrades" component={CourseGradesRoute} />
         <Stack.Screen name="Thread" component={ThreadRoute} />
         <Stack.Screen name="Compose" component={ComposeRoute} />

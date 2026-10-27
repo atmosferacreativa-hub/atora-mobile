@@ -1,0 +1,38 @@
+appId: com.atmosferacreativa.atora
+name: audio
+# 1.2.0: audio de la lección (plugin 6.37.0). Metadatos visibles antes de escuchar, reproductor con
+# tiempo, velocidad y transcripción.
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+
+- scrollUntilVisible:
+    element: "Videos"
+- tapOn: "Videos"
+- extendedWaitUntil:
+    visible: "Video 1"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element: "Audio de la clase"
+# Duración, tamaño y formato antes de escuchar o descargar.
+- assertVisible: "AUDIO · .*MP3"
+- takeScreenshot: capturas/audio-01-material
+- tapOn: "Audio de la clase"
+- extendedWaitUntil:
+    visible: "Reproducir"
+    timeout: 30000
+- tapOn: "Reproducir"
+# El tiempo avanza (el audio dura 3 s).
+- extendedWaitUntil:
+    visible: "0:0[1-3] / 0:0[0-9]"
+    timeout: 20000
+- tapOn: "Velocidad 1×"
+- assertVisible: "Velocidad 1,25×"
+- takeScreenshot: capturas/audio-02-reproductor
+# La transcripción está debajo del reproductor: en pantallas chicas hay que desplazarse.
+- scrollUntilVisible:
+    element: "Transcripción de prueba del audio de la clase."
+    timeout: 15000
+- takeScreenshot: capturas/audio-03-transcripcion
+- tapOn: "← Volver"

@@ -134,6 +134,11 @@ jobs:
             add_flows "scorm-online" "scorm-sin-conexion" "scorm-xhr"
           fi
 
+          # Audio (1.2.0).
+          if echo "$CHANGED" | grep -Eq '^(src/audio/|src/screens/AudioPlayerScreen\.tsx$|src/screens/LessonScreen\.tsx$|src/api/positions\.ts$)'; then
+            add_flows "audio" "material-zoom"
+          fi
+
           # Docente.
           if echo "$CHANGED" | grep -Eq '^(src/screens/teacher/|src/api/teacher\.ts$|src/teacher/)' ; then
             DOCENTE="$(expand_docente)"
@@ -423,6 +428,7 @@ jobs:
 
           if [ ! -f maestro-report.xml ]; then
             if [ ! -f .e2e/maestro-started ]; then
+              echo "::error title=E2E INFRA::falló antes de correr Maestro"
               echo "- Resultado: **INFRA** (falló antes de correr Maestro)" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "- Resultado: Maestro se ejecutó pero no generó \`maestro-report.xml\`" >> "$GITHUB_STEP_SUMMARY"
@@ -449,16 +455,21 @@ jobs:
             for case in suite.findall('testcase'):
               name = case.attrib.get('name', '(sin nombre)')
               status = 'OK'
-              if case.find('failure') is not None:
-                status = 'FAIL'
-              if case.find('error') is not None:
-                status = 'ERROR'
-              results.append((name, status))
+              detail = ''
+              for tag, label in (('failure', 'FAIL'), ('error', 'ERROR')):
+                node = case.find(tag)
+                if node is not None:
+                  status = label
+                  detail = ((node.attrib.get('message') or '') + ' ' + (node.text or '')).strip()
+              results.append((name, status, ' '.join(detail.split())[:400]))
 
           # Un testcase por flow; el name suele ser el yaml.
           lines = ['\n**Recorridos**']
-          for name, status in results:
-            lines.append(f"- {name}: {status}")
+          for name, status, detail in results:
+            lines.append(f"- {name}: {status}" + (f" — {detail}" if detail else ''))
+            # También como anotación (con el motivo del fallo): se lee por la API sin descargar artefactos.
+            level = 'notice' if status == 'OK' else 'error'
+            print(f"::{level} title=E2E {status}::{name}" + (f" — {detail}" if detail else ''))
           Path('/tmp/atora-e2e-summary.txt').write_text('\n'.join(lines), encoding='utf-8')
           PY
 
