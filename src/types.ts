@@ -110,6 +110,25 @@ export type LessonDetail = {
   resume_position_seconds?: number;
   /** 6.28.2+: todos los videos, en el orden del editor. */
   videos?: LessonVideo[];
+  /** 6.39.0+: clase en vivo (Zoom, Meet, Teams o enlace). El enlace solo llega con la clase abierta. */
+  live?: LiveInfo | null;
+};
+
+/** 6.39.0+: clase en vivo de la lección (`GET /lessons/{id}` → `live`). Fechas en ISO UTC. */
+export type LiveInfo = {
+  status: 'scheduled' | 'open' | 'ended' | 'unscheduled';
+  provider: string;
+  provider_label: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  timezone: string;
+  starts_in_sec: number | null;
+  opens_at: string | null;
+  join_url: string;
+  is_host: boolean;
+  notes: string;
+  recording_mode: 'none' | 'upload' | 'provider';
+  recording: { type: 'video' | 'link'; url: string; source: string; note: string } | null;
 };
 
 export type LessonResource = {

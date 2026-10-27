@@ -1,0 +1,17 @@
+appId: com.atmosferacreativa.atora
+name: clase-en-vivo
+# 1.2.0 (plugin 6.39.0): tarjeta de clase en vivo. La semilla deja la clase abierta durante la suite, con un enlace
+# externo y una grabación anterior. No se toca «Unirse»: abriría otra app y el recorrido no podría volver.
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "Clase en vivo"
+- tapOn: "Clase en vivo"
+- extendedWaitUntil:
+    visible: "CLASE EN VIVO · ENLACE EXTERNO|Clase en vivo · Enlace externo"
+    timeout: 30000
+- assertVisible: "Unirse a la clase"
+- assertVisible: "Ver la grabación"
+- assertVisible: "Grabación de la clase anterior."
+- takeScreenshot: capturas/clase-en-vivo-01-tarjeta

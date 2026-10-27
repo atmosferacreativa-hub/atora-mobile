@@ -37,6 +37,8 @@ import { t } from '../i18n';
 import { allowDriveNavigation } from '../viewer/drive';
 import { loadFontScale, saveFontScale, stepFontScale } from '../reading/fontScale';
 import { audioMetaLine } from '../audio/audioMeta';
+import { LiveClassCard } from '../components/LiveClassCard';
+import type { LiveInfo } from '../types';
 
 export type OpenResourceParams = { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 
@@ -276,6 +278,7 @@ function LessonContent({
   onResourceRemove,
   onAsk,
   askOffline,
+  refreshLive,
 }: {
   lesson: LessonDetail;
   videoArea: ReactNode;
@@ -291,6 +294,7 @@ function LessonContent({
   onResourceRemove: (record: DownloadRecord) => void;
   onAsk?: () => void;
   askOffline: boolean;
+  refreshLive?: () => Promise<LiveInfo | null>;
 }) {
   const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
   const [fontScale, setFontScale] = useState(1);
@@ -311,6 +315,7 @@ function LessonContent({
     <>
       <Text style={styles.title}>{lesson.title}</Text>
       <Text style={styles.meta}>{t('{count} minutos', { count: lesson.duration_min })} · {lesson.type}</Text>
+      {lesson.live ? <LiveClassCard info={lesson.live} onRefresh={refreshLive} /> : null}
       {videoArea}
 	  <View style={styles.readingBar}>
 	    <Text style={styles.readingLabel}>{t('Texto')}</Text>
@@ -797,6 +802,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
           onResourceRemove={(record) => void removeOne(record)}
           onAsk={assistantSupported && onAsk ? () => onAsk(lesson.title) : undefined}
           askOffline={offline}
+          refreshLive={() => fetchLesson(lessonId, token).then((value) => value.live ?? null)}
         />
       ) : null}
       {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}

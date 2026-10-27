@@ -1,5 +1,15 @@
 /** Catálogo en inglés: clave = texto en español (1.0.0). */
 export const en: Record<string, string> = {
+  "Clase en vivo · {provider}": "Live class · {provider}",
+  "Empieza en {days} d {hours} h": "Starts in {days} d {hours} h",
+  "Empieza en {hours} h {minutes} min": "Starts in {hours} h {minutes} min",
+  "Empieza en {minutes} min": "Starts in {minutes} min",
+  "Iniciar la clase (anfitrión)": "Start the class (host)",
+  "Unirse a la clase": "Join the class",
+  "El botón para unirte aparece 10 minutos antes de empezar.": "The join button appears 10 minutes before the start.",
+  "La clase terminó. Esta clase no se grabó.": "The class has ended. It was not recorded.",
+  "La clase terminó. La grabación se publicará aquí.": "The class has ended. The recording will be posted here.",
+  "Ver la grabación": "Watch the recording",
   "AUDIO": "AUDIO",
   "Se escucha con conexión": "Plays with a connection",
   "Sin conexión: descarga el audio para escucharlo sin conexión.": "Offline: download the audio to listen without a connection.",
