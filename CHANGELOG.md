@@ -1,5 +1,14 @@
 # Changelog — ATORA Mobile
 
+## 1.2.0 (2026-10-27)
+
+Audio y clases en vivo. Requiere **ATORA LMS 6.39.0** (audio desde 6.37.0, clase en vivo desde 6.39.0); con versiones anteriores las lecciones no traen esos datos y la app no los muestra.
+
+- **Audio de la lección**: duración, tamaño y formato visibles antes de escuchar o descargar; reproductor con pausa, ±15 s, barra de posición y velocidad de 0,75× a 2×; la posición se guarda y se sincroniza con la misma cola que los videos; transcripción; descarga para escuchar sin conexión. Aviso de compatibilidad cuando el servidor lo marca (OGG en iPhone). Sin grabación desde la app (permiso de micrófono bloqueado).
+- **Clase en vivo** (Zoom, Google Meet, Microsoft Teams o enlace): tarjeta en la lección con proveedor, fecha y hora en la zona del teléfono y cuenta regresiva; «Unirse a la clase» solo con la clase abierta (10 min antes hasta 15 min después del final), abre la app del proveedor o el navegador; el docente ve «Iniciar la clase (anfitrión)»; grabación cuando el docente la publica. Integración con proveedores externos, no transmisión propia.
+- **Pruebas**: Jest (`audioMeta`, `liveClass`); recorridos `audio` y `clase-en-vivo` contra WordPress temporal del CI. iOS **no ejecutado** en CI. Validación en teléfono: filas 62–67 de `docs/PRUEBA-TELEFONO.md`, pendiente.
+- Dependencias: `expo-audio ~1.1.1` con `expo-asset ~12.0` fijado (evita el módulo nativo duplicado).
+
 ## 1.1.0 (2026-10-27)
 
 SCORM en la app (Orden B). Requiere **ATORA LMS 6.35.0** (rutas `atora-mobile/v1/scorm/*`); con versiones anteriores las lecciones no traen recursos SCORM.
