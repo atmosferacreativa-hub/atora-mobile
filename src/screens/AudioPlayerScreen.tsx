@@ -142,7 +142,8 @@ export function AudioPlayerScreen({ lessonId, resource, localUri, localBytes, on
                 <Text style={styles.smallText}>{t('+15 s')}</Text>
               </Pressable>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('Velocidad')} onPress={changeRate} style={styles.rate}>
+            {/* Sin accessibilityLabel: en Android reemplaza el texto visible ("Velocidad 1,25×") y se pierde la velocidad actual. */}
+            <Pressable accessibilityRole="button" onPress={changeRate} style={styles.rate}>
               <Text style={styles.rateText}>{t('Velocidad {rate}', { rate: formatRate(rate) })}</Text>
             </Pressable>
           </View>
