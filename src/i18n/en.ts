@@ -1,5 +1,8 @@
 /** Catálogo en inglés: clave = texto en español (1.0.0). */
 export const en: Record<string, string> = {
+  "No se pudo abrir el enlace": "Could not open the link",
+  "Soporte": "Support",
+  "Política de privacidad": "Privacy policy",
   "\"{name}\" no tiene un formato permitido ({formats}).": "\"{name}\" is not an allowed format ({formats}).",
   "\"{name}\" supera el máximo de {mb} MB.": "\"{name}\" exceeds the {mb} MB limit.",
   "1 entrega": "1 submission",

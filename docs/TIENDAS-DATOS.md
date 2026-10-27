@@ -1,6 +1,6 @@
 # Datos y permisos para las tiendas — ATORA — preparación del envío
 
-Respuestas preparadas con referencia inicial a la app 1.0.0 y al plugin ATORA LMS 6.33.0; revisar de nuevo contra la compilación final (main móvil actual: 1.0.2, plugin 6.34.1), para copiar en Google Play Console (Seguridad de los datos) y App Store Connect (Privacidad de la app). El titular las revisa antes de enviar. Ver también `POLITICA-PRIVACIDAD-APP.md`.
+Respuestas preparadas con referencia inicial a la app 1.0.0 y al plugin ATORA LMS 6.33.0; revisar de nuevo contra la compilación final (versión móvil preparada: 1.0.3, plugin 6.34.1), para copiar en Google Play Console (Seguridad de los datos) y App Store Connect (Privacidad de la app). El titular las revisa antes de enviar. Ver también `POLITICA-PRIVACIDAD-APP.md`.
 
 ## Resumen
 

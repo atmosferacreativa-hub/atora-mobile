@@ -1,8 +1,7 @@
 # Política de privacidad — ATORA (app móvil)
 
-> **Borrador con datos del titular confirmados; pendiente de validación y publicación.** Ruta acordada: https://atora.studio/privacidad/. Editor confirmado: Atora Studio, un desarrollo de Atmósfera Creativa. Titular: Inversiones ATM-CAP 1783 C.A., nombre comercial Atmósfera Creativa, Venezuela. Soporte y privacidad: admin@atora.studio. Datos registrados en `store/publication.json`. No publicar este borrador con campos pendientes. Versión inglesa al final.
 
-Última actualización: […fecha de publicación…]
+Última actualización: 27 de octubre de 2026
 
 ## Quiénes somos
 
@@ -73,9 +72,8 @@ Si cambia esta política, lo indicaremos en la app y en esta página con la fech
 
 # Privacy Policy — ATORA (mobile app)
 
-> **Draft with confirmed publisher details; pending validation and publication.** Planned URL: https://atora.studio/privacidad/. Publisher brand: Atora Studio, developed by Atmósfera Creativa. Legal publisher: Inversiones ATM-CAP 1783 C.A., trading as Atmósfera Creativa, Venezuela. Support and privacy contact: admin@atora.studio.
 
-Last updated: […publication date…]
+Last updated: October 27, 2026
 
 **Who we are.** ATORA lets students and teachers use their academy's platform (an educational institution running ATORA LMS) from their phone. The app is published by **Atora Studio, developed by Atmósfera Creativa**. The legal publisher is **Inversiones ATM-CAP 1783 C.A.**, trading as **Atmósfera Creativa**, based in **Venezuela**. Support and privacy contact: **admin@atora.studio**. Each academy is the **controller** of its students' and teachers' data; ATORA acts as the **tool provider** on the academy's behalf. For your academic data, contact your academy; for questions about the app, write to admin@atora.studio.
 

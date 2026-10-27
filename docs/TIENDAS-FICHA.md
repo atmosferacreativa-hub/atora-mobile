@@ -1,6 +1,6 @@
 # Ficha de tienda — ATORA
 
-Corte de documentación: app 1.0.2 en `main`. La versión del envío debe ser la que informe `npm run store:check` después de integrar el cierre móvil. No anunciar 1.1.0 mientras esté pendiente.
+Corte de documentación: app 1.0.3 preparada para integrar en `main`. La versión del envío debe ser la que informe `npm run store:check` después de integrar el cierre móvil. No anunciar 1.1.0 mientras esté pendiente.
 
 Editor: **Atora Studio, un desarrollo de Atmósfera Creativa**. Datos públicos y estado de cierre: [`../store/publication.json`](../store/publication.json). Procedimiento único: [PUBLICACION-TIENDAS.md](PUBLICACION-TIENDAS.md).
 
@@ -75,7 +75,7 @@ ATORA requires an account from an academy running ATORA LMS. There is no sign-up
 
 ## Novedades del envío
 
-Revisar contra la compilación final. Este texto corresponde al alcance integrado en `main` (1.0.2); no incluye SCORM móvil pendiente de cierre.
+Revisar contra la compilación final. Este texto corresponde al alcance integrado en esta versión (1.0.3); no incluye SCORM móvil pendiente de cierre.
 
 - **ES:** Cursos, tareas, evaluaciones, notas, certificados, mensajes, agenda y modo docente. Lectura de PDF e imágenes con zoom y ajuste del texto de las lecciones. IA si la academia la activa. En español e inglés.
 - **EN:** Courses, assignments, quizzes, grades, certificates, messages, calendar and teacher mode. Zoom PDF files and images, and adjust lesson text size. AI when enabled by the academy. In Spanish and English.

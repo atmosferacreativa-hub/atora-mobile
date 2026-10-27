@@ -1,6 +1,9 @@
 # Changelog — ATORA Mobile
 
-## Preparación de publicación (sin cambio de versión de la app)
+## 1.0.3 (2026-10-27)
+
+- Enlaces accesibles de privacidad y soporte en Ingreso y Yo, en español e inglés.
+- Política con datos confirmados y ruta pública preparada en atora.studio/privacidad/.
 
 - Centraliza editor confirmado, URL prevista y datos pendientes de tiendas.
 - Separa capturas reales de Android/iOS y añade comprobación de preparación.
