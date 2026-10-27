@@ -2,7 +2,7 @@
   "expo": {
     "name": "ATORA",
     "slug": "atora-mobile",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/a3b6c6d0-c58c-4508-ac3b-25c6ea11dd62"
     },
@@ -49,7 +49,7 @@
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true
       },
-      "buildNumber": "4"
+      "buildNumber": "5"
     },
     "android": {
       "package": "com.atmosferacreativa.atora",
@@ -62,7 +62,7 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
-      "versionCode": 16
+      "versionCode": 17
     },
     "web": {
       "bundler": "metro",

@@ -1,6 +1,19 @@
 # Changelog — ATORA Mobile
 
-## 1.0.3 (2026-10-27)
+## 1.1.0 (2026-10-27)
+
+SCORM en la app (Orden B). Requiere **ATORA LMS 6.35.0** (rutas `atora-mobile/v1/scorm/*`); con versiones anteriores las lecciones no traen recursos SCORM.
+
+- **Lección con SCORM** (1.2 y 2004): el paquete se abre en un WebView con el adaptador de API (`window.API` / `window.API_1484_11`) en el documento padre y dentro del iframe; el token de la sesión nunca llega al JavaScript del paquete (los commits pasan por mensajes y la app llama a la API).
+- **Sin conexión**: descarga por decisión del estudiante (con tamaño, cuota y "solo Wi‑Fi"), por URL firmada y temporal, guardada por el hash de la versión y verificada completa antes de abrir. Sin red y sin un intento abierto, la app no deja empezar y lo explica. Los commits van a la cola con `client_event_id` y fecha del dispositivo; al volver la red se sincronizan, y un error definitivo (por ejemplo 409 sin intentos) queda visible sin reintentar para siempre.
+- **Paquetes que leen sus archivos** (Rise, Storyline, Captivate): en Android se sirven desde un servidor local en 127.0.0.1 con puerto y token aleatorios, solo la carpeta del paquete (copia por sesión), detenido al salir. HTTP en claro permitido solo para `localhost`/`127.0.0.1`.
+- **Seguridad del WebView**: rutas `file://` normalizadas (sin `..`, `%2e%2e` ni carpetas hermanas), `allowFileAccessFromFileURLs` y `allowUniversalAccessFromFileURLs` apagados, enlaces externos fuera de la app, iframe con `allow-modals` para los diálogos del paquete.
+- **Material en línea** cuando la descarga está bloqueada (solo Wi‑Fi con datos móviles, cuota o espacio): se abre en el visor de la app y avisa cómo guardarlo. El error de descarga lleva código; el token solo se envía a la API de la academia (origen exacto y ruta con barra final). Los temporales se borran al cerrar el visor y al iniciar la app.
+- **Correcciones**: un registro de descarga con error ya no cuenta como "Disponible sin conexión" ni abre el navegador; texto único para los envíos pendientes ("Pendiente · se enviará al tener conexión").
+- **Pruebas**: Jest (base64, adaptador 1.2/2004, cola SCORM, URLs, servidor local, descarga, material en línea, caché temporal). Recorridos `scorm-online`, `scorm-sin-conexion` (avanza sin red y el servidor recibe completed/80), `scorm-xhr`, `material-en-linea`; en cada PR corren los recorridos de lo que toca y la suite completa con la etiqueta `e2e-completo`. iOS **no ejecutado** en CI.
+- Incluye lo preparado como 1.0.3 (enlaces de privacidad y soporte), que no se etiquetó por separado.
+
+## 1.0.3 (2026-10-27, no publicada por separado)
 
 - Enlaces accesibles de privacidad y soporte en Ingreso y Yo, en español e inglés.
 - Política con datos confirmados y ruta pública preparada en atora.studio/privacidad/.
