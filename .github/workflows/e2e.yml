@@ -252,6 +252,10 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: Android SDK (setup-android)
+        uses: android-actions/setup-android@v3
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -350,6 +354,9 @@ jobs:
           script: bash scripts/avd-snapshot.sh
 
       - name: Recorridos en el emulador (API 34, x86_64)
+        id: e2e_cached_avd
+        if: steps.avd_cache.outputs.cache-hit == 'true'
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -362,7 +369,22 @@ jobs:
           heap-size: ${{ inputs.modo == 'gama-baja' && '256M' || '512M' }}
           profile: ${{ inputs.modo == 'tienda' && 'pixel_6' || '' }}
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim ${{ inputs.modo == 'gama-baja' && '-netdelay umts -netspeed hsdpa' || '' }}
-          force-avd-creation: ${{ steps.avd_cache.outputs.cache-hit != 'true' }}
+          force-avd-creation: false
+          script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
+
+      - name: Recorridos en el emulador (fallback: recrear AVD)
+        if: steps.avd_cache.outputs.cache-hit != 'true' || steps.e2e_cached_avd.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          ram-size: ${{ inputs.modo == 'gama-baja' && '2048M' || '4096M' }}
+          heap-size: ${{ inputs.modo == 'gama-baja' && '256M' || '512M' }}
+          profile: ${{ inputs.modo == 'tienda' && 'pixel_6' || '' }}
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim ${{ inputs.modo == 'gama-baja' && '-netdelay umts -netspeed hsdpa' || '' }}
+          force-avd-creation: true
           script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
 
       - name: Resumen (recorridos + resultado)
