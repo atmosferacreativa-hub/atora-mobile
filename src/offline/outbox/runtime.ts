@@ -78,7 +78,9 @@ export function flushOutbox(token: string): Promise<ProcessResult | null> {
     }
     try {
       return await processQueue(sqliteOutboxStore, userId, Date.now(), bound, classifyOutboxError, (reason) =>
-        reason instanceof Error ? reason.message : t('Error desconocido'),
+        reason instanceof ApiError
+          ? `HTTP ${reason.status}${reason.code ? ` ${reason.code}` : ''}: ${reason.message}`
+          : reason instanceof Error ? reason.message : t('Error desconocido'),
       );
     } finally {
       notify();

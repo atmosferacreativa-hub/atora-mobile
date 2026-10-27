@@ -9,8 +9,37 @@ set -uo pipefail
 PKG=com.atmosferacreativa.atora
 OUT=capturas/rendimiento.txt
 mkdir -p capturas
+
+mkdir -p .e2e
+rm -f .e2e/maestro-started
+
+ensure_device_ready() {
+  for attempt in 1 2 3; do
+    adb kill-server >/dev/null 2>&1 || true
+    adb start-server >/dev/null 2>&1 || true
+    if ! adb wait-for-device >/dev/null 2>&1; then
+      echo "WARN: adb wait-for-device falló (intento $attempt)" >&2
+      sleep $((attempt * 5))
+      continue
+    fi
+    for _ in $(seq 1 180); do
+      booted=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+      if [ "$booted" = "1" ]; then
+        return 0
+      fi
+      sleep 1
+    done
+    echo "WARN: sys.boot_completed != 1 (intento $attempt)" >&2
+    sleep $((attempt * 5))
+  done
+  echo "ERROR: el emulador no quedó listo (adb/boot_completed)." >&2
+  return 1
+}
+
+ensure_device_ready
 adb install -r atora-e2e.apk
 API="${API_HOST:-http://localhost:8080/wp-json/atora-mobile/v1}"
+touch .e2e/maestro-started
 maestro test -e API_HOST="$API" .maestro/perf/login.yaml
 
 epoch_of() { # primera línea del registro que contiene $1 → segundos con decimales

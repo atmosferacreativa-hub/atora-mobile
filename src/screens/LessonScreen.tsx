@@ -29,6 +29,8 @@ import { useNetworkState } from '../hooks/useNetworkState';
 import { perfMark, perfNow } from '../perf';
 import { offlineMessage } from '../ai/conversation';
 import { openWithSystem, viewerKind } from '../viewer/files';
+import { isUsableSavedDownload, resolveResourcePressAction } from '../offline/resourceOpenLogic';
+import { downloadAndOpenResourceOrOpenOnline } from '../offline/resourceDownloadAndOpen';
 import { colors, spacing } from '../theme';
 import type { LessonDetail, LessonResource } from '../types';
 import { t } from '../i18n';
@@ -329,10 +331,12 @@ function LessonContent({
             {resources.map((resource, index) => {
               const key = resourceKey(lesson.id, resource);
               const saved = savedResources[key];
+              const usableSaved = isUsableSavedDownload(saved);
               const busyHere = resourceBusy === key;
               const size = formatBytes(saved?.size ?? resource.bytes);
-              const status = saved
-                ? saved.updateAvailable ? 'Actualización disponible' : 'Disponible sin conexión'
+              const status = usableSaved
+                ? saved!.updateAvailable ? 'Actualización disponible' : 'Disponible sin conexión'
+                : saved?.error ? saved.error
                 : resource.downloadable ? 'Se puede descargar' : 'Solo con conexión';
               return (
                 <View key={`${key}-${index}`} style={styles.resourceCard}>
@@ -344,17 +348,26 @@ function LessonContent({
                     {resource.description ? (
                       <Text style={styles.resourceDescription} numberOfLines={4}>{resource.description}</Text>
                     ) : null}
-                    <Text style={[styles.resourceStatus, saved && !saved.updateAvailable ? styles.resourceStatusOk : null]}>{status}</Text>
+                    <Text style={[styles.resourceStatus, usableSaved && !saved!.updateAvailable ? styles.resourceStatusOk : null]}>{status}</Text>
                   </Pressable>
                   <View style={styles.resourceActions}>
-                    {busyHere ? <ActivityIndicator color={colors.blue} /> : saved ? (
+                    {busyHere ? <ActivityIndicator color={colors.blue} /> : usableSaved ? (
                       <>
-                        {saved.updateAvailable ? (
+                        {saved!.updateAvailable ? (
                           <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
                             <Text style={styles.resourceAction}>{t('Actualizar')}</Text>
                           </Pressable>
                         ) : null}
-                        <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceRemove(saved)}>
+                        <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceRemove(saved!)}>
+                          <Text style={styles.resourceRemove}>{t('Eliminar')}</Text>
+                        </Pressable>
+                      </>
+                    ) : saved?.error && resource.downloadable ? (
+                      <>
+                        <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceDownload(resource)}>
+                          <Text style={styles.resourceAction}>{t('Descargar')}</Text>
+                        </Pressable>
+                        <Pressable hitSlop={12} accessibilityRole="button" onPress={() => onResourceRemove(saved!)}>
                           <Text style={styles.resourceRemove}>{t('Eliminar')}</Text>
                         </Pressable>
                       </>
@@ -563,16 +576,48 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
       return;
     }
     const saved = savedResources[resourceKey(lesson.id, resource)];
-    if (saved) {
+    const action = resolveResourcePressAction(resource, saved);
+    if (action === 'show_error') {
+      setNotice(saved?.error || t('No fue posible descargar el material.'));
+      return;
+    }
+    if (action === 'open_local' && saved) {
       await openLocal(saved, resource.title);
       return;
     }
-    const target = resource.download_url || resource.url;
-    if (!target) return;
-    try {
-      await Linking.openURL(target);
-    } catch {
-      setNotice(t('No se pudo abrir el enlace.'));
+
+    if (action === 'download_and_open') {
+      const key = resourceKey(lesson.id, resource);
+      setResourceBusy(key);
+      setNotice('');
+      try {
+        await downloadAndOpenResourceOrOpenOnline({
+          lesson,
+          resource,
+          token,
+          loadSavedResources,
+          openLocal,
+          onOpenResource,
+          openUrl: async (url) => { await Linking.openURL(url); },
+          setNotice,
+          download: downloadResource,
+        });
+      } catch {
+        setNotice(t('No fue posible descargar el material.'));
+      } finally {
+        setResourceBusy('');
+      }
+      return;
+    }
+
+    if (action === 'open_url') {
+      const target = resource.download_url || resource.url;
+      if (!target) return;
+      try {
+        await Linking.openURL(target);
+      } catch {
+        setNotice(t('No se pudo abrir el enlace.'));
+      }
     }
   };
 

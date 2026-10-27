@@ -4,7 +4,8 @@ name: Pruebas de pantalla
 # (Docker) con el plugin de `Atora-LMS-6` en `main` y los datos de
 # `wp atora seed-e2e`. Nunca contra el demo.
 #
-# - Cada PR: `login` y `leccion` (rápido).
+# - Cada PR: `login` y `leccion` + recorridos según archivos tocados.
+# - Etiqueta `e2e-completo` en el PR: suite completa.
 # - Al etiquetar (v*), al fusionar en main o a mano: todos los recorridos.
 # Las capturas quedan como artefacto de la ejecución.
 
@@ -33,8 +34,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WP_URL: http://10.0.2.2:8080
-  API_URL: http://10.0.2.2:8080/wp-json/atora-mobile/v1
+  # CI: el emulador no siempre puede alcanzar 10.0.2.2. Usamos 127.0.0.1
+  # dentro del emulador, con `adb reverse` (ver scripts/e2e-run.sh).
+  WP_URL: http://127.0.0.1:8080
+  API_URL: http://127.0.0.1:8080/wp-json/atora-mobile/v1
 
 jobs:
   e2e:
@@ -42,6 +45,8 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Plugin ATORA LMS
         uses: actions/checkout@v4
@@ -53,13 +58,130 @@ jobs:
       - name: Recorridos a ejecutar
         id: flows
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "list=login,leccion" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ inputs.flows }}" ] && [ "${{ inputs.flows }}" != "todos" ]; then
-            echo "list=${{ inputs.flows }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "list=todos" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          join_by() { local IFS="$1"; shift; echo "$*"; }
+
+          dedupe_csv() {
+            # Entrada: CSV (sin espacios). Salida: CSV sin duplicados, preserva orden.
+            local csv="${1:-}" out="" seen=","
+            IFS=',' read -r -a arr <<< "$csv"
+            for item in "${arr[@]}"; do
+              item="${item// /}"
+              [ -z "$item" ] && continue
+              if [[ "$seen" == *",$item,"* ]]; then
+                continue
+              fi
+              seen="$seen$item,"
+              out="${out:+$out,}$item"
+            done
+            echo "$out"
+          }
+
+          expand_docente() {
+            local flows=()
+            for f in .maestro/docente-*.yaml; do
+              [ -f "$f" ] || continue
+              flows+=("$(basename "$f" .yaml)")
+            done
+            join_by , "${flows[@]:-}"
+          }
+
+          # Push/tags/dispatch: respetar inputs (por compatibilidad con ejecuciones manuales).
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            if [ -n "${{ inputs.flows }}" ] && [ "${{ inputs.flows }}" != "todos" ]; then
+              echo "list=${{ inputs.flows }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "list=todos" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
           fi
+
+          # Etiqueta: correr la suite completa.
+          if ${{ contains(toJson(github.event.pull_request.labels), '"name":"e2e-completo"') }}; then
+            echo "list=todos" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"
+          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+
+          echo "Changed files:"; echo "$CHANGED" | sed 's/^/ - /'
+
+          # Suite completa si tocamos dependencias, config o navegación.
+          if echo "$CHANGED" | grep -Eq '^(package\.json|package-lock\.json|app\.json|app\.config\.js|plugins/|src/navigation/|App\.tsx)'; then
+            echo "list=todos" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          FLOWS=("login" "leccion")
+          REQUIRED=("login" "leccion")
+
+          add_flows() {
+            local -a items=("$@");
+            for item in "${items[@]}"; do
+              [ -z "$item" ] && continue
+              FLOWS+=("$item")
+              REQUIRED+=("$item")
+            done
+          }
+
+          # SCORM.
+          if echo "$CHANGED" | grep -Eq '^(src/scorm/|src/screens/ScormPlayerScreen\.tsx$|src/offline/mediaDownloads\.ts$|src/offline/downloadSources\.ts$)'; then
+            # Cada recorrido limpia estado (`launchApp clearState: true`), así que no dependen del orden.
+            add_flows "scorm-online" "scorm-sin-conexion" "scorm-xhr"
+          fi
+
+          # Docente.
+          if echo "$CHANGED" | grep -Eq '^(src/screens/teacher/|src/api/teacher\.ts$|src/teacher/)' ; then
+            DOCENTE="$(expand_docente)"
+            if [ -n "$DOCENTE" ]; then
+              IFS=',' read -r -a doc_arr <<< "$DOCENTE"
+              add_flows "${doc_arr[@]}"
+            fi
+          fi
+
+          # Tarea.
+          if echo "$CHANGED" | grep -Eq '^(src/api/assignments\.ts$|src/screens/AssignmentScreen\.tsx$|src/offline/sync/)' ; then
+            add_flows "tarea"
+          fi
+
+          # Quiz.
+          if echo "$CHANGED" | grep -Eq '^(src/api/quizzes\.ts$|src/screens/QuizScreen\.tsx$|src/offline/quiz)' ; then
+            add_flows "quiz"
+          fi
+
+          # Mensajes.
+          if echo "$CHANGED" | grep -Eq '^(src/api/messages\.ts$|src/screens/(MessagesScreen|ThreadScreen)\.tsx$|src/messages/)' ; then
+            add_flows "mensajes"
+          fi
+
+          # Sin conexión / offline.
+          if echo "$CHANGED" | grep -Eq '^(src/offline/|src/screens/DownloadsScreen\.tsx$)' ; then
+            add_flows "sin-conexion"
+          fi
+
+          # Material en línea cuando la descarga se bloquea.
+          if echo "$CHANGED" | grep -Eq '^(src/offline/resourceDownloadAndOpen\.ts$|src/offline/mediaDownloads\.ts$|src/screens/LessonScreen\.tsx$|src/screens/ResourceViewerScreen\.tsx$|src/viewer/)' ; then
+            add_flows "material-en-linea"
+          fi
+
+          LIST="$(dedupe_csv "$(join_by , "${FLOWS[@]}")")"
+          REQ="$(dedupe_csv "$(join_by , "${REQUIRED[@]}")")"
+          echo "Selected flows: $LIST"
+          echo "Required flows: $REQ"
+
+          # Guardrail: si el PR toca algo que requiere recorridos, este job debe incluirlos.
+          for needed in $(echo "$REQ" | tr ',' ' '); do
+            echo "$LIST" | tr ',' '\n' | grep -qx "$needed" || {
+              echo "::error::Falta el recorrido requerido: $needed"
+              exit 1
+            }
+          done
+
+          echo "list=$LIST" >> "$GITHUB_OUTPUT"
 
       - name: WordPress temporal (Docker)
         run: |
@@ -76,6 +198,18 @@ jobs:
             if curl -fsS -o /dev/null http://localhost:8080/wp-admin/install.php; then break; fi
             sleep 3
           done
+
+      - name: PHP Zip para SCORM (WordPress)
+        run: |
+          # SCORM requiere ZipArchive. El contenedor de WordPress no siempre lo trae.
+          if docker exec wp php -m | grep -qi '^zip$'; then
+            echo "ZipArchive OK"
+          else
+            echo "Instalando extensión zip..."
+            docker exec wp bash -lc 'apt-get update && apt-get install -y --no-install-recommends g++ make autoconf libzip-dev zlib1g-dev unzip && docker-php-ext-install zip'
+            docker exec wp apache2ctl -k restart
+            docker exec wp php -m | grep -i '^zip$'
+          fi
 
       - name: Instalar WordPress y sembrar datos
         run: |
@@ -123,11 +257,80 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache AVD + system image (API 34 x86_64 google_apis)
+        id: avd_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adbkey
+            ~/.android/adbkey.pub
+            /usr/local/lib/android/sdk/system-images/android-34/google_apis/x86_64
+          key: avd-${{ runner.os }}-api34-x86_64-google_apis-${{ hashFiles('scripts/e2e-run.sh', 'scripts/avd-snapshot.sh', '.github/workflows/e2e.yml') }}
+
+      - name: Android SDK (reintentos)
+        run: |
+          set -euo pipefail
+
+          # Infra hardening: no depender del PATH (ni de `bash -lc`, que lo resetea).
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER=""
+          if command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="sdkmanager"
+          else
+            SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager 2>/dev/null | head -n 1 || true)"
+          fi
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: no se encontró sdkmanager (SDK_ROOT=$SDK_ROOT)" >&2
+            ls -la "$SDK_ROOT" || true
+            find "$SDK_ROOT" -maxdepth 4 -type d -print | head -n 200 || true
+            exit 1
+          fi
+
+          # Para steps posteriores.
+          if [ "$SDKMANAGER" != "sdkmanager" ]; then
+            echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          fi
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+
+          retry() {
+            local n=0
+            until "$@"; do
+              n=$((n+1))
+              if [ "$n" -ge 3 ]; then
+                echo "ERROR: fallo tras $n intentos: $*" >&2
+                return 1
+              fi
+              echo "WARN: reintento $n/3: $*" >&2
+              sleep $((n*10))
+            done
+          }
+          retry bash -c "yes | '$SDKMANAGER' --licenses > /dev/null"
+          retry bash -c "'$SDKMANAGER' --install 'build-tools;37.0.0' platform-tools 'platforms;android-34' emulator > /dev/null"
+          retry bash -c "'$SDKMANAGER' --install 'system-images;android-34;google_apis;x86_64' --channel=0 > /dev/null"
+
+      - name: ADB daemon (reintentos)
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            adb kill-server >/dev/null 2>&1 || true
+            adb start-server >/dev/null 2>&1 || true
+            if adb devices >/dev/null 2>&1; then
+              exit 0
+            fi
+            echo "WARN: adb no respondió (intento $attempt)" >&2
+            sleep $((attempt*5))
+          done
+          echo "ERROR: adb no respondió tras reintentos" >&2
+          exit 1
 
       - name: APK de pruebas (perfil e2e)
         timeout-minutes: 40
@@ -161,7 +364,24 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Crear snapshot del AVD (cache miss)
+        if: steps.avd_cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          ram-size: ${{ inputs.modo == 'gama-baja' && '2048M' || '4096M' }}
+          heap-size: ${{ inputs.modo == 'gama-baja' && '256M' || '512M' }}
+          profile: ${{ inputs.modo == 'tienda' && 'pixel_6' || '' }}
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim ${{ inputs.modo == 'gama-baja' && '-netdelay umts -netspeed hsdpa' || '' }}
+          script: bash scripts/avd-snapshot.sh
+
       - name: Recorridos en el emulador (API 34, x86_64)
+        id: e2e_cached_avd
+        if: steps.avd_cache.outputs.cache-hit == 'true'
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -173,14 +393,248 @@ jobs:
           ram-size: ${{ inputs.modo == 'gama-baja' && '2048M' || '4096M' }}
           heap-size: ${{ inputs.modo == 'gama-baja' && '256M' || '512M' }}
           profile: ${{ inputs.modo == 'tienda' && 'pixel_6' || '' }}
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim ${{ inputs.modo == 'gama-baja' && '-netdelay umts -netspeed hsdpa' || '' }}
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim ${{ inputs.modo == 'gama-baja' && '-netdelay umts -netspeed hsdpa' || '' }}
+          force-avd-creation: false
           script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
+
+      - name: "Recorridos en el emulador (fallback: recrear AVD)"
+        if: steps.avd_cache.outputs.cache-hit != 'true' || steps.e2e_cached_avd.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          ram-size: ${{ inputs.modo == 'gama-baja' && '2048M' || '4096M' }}
+          heap-size: ${{ inputs.modo == 'gama-baja' && '256M' || '512M' }}
+          profile: ${{ inputs.modo == 'tienda' && 'pixel_6' || '' }}
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim ${{ inputs.modo == 'gama-baja' && '-netdelay umts -netspeed hsdpa' || '' }}
+          force-avd-creation: true
+          script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
+
+      - name: Resumen (recorridos + resultado)
+        if: always()
+        run: |
+          set -euo pipefail
+
+          echo "### E2E" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Recorridos solicitados: \`${{ steps.flows.outputs.list }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ! -f maestro-report.xml ]; then
+            if [ ! -f .e2e/maestro-started ]; then
+              echo "- Resultado: **INFRA** (falló antes de correr Maestro)" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- Resultado: Maestro se ejecutó pero no generó \`maestro-report.xml\`" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 0
+          fi
+
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          p = Path('maestro-report.xml')
+          root = ET.fromstring(p.read_text(encoding='utf-8'))
+
+          # JUnit puede traer <testsuite> raíz o <testsuites>.
+          suites = []
+          if root.tag == 'testsuite':
+            suites = [root]
+          else:
+            suites = list(root.findall('testsuite'))
+
+          results = []
+          for suite in suites:
+            for case in suite.findall('testcase'):
+              name = case.attrib.get('name', '(sin nombre)')
+              status = 'OK'
+              if case.find('failure') is not None:
+                status = 'FAIL'
+              if case.find('error') is not None:
+                status = 'ERROR'
+              results.append((name, status))
+
+          # Un testcase por flow; el name suele ser el yaml.
+          lines = ['\n**Recorridos**']
+          for name, status in results:
+            lines.append(f"- {name}: {status}")
+          Path('/tmp/atora-e2e-summary.txt').write_text('\n'.join(lines), encoding='utf-8')
+          PY
+
+          cat /tmp/atora-e2e-summary.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Capturas y registros
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: capturas-${{ github.run_number }}
+          path: |
+            capturas/
+            .maestro/capturas/
+            maestro-report.xml
+            seed.json
+            ~/.maestro/tests/
+          if-no-files-found: warn
+          retention-days: 30
+
+  ios-e2e:
+    # iOS e2e (simulador) solo en tags `v*`.
+    # En PRs, si no corre, debe reportarse explícitamente como "iOS NO EJECUTADO".
+    if: >-
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      WP_URL: http://127.0.0.1:8080
+      API_URL: http://127.0.0.1:8080/wp-json/atora-mobile/v1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Plugin ATORA LMS
+        uses: actions/checkout@v4
+        with:
+          repository: atmosferacreativa-hub/Atora-LMS-6
+          ref: ${{ inputs.plugin_ref || 'main' }}
+          path: _plugin
+
+      - name: Docker disponible
+        id: docker
+        run: |
+          set -euo pipefail
+          if command -v docker >/dev/null 2>&1 && docker version >/dev/null 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            docker info >/dev/null 2>&1 || true
+            exit 0
+          fi
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+
+      - name: iOS e2e omitido (Docker no disponible)
+        if: steps.docker.outputs.ok != 'true'
+        run: |
+          echo "### iOS e2e" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Docker no está disponible en el runner macOS; no se ejecuta WordPress ni Maestro iOS." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: WordPress temporal (Docker)
+        if: steps.docker.outputs.ok == 'true'
+        run: |
+          docker network create e2e
+          docker run -d --name db --network e2e \
+            -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=wp -e MYSQL_USER=wp -e MYSQL_PASSWORD=wp \
+            mysql:8.0
+          docker run -d --name wp --network e2e -p 8080:80 \
+            -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp \
+            -e WORDPRESS_CONFIG_EXTRA="define('WP_ENVIRONMENT_TYPE','local'); define('ATORA_E2E', true); define('ATORA_AI_FAKE', true);" \
+            -v "$PWD/_plugin:/var/www/html/wp-content/plugins/atora-lms" \
+            wordpress:6.8-php8.1-apache
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://localhost:8080/wp-admin/install.php; then break; fi
+            sleep 3
+          done
+
+      - name: PHP Zip para SCORM (WordPress)
+        if: steps.docker.outputs.ok == 'true'
+        run: |
+          if docker exec wp php -m | grep -qi '^zip$'; then
+            echo "ZipArchive OK"
+          else
+            echo "Instalando extensión zip..."
+            docker exec wp bash -lc 'apt-get update && apt-get install -y --no-install-recommends g++ make autoconf libzip-dev zlib1g-dev unzip && docker-php-ext-install zip'
+            docker exec wp apache2ctl -k restart
+            docker exec wp php -m | grep -i '^zip$'
+          fi
+
+      - name: Instalar WordPress y sembrar datos
+        if: steps.docker.outputs.ok == 'true'
+        run: |
+          WP="docker run --rm --network e2e --volumes-from wp --user 33:33 -e HOME=/tmp -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wp wordpress:cli-php8.1 wp"
+          for i in $(seq 1 40); do
+            if docker exec db mysqladmin ping -uwp -pwp --silent 2>/dev/null && $WP db check >/dev/null 2>&1; then break; fi
+            sleep 3
+          done
+          $WP core install --url="$WP_URL" --title="ATORA E2E" --admin_user=admin --admin_password=admin --admin_email=admin@e2e.test --skip-email
+          $WP rewrite structure '/%postname%/' --hard
+          $WP plugin activate atora-lms
+          docker exec wp mkdir -p /var/www/html/e2e-media
+          docker cp e2e/media/. wp:/var/www/html/e2e-media/
+          docker exec wp chown -R 33:33 /var/www/html/e2e-media
+          $WP atora seed-e2e --yes --video-dir=/var/www/html/e2e-media | tee seed.json
+          curl -fsS http://localhost:8080/wp-json/atora-mobile/v1/discovery | head -c 400; echo
+
+      - uses: actions/setup-node@v4
+        if: steps.docker.outputs.ok == 'true'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Maestro
+        if: steps.docker.outputs.ok == 'true'
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Build iOS (simulador)
+        if: steps.docker.outputs.ok == 'true'
+        timeout-minutes: 45
+        env:
+          ATORA_E2E: '1'
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+          EXPO_PUBLIC_ATORA_API_URL: ${{ env.API_URL }}
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          npm ci
+          npx expo prebuild --platform ios --no-install
+          cd ios
+          pod install
+
+          DERIVED="$RUNNER_TEMP/atora-ios"
+          rm -rf "$DERIVED"
+          mkdir -p "$DERIVED"
+
+          WORKSPACE=""
+          if [ -f ATORA.xcworkspace/contents.xcworkspacedata ]; then WORKSPACE="ATORA.xcworkspace"; fi
+          if [ -f Atora.xcworkspace/contents.xcworkspacedata ]; then WORKSPACE="Atora.xcworkspace"; fi
+          if [ -z "$WORKSPACE" ]; then
+            echo "::error::No se encontró .xcworkspace (pod install falló o no generó workspace)."
+            ls -la
+            exit 1
+          fi
+
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme ATORA \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath "$DERIVED" \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            build
+
+          APP_PATH="$DERIVED/Build/Products/Debug-iphonesimulator/ATORA.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::No se encontró la app compilada en $APP_PATH"
+            find "$DERIVED" -maxdepth 5 -type d -name '*.app' -print
+            exit 1
+          fi
+
+          xcrun simctl boot 'iPhone 15' || true
+          xcrun simctl bootstatus 'iPhone 15' -b
+          xcrun simctl install booted "$APP_PATH"
+
+      - name: Recorridos Maestro (iOS)
+        if: steps.docker.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p capturas
+          maestro test --format junit --output maestro-report.xml .maestro/scorm-online.yaml .maestro/scorm-xhr-ios.yaml
+
+      - name: Capturas y registros (iOS)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-ios-${{ github.run_number }}
           path: |
             capturas/
             .maestro/capturas/

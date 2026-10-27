@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import * as FileSystem from 'expo-file-system/legacy';
 import { VIEWER_ROOT, viewerUrlWithOptions } from '../viewer/files';
 import { colors, spacing } from '../theme';
 import { t } from '../i18n';
+import { isOnlineCacheUri } from '../offline/onlineCache';
 
 type Props = {
   title: string;
@@ -36,6 +38,14 @@ export function ResourceViewerScreen({ title, localUri, kind, onBack, onOpenWith
       void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (isOnlineCacheUri(localUri)) {
+        void FileSystem.deleteAsync(localUri, { idempotent: true }).catch(() => undefined);
+      }
+    };
+  }, [localUri]);
 
   useEffect(() => {
     setReady(kind === 'html');

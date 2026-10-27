@@ -5,44 +5,63 @@ onFlowComplete:
 ---
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
+
 - scrollUntilVisible:
-    element: "SCORM"
-- tapOn: "SCORM"
+    element: "^SCORM$"
+- tapOn: "^SCORM$"
+
+- scrollUntilVisible:
+    element: "SCORM XHR"
+
+# Abrir el recurso (con red) para asegurar navegación al player.
+- tapOn: "SCORM XHR"
 - extendedWaitUntil:
-    visible: "SCORM mínimo"
+    visible: "Descargar y abrir.*"
     timeout: 30000
 
 # Sin red: no permite iniciar el intento por primera vez.
 - setAirplaneMode: enabled
-- tapOn: "SCORM mínimo"
+- tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
-    visible: "Descargar y abrir"
-    timeout: 30000
-- tapOn: "Descargar y abrir"
-- extendedWaitUntil:
-    visible: "Necesitas conexión"
+    visible: ".*Necesitas conexión.*"
     timeout: 30000
 - takeScreenshot: capturas/scorm-sin-conexion-01-bloqueado
 
 # Con red: descarga el paquete (abre el intento en el servidor) y lo abre.
 - setAirplaneMode: disabled
-- tapOn: "Descargar y abrir"
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
+- tapOn: "Descargar y abrir.*"
 - extendedWaitUntil:
     visible: "← Volver"
     timeout: 90000
+- extendedWaitUntil:
+    visible: "ATORA XHR OK.*"
+    timeout: 60000
+- assertNotVisible: ".*SCORM:.*Cargando.*"
 - takeScreenshot: capturas/scorm-sin-conexion-02-online
 
-# Luego, sin red: vuelve a abrir desde archivos locales.
+# Luego, sin red: marca completado/80 desde el paquete, queda pendiente y al volver la red sincroniza.
 - setAirplaneMode: enabled
-- tapOn: "← Volver"
-- tapOn: "← Volver"
-- tapOn: "SCORM"
+
+# El paquete muestra un botón grande: tocarlo para completar y enviar.
+- tapOn: "Completar \\(80\\) y enviar"
 - extendedWaitUntil:
-    visible: "SCORM mínimo"
+    visible: ".*COMPLETED 80.*"
     timeout: 30000
-- tapOn: "SCORM mínimo"
 - extendedWaitUntil:
-    visible: "← Volver"
+    visible: "Pendiente · se enviará al tener conexión"
     timeout: 30000
-- takeScreenshot: capturas/scorm-sin-conexion-03-offline
+- takeScreenshot: capturas/scorm-sin-conexion-03-pendiente
+
+# Con red: la cola se envía y el servidor refleja completed + score 80 y la lección queda completada.
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: ".*SERVER:.*STATUS:completed.*SCORE:80.*LESSON:OK.*"
+    timeout: 60000
+- takeScreenshot: capturas/scorm-sin-conexion-04-sincronizado
 

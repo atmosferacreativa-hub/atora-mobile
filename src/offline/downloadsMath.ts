@@ -25,6 +25,9 @@ export type DownloadRecord = {
   serverUpdatedAt?: string | null;
   /** El servidor tiene una versión más nueva que no se bajó sola. */
   updateAvailable?: boolean;
+  /** 1.1.0: descarga fallida (visible en la pantalla de Descargas). */
+  error?: string;
+  failedAt?: number;
   /** 0.4.1: video de la lección (`videos[].key`). Sin clave = primer video (descargas de 0.4.0). */
   videoKey?: string;
 

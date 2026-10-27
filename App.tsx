@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, StatusBar, StyleSheet, Text, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import './src/api/courses';
@@ -20,6 +21,7 @@ import { purgeGradingFiles } from './src/api/teacher';
 import { migrateLegacyStorage } from './src/offline/legacyMigration';
 import { flushOutbox } from './src/offline/outbox/runtime';
 import { runSync } from './src/offline/sync/runtime';
+import { cleanupOnlineCache } from './src/offline/onlineCache';
 import { useNetworkState } from './src/hooks/useNetworkState';
 import { AppNavigator, navigationRef, openDestination } from './src/navigation/AppNavigator';
 import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/navigation/roles';
@@ -33,6 +35,9 @@ import { perfMark } from './src/perf';
 initCrashReports();
 import { colors, spacing } from './src/theme';
 import type { ServerCapabilities, StudentHome } from './src/types';
+import { E2ENetworkBar } from './src/components/E2ENetworkBar';
+
+const isE2E = Boolean((Constants.expoConfig?.extra as { e2e?: boolean } | undefined)?.e2e);
 
 function AppShell() {
   // Al cambiar de idioma, se vuelve a dibujar todo.
@@ -46,7 +51,7 @@ function AppShell() {
   const [capabilities, setCapabilities] = useState<ServerCapabilities | null>(null);
   const [newGradeCourses, setNewGradeCourses] = useState<number[]>([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const network = useNetworkState();
+  const network = useNetworkState(isE2E ? 500 : 4000);
   const prevOffline = useRef<boolean>(network.offline);
 
   // 0.5.0: aviso de nota nueva (Yo y el curso). Sin conexión usa la última lista sincronizada.
@@ -104,6 +109,8 @@ function AppShell() {
       await initRuntimeConfig();
       // 1.0.0: idioma elegido en Yo o el del teléfono, antes de dibujar nada.
       await initLanguage().catch(() => undefined);
+      // 1.1.0: los recursos abiertos "en línea" usan un caché temporal.
+      await cleanupOnlineCache().catch(() => undefined);
       // Antes de restaurar la sesión: si el token ya no sirve, la restauración purga el almacenamiento.
       await migrateLegacyStorage().catch(() => undefined);
       void loadServerCapabilities().then((caps) => applyAcademyCrashPreference(caps.crash_reports));
@@ -244,6 +251,7 @@ function AppShell() {
     return (
       <SafeAreaView edges={['top']} style={styles.loginSafe}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        {isE2E ? <E2ENetworkBar network={network} /> : null}
         <LoginScreen onLogin={handleLogin} />
       </SafeAreaView>
     );
@@ -252,6 +260,7 @@ function AppShell() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
+      {isE2E ? <E2ENetworkBar network={network} /> : null}
       <AppNavigator
         session={{
           token,

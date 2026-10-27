@@ -210,7 +210,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
           {/* Solo mientras siga en la cola: al confirmarse, el historial muestra el intento. */}
           {saved && local.pending.length ? (
             <View style={styles.savedBox} accessibilityRole="alert">
-              <Text style={styles.savedTitle}>{t('Guardada. Se enviará cuando tengas conexión.')}</Text>
+              <Text style={styles.savedTitle}>{t('Pendiente · se enviará al tener conexión')}</Text>
               <Text style={styles.help}>{t('La hiciste el {date}. La academia decide si llegó a tiempo según cuándo la recibe.', { date: formatDate(saved) })}</Text>
             </View>
           ) : null}
@@ -226,7 +226,7 @@ export function AssignmentScreen({ lessonId, token, onBack }: Props) {
               <View key={event.id} style={styles.historyItem}>
                 <Text style={[styles.badge, styles.badgeQueued]}>{progress !== null ? t('Subiendo · {percent}%', { percent: progress }) : t('En cola')}</Text>
                 <Text style={styles.help}>{t('Hecha el {date}', { date: formatDate(new Date(event.payload.clientSubmittedAt)) })}</Text>
-                <Text style={styles.help}>{t('Guardada. Se enviará cuando tengas conexión.')}</Text>
+                <Text style={styles.help}>{t('Pendiente · se enviará al tener conexión')}</Text>
                 {event.lastError ? <Text style={styles.help}>{t('Último intento: {error}', { error: event.lastError })}</Text> : null}
               </View>
             );

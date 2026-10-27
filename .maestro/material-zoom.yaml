@@ -7,14 +7,28 @@ onFlowComplete:
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
 
+# Entrar a una lección para ver la sección "Materiales".
+- scrollUntilVisible:
+    element: "Videos"
+- tapOn: "Videos"
+- extendedWaitUntil:
+    visible: "Video 1"
+    timeout: 30000
+
 # Materiales: PDF
 - scrollUntilVisible:
     element: "Materiales"
 - scrollUntilVisible:
     element: "Guía PDF"
+# Los recorridos deben ser independientes del orden: si ya estaba descargado,
+# borrarlo primero.
 - tapOn:
-    text: "Descargar"
-    index: 0
+    text: "Eliminar"
+    optional: true
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn: "Descargar"
 - extendedWaitUntil:
     visible: "Disponible sin conexión"
     timeout: 60000
@@ -39,10 +53,33 @@ onFlowComplete:
 - takeScreenshot: capturas/material-zoom-02-pdf-offline-zoom
 - back
 
+# Limpiar el PDF para que el resto del recorrido no herede "Disponible sin conexión".
+- scrollUntilVisible:
+    element: "Guía PDF"
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn:
+    text: "Eliminar"
+    optional: true
+
 # Imagen: visor fullscreen con zoom.
 - setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
 - scrollUntilVisible:
     element: "Imagen de ejemplo"
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn:
+    text: "Eliminar"
+    optional: true
+- tapOn: "Descargar"
+- extendedWaitUntil:
+    visible: "Disponible sin conexión"
+    timeout: 60000
 - tapOn: "Imagen de ejemplo"
 - extendedWaitUntil:
     visible:

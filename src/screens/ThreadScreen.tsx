@@ -154,7 +154,7 @@ export function ThreadScreen({ token, threadId, recipient, title, onBack, onOpen
             multiline
             maxLength={4000}
             onChangeText={setText}
-            placeholder={network.offline ? t('Sin conexión: se enviará al volver') : t('Escribe un mensaje')}
+            placeholder={network.offline ? t('Pendiente · se enviará al tener conexión') : t('Escribe un mensaje')}
             placeholderTextColor={colors.textMuted}
             testID="thread-input"
             style={styles.input}

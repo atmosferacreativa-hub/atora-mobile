@@ -1,0 +1,57 @@
+appId: com.atmosferacreativa.atora
+name: scorm-xhr
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+
+- scrollUntilVisible:
+    element: "^SCORM$"
+- tapOn: "^SCORM$"
+
+- scrollUntilVisible:
+    element: "SCORM XHR"
+
+# Con red: descargar el paquete y abrirlo.
+- tapOn: "SCORM XHR"
+- extendedWaitUntil:
+    visible: "Descargar y abrir.*"
+    timeout: 30000
+- tapOn: "Descargar y abrir.*"
+- extendedWaitUntil:
+    visible: "← Volver"
+    timeout: 90000
+- extendedWaitUntil:
+    visible: "ATORA XHR OK.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: ".*SERVER:LOC:.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: ".*ESCAPE:OK.*"
+    timeout: 60000
+- takeScreenshot: capturas/scorm-xhr-01-online
+
+# Sin red: debe abrir desde archivos locales y seguir pudiendo hacer fetch/XHR.
+- setAirplaneMode: enabled
+- tapOn: "← Volver"
+# Al volver del player normalmente quedamos en la lista de recursos de la lección.
+# No forzar navegación por el listado del curso (intermitente por scroll).
+- extendedWaitUntil:
+    visible: "SCORM XHR"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "SCORM XHR"
+- tapOn: "SCORM XHR"
+- extendedWaitUntil:
+    visible: "← Volver"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "ATORA XHR OK.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: ".*ESCAPE:OK.*"
+    timeout: 60000
+- takeScreenshot: capturas/scorm-xhr-02-offline
+

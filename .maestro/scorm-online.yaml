@@ -3,26 +3,30 @@ name: scorm-online
 ---
 - runFlow: common/login-estudiante.yaml
 - runFlow: common/abrir-curso.yaml
-- scrollUntilVisible:
-    element: "SCORM"
-- tapOn: "SCORM"
-- extendedWaitUntil:
-    visible: "SCORM mínimo"
-    timeout: 30000
-- takeScreenshot: capturas/scorm-online-01-leccion
 
+- scrollUntilVisible:
+    element: "^SCORM$"
+- tapOn: "^SCORM$"
+
+- scrollUntilVisible:
+    element: "SCORM mínimo"
+- takeScreenshot: capturas/scorm-online-01-leccion
 # Descargar y abrir el paquete (con red).
 - scrollUntilVisible:
     element: "SCORM mínimo"
 - tapOn: "SCORM mínimo"
 - extendedWaitUntil:
-    visible: "Descargar y abrir"
+    visible: "Descargar y abrir.*"
     timeout: 30000
-- tapOn: "Descargar y abrir"
+- tapOn: "Descargar y abrir.*"
 
-# El contenido corre en un WebView local; basta con que abra sin error.
+# El contenido corre en un WebView local: en E2E mostramos un snippet del body.
 - extendedWaitUntil:
     visible: "← Volver"
     timeout: 30000
-- takeScreenshot: capturas/scorm-online-02-player
+- extendedWaitUntil:
+    visible: "Play of the game"
+    timeout: 60000
+- assertNotVisible: ".*SCORM:.*Cargando.*"
+- takeScreenshot: capturas/scorm-online-02-player-contenido
 

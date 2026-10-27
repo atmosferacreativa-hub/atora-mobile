@@ -1,5 +1,6 @@
 appId: com.atmosferacreativa.atora
 ---
+- setAirplaneMode: disabled
 - retry:
     maxRetries: 2
     commands:
@@ -8,6 +9,9 @@ appId: com.atmosferacreativa.atora
       - extendedWaitUntil:
           visible: "Ingresar a tu academia"
           timeout: 60000
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
 - tapOn:
     id: "login-user"
 - inputText: "estudiante2_e2e"

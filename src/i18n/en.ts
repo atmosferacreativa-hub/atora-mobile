@@ -1,5 +1,8 @@
 /** Catálogo en inglés: clave = texto en español (1.0.0). */
 export const en: Record<string, string> = {
+  "NET:{label}": "NET:{label}",
+  "OUTBOX:{pending}/{failed}": "OUTBOX:{pending}/{failed}",
+  "SCORM_ERR:{error}": "SCORM_ERR:{error}",
   "No se pudo abrir el enlace": "Could not open the link",
   "Soporte": "Support",
   "Política de privacidad": "Privacy policy",
@@ -118,6 +121,9 @@ export const en: Record<string, string> = {
   "Descargas": "Downloads",
   "Descargas y datos": "Downloads and data",
   "Descartar": "Discard",
+  "Para guardarlo sin conexión, conéctate a Wi-Fi.": "To save it offline, connect to Wi-Fi.",
+  "Para guardarlo sin conexión, libera espacio o aumenta el límite.": "To save it offline, free up space or increase the limit.",
+  "No fue posible abrir el material en línea.": "Could not open the material online.",
   "Devuelta para corregir": "Returned for revision",
   "Dirección de tu academia.": "Your academy address.",
   "Disponible": "Available",
@@ -548,6 +554,7 @@ export const en: Record<string, string> = {
   "Ajustar": "Fit",
   "Texto": "Text",
   "Descargar y abrir": "Download and open",
+  "El paquete está incompleto.": "The package is incomplete.",
   "El paquete no es válido.": "The package is not valid.",
   "Este material no está disponible.": "This material is not available.",
   "Este teléfono no tiene soporte para SCORM.": "This phone does not support SCORM.",
@@ -559,5 +566,9 @@ export const en: Record<string, string> = {
   "Necesitas conexión para iniciar el intento y descargar el paquete.": "You need a connection to start the attempt and download the package.",
   "No quedan intentos disponibles para este SCORM.": "No attempts are available for this SCORM.",
   "No fue posible descargar el SCORM.": "Could not download the SCORM.",
+  "Cargando...": "Loading...",
+  "Descargando...": "Downloading...",
+  "Listo": "Ready",
+  "SCORM: {text}": "SCORM: {text}",
   "SCORM": "SCORM",
 };

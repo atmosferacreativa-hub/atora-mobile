@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as Network from 'expo-network';
+import { getE2ENetworkOverride } from '../e2e/networkOverride';
 
 export type NetworkState = {
   isConnected: boolean;
@@ -25,11 +26,13 @@ export function useNetworkState(pollMs = 4000): NetworkState {
         if (!active) return;
         const isConnected = Boolean(info.isConnected);
         const isInternetReachable = info.isInternetReachable ?? null;
+        const override = getE2ENetworkOverride();
+        const isWifi = override === 'cell' ? false : info.type === Network.NetworkStateType.WIFI;
         setState({
           isConnected,
           isInternetReachable,
           offline: !isConnected || isInternetReachable === false,
-          isWifi: info.type === Network.NetworkStateType.WIFI,
+          isWifi,
         });
       } catch {
         // No bloqueamos la UI si falla.

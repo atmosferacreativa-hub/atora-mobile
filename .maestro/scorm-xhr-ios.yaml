@@ -1,0 +1,28 @@
+appId: com.atmosferacreativa.atora
+name: scorm-xhr-ios
+---
+- runFlow: common/login-estudiante.yaml
+- runFlow: common/abrir-curso.yaml
+- scrollUntilVisible:
+    element: "SCORM"
+- tapOn: "SCORM"
+- scrollUntilVisible:
+    element: "SCORM XHR"
+
+# iOS: este recorrido solo valida el contenido (sin setAirplaneMode).
+- tapOn: "SCORM XHR"
+- extendedWaitUntil:
+    visible: "Descargar y abrir.*"
+    timeout: 30000
+- tapOn: "Descargar y abrir.*"
+- extendedWaitUntil:
+    visible: "← Volver"
+    timeout: 90000
+- extendedWaitUntil:
+    visible: "ATORA XHR OK.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: ".*SERVER:LOC:.*"
+    timeout: 60000
+- takeScreenshot: capturas/scorm-xhr-ios-01-online
+

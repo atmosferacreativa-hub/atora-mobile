@@ -1,5 +1,7 @@
 appId: com.atmosferacreativa.atora
 ---
+# Los recorridos deben ser independientes del orden: forzar red habilitada al inicio.
+- setAirplaneMode: disabled
 # El emulador del CI a veces tarda en cargar la app tras borrar sus datos: se reintenta el arranque.
 - retry:
     maxRetries: 2
@@ -9,6 +11,9 @@ appId: com.atmosferacreativa.atora
       - extendedWaitUntil:
           visible: "Ingresar a tu academia"
           timeout: 60000
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
 - tapOn:
     id: "login-user"
 - inputText: "estudiante3_e2e"

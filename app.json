@@ -37,7 +37,8 @@
         {
           "url": "https://sentry.io/"
         }
-      ]
+      ],
+      "./plugins/withAndroidLocalhostCleartext"
     ],
     "ios": {
       "supportsTablet": false,
