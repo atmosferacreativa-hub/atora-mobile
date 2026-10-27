@@ -554,6 +554,7 @@ export const en: Record<string, string> = {
   "Ajustar": "Fit",
   "Texto": "Text",
   "Descargar y abrir": "Download and open",
+  "El paquete está incompleto.": "The package is incomplete.",
   "El paquete no es válido.": "The package is not valid.",
   "Este material no está disponible.": "This material is not available.",
   "Este teléfono no tiene soporte para SCORM.": "This phone does not support SCORM.",
@@ -565,5 +566,9 @@ export const en: Record<string, string> = {
   "Necesitas conexión para iniciar el intento y descargar el paquete.": "You need a connection to start the attempt and download the package.",
   "No quedan intentos disponibles para este SCORM.": "No attempts are available for this SCORM.",
   "No fue posible descargar el SCORM.": "Could not download the SCORM.",
+  "Cargando...": "Loading...",
+  "Descargando...": "Downloading...",
+  "Listo": "Ready",
+  "SCORM: {text}": "SCORM: {text}",
   "SCORM": "SCORM",
 };
