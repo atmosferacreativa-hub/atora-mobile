@@ -2,10 +2,11 @@
   "publisher": {
     "name": "Atora Studio",
     "developedBy": "Atmósfera Creativa",
-    "legalName": null,
-    "country": null,
-    "supportEmail": null,
-    "privacyEmail": null
+    "legalName": "Inversiones ATM-CAP 1783 C.A.",
+    "country": "Venezuela",
+    "supportEmail": "admin@atora.studio",
+    "privacyEmail": "admin@atora.studio",
+    "tradeName": "Atmósfera Creativa"
   },
   "privacy": {
     "url": "https://atora.studio/privacidad/",

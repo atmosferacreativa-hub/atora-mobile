@@ -1,14 +1,14 @@
 # Política de privacidad — ATORA (app móvil)
 
-> **Borrador pendiente de datos y validación del titular.** Ruta acordada: https://atora.studio/privacidad/. Editor confirmado: Atora Studio, un desarrollo de Atmósfera Creativa. La razón social o nombre legal, país y correos se confirman en `store/publication.json`; no se infieren de la marca. No publicar este borrador con campos pendientes. Versión inglesa al final.
+> **Borrador con datos del titular confirmados; pendiente de validación y publicación.** Ruta acordada: https://atora.studio/privacidad/. Editor confirmado: Atora Studio, un desarrollo de Atmósfera Creativa. Titular: Inversiones ATM-CAP 1783 C.A., nombre comercial Atmósfera Creativa, Venezuela. Soporte y privacidad: admin@atora.studio. Datos registrados en `store/publication.json`. No publicar este borrador con campos pendientes. Versión inglesa al final.
 
 Última actualización: […fecha de publicación…]
 
 ## Quiénes somos
 
-ATORA es una app que permite a estudiantes y docentes usar desde el teléfono la plataforma de su academia (institución educativa que usa ATORA LMS). La app la publica **Atora Studio, un desarrollo de Atmósfera Creativa**. Identidad legal y contacto: […nombre legal o razón social, país y correo de privacidad confirmados…].
+ATORA es una app que permite a estudiantes y docentes usar desde el teléfono la plataforma de su academia (institución educativa que usa ATORA LMS). La app la publica **Atora Studio, un desarrollo de Atmósfera Creativa**. El titular es **Inversiones ATM-CAP 1783 C.A.**, nombre comercial **Atmósfera Creativa**, en **Venezuela**. Contacto de soporte y privacidad: **admin@atora.studio**.
 
-Cada academia es **responsable** de los datos de sus estudiantes y docentes: decide qué cursos ofrece, quién se matricula y cuánto tiempo conserva las notas y actas. ATORA actúa como **proveedor de la herramienta** y trata los datos por cuenta de la academia. Para ejercer tus derechos sobre tus datos académicos, escribe a tu academia; para dudas sobre la app, a […correo de contacto…].
+Cada academia es **responsable** de los datos de sus estudiantes y docentes: decide qué cursos ofrece, quién se matricula y cuánto tiempo conserva las notas y actas. ATORA actúa como **proveedor de la herramienta** y trata los datos por cuenta de la academia. Para ejercer tus derechos sobre tus datos académicos, escribe a tu academia; para dudas sobre la app, a admin@atora.studio.
 
 ## Qué guarda la app en tu teléfono
 
@@ -73,11 +73,11 @@ Si cambia esta política, lo indicaremos en la app y en esta página con la fech
 
 # Privacy Policy — ATORA (mobile app)
 
-> **Draft pending publisher details and validation.** Planned URL: https://atora.studio/privacidad/. Publisher brand: Atora Studio, developed by Atmósfera Creativa. Confirm the legal publisher, country and contact emails before publication.
+> **Draft with confirmed publisher details; pending validation and publication.** Planned URL: https://atora.studio/privacidad/. Publisher brand: Atora Studio, developed by Atmósfera Creativa. Legal publisher: Inversiones ATM-CAP 1783 C.A., trading as Atmósfera Creativa, Venezuela. Support and privacy contact: admin@atora.studio.
 
 Last updated: […publication date…]
 
-**Who we are.** ATORA lets students and teachers use their academy's platform (an educational institution running ATORA LMS) from their phone. The app is published by **Atora Studio, developed by Atmósfera Creativa**. Legal publisher and contact: […confirmed legal name, country and privacy email…]. Each academy is the **controller** of its students' and teachers' data; ATORA acts as the **tool provider** on the academy's behalf. For your academic data, contact your academy; for questions about the app, write to […contact email…].
+**Who we are.** ATORA lets students and teachers use their academy's platform (an educational institution running ATORA LMS) from their phone. The app is published by **Atora Studio, developed by Atmósfera Creativa**. The legal publisher is **Inversiones ATM-CAP 1783 C.A.**, trading as **Atmósfera Creativa**, based in **Venezuela**. Support and privacy contact: **admin@atora.studio**. Each academy is the **controller** of its students' and teachers' data; ATORA acts as the **tool provider** on the academy's behalf. For your academic data, contact your academy; for questions about the app, write to admin@atora.studio.
 
 **Stored on your phone** (private app storage, deleted when you sign out unless noted): your session token in the system secure storage (**your password is not stored**); content you viewed or downloaded for offline use (courses, lessons, grades, messages, calendar, videos, materials, certificates); items waiting to be sent (progress, submissions and attachments, quiz answers, messages); drafts (quiz answers in progress and, for teachers, unsaved grades); the AI assistant conversation only in memory while the app is open; and, kept after sign-out, your academy address, language and download preferences.
 

@@ -15,7 +15,10 @@ Editor: **Atora Studio, un desarrollo de Atmósfera Creativa**. Datos públicos 
 | Precio | Gratis, sin compras dentro de la app |
 | Idiomas | Español (principal), inglés |
 | Editor | Atora Studio, un desarrollo de Atmósfera Creativa |
-| Correo de contacto | Pendiente: `publisher.supportEmail` en `store/publication.json` |
+| Titular legal | Inversiones ATM-CAP 1783 C.A. |
+| Nombre comercial | Atmósfera Creativa |
+| País | Venezuela |
+| Soporte y privacidad | admin@atora.studio |
 | Sitio web | https://atora.studio |
 | Política de privacidad | https://atora.studio/privacidad/ — ruta acordada, publicación y acceso público pendientes de verificar |
 

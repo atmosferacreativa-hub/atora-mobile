@@ -62,7 +62,9 @@ ATORA is the app for academies running ATORA LMS. There is no sign-up in the app
 - Eliminación de cuenta (Google Play): `https://demo.atora.studio/eliminar-cuenta/` (cada academia tiene la suya en `/eliminar-cuenta/`).
 - Política de privacidad: `https://atora.studio/privacidad/` (publicar y verificar sin sesión antes del envío).
 - Seguridad de los datos / etiquetas de privacidad: `docs/TIENDAS-DATOS.md`.
-- Contacto del revisor: nombre, correo y teléfono se completan directamente en las consolas; no se deducen de la marca. El correo público se confirma en `store/publication.json`.
+- Titular: Inversiones ATM-CAP 1783 C.A. · Nombre comercial: Atmósfera Creativa · País: Venezuela.
+- Correo público de soporte y privacidad: admin@atora.studio.
+- Persona y teléfono de contacto del revisor: completar directamente en las consolas si se solicitan; no se deducen de la marca.
 
 ## Antes de enviar (titular)
 

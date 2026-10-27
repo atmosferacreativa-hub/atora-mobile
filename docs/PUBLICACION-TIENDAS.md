@@ -5,7 +5,8 @@
 - Editor confirmado por el titular: **Atora Studio, un desarrollo de Atmósfera Creativa**.
 - Política prevista y acordada: **https://atora.studio/privacidad/**.
 - Fuente de versión: `app.json` y `package.json`; `npm run store:check` exige que coincidan. El código de `main` al preparar estos documentos es 1.0.2. No presentar como final una versión futura o una rama sin cerrar.
-- La marca comercial no acredita por sí sola la razón social o nombre legal de la cuenta de desarrollador. Confirmar nombre legal, país, correo público de soporte y correo de privacidad en `store/publication.json`. Pueden coincidir ambos correos si el titular lo decide.
+- Titular legal confirmado: **Inversiones ATM-CAP 1783 C.A.** · Nombre comercial: **Atmósfera Creativa** · País: **Venezuela**.
+- Correo público de soporte y privacidad confirmado: **admin@atora.studio**. Los datos están registrados en `store/publication.json`; comprobar que coincidan con las cuentas de desarrollador al enviar.
 
 ## Qué significa cada comprobación
 
@@ -20,7 +21,7 @@ No incluir contraseñas, certificados privados, claves de firma ni tokens en el 
 
 ## Política publicada y dentro de la app
 
-1. Completar y validar `POLITICA-PRIVACIDAD-APP.md` con el editor legal y los correos reales. Confirmar las afirmaciones de tratamiento, retención, proveedores e IA contra la compilación y el servidor usados.
+1. Validar `POLITICA-PRIVACIDAD-APP.md`, que ya incluye el titular legal y los correos confirmados. Confirmar las afirmaciones de tratamiento, retención, proveedores e IA contra la compilación y el servidor usados.
 2. Publicar HTML en la URL acordada, con fecha real y sin campos pendientes. Comprobar desde una ventana privada y desde otra red: sin sesión, PDF, restricciones regionales o desafío de acceso.
 3. Añadir y probar un enlace visible a la política en **Ingreso** y **Yo**. La revisión del código actual no encontró ese enlace; **sigue siendo una tarea de la app** y no se da por hecha con cambiar estas fichas. Coordinarla después del PR móvil pendiente para no publicar un enlace a una política inexistente.
 4. Confirmar las páginas de eliminación de cuenta en las academias y la URL del demo informada a las tiendas.
@@ -72,7 +73,7 @@ Marcar `builds.androidProductionVerified` / `iosProductionVerified` únicamente 
 ## Orden final
 
 1. Resolver el cierre móvil y fijar versión/commit.
-2. Confirmar datos del titular y publicar la política; integrar su enlace en la app.
+2. Comprobar que los datos confirmados del titular coincidan con las cuentas de desarrollador y publicar la política; integrar su enlace en la app.
 3. Compilar con credenciales de producción y probar en dispositivos.
 4. Crear las capturas reales por plataforma, aprobar la pieza gráfica y probar las cuentas de revisión.
 5. Revisar ficha, privacidad, cuestionarios y notas con esa compilación; completar el JSON y ejecutar `npm run store:release-check`.
