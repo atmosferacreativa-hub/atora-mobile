@@ -21,6 +21,7 @@ import { purgeGradingFiles } from './src/api/teacher';
 import { migrateLegacyStorage } from './src/offline/legacyMigration';
 import { flushOutbox } from './src/offline/outbox/runtime';
 import { runSync } from './src/offline/sync/runtime';
+import { cleanupOnlineCache } from './src/offline/onlineCache';
 import { useNetworkState } from './src/hooks/useNetworkState';
 import { AppNavigator, navigationRef, openDestination } from './src/navigation/AppNavigator';
 import { canSwitchMode, resolveMode, saveMode, type AppMode } from './src/navigation/roles';
@@ -108,6 +109,8 @@ function AppShell() {
       await initRuntimeConfig();
       // 1.0.0: idioma elegido en Yo o el del teléfono, antes de dibujar nada.
       await initLanguage().catch(() => undefined);
+      // 1.1.0: los recursos abiertos "en línea" usan un caché temporal.
+      await cleanupOnlineCache().catch(() => undefined);
       // Antes de restaurar la sesión: si el token ya no sirve, la restauración purga el almacenamiento.
       await migrateLegacyStorage().catch(() => undefined);
       void loadServerCapabilities().then((caps) => applyAcademyCrashPreference(caps.crash_reports));

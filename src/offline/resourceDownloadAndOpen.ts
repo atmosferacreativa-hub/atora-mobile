@@ -9,6 +9,7 @@ import { config } from '../config';
 import { getApiBaseUrlSync } from '../runtimeConfig';
 import { DownloadBlockedError, isDownloadBlockedError } from './downloadErrors';
 import { isAllowedDownloadSource } from './downloadSources';
+import { ONLINE_CACHE_DIR } from './onlineCache';
 
 export type OpenResourceParams = { title: string; localUri: string; kind: 'pdf' | 'image'; mime?: string };
 
@@ -18,12 +19,28 @@ function safeExtension(sourceUrl: string, fallback = '.bin'): string {
   return match ? `.${match[1]!.toLowerCase()}` : fallback;
 }
 
+function parseUrl(input: string): { origin: string; pathname: string } | null {
+  try {
+    // eslint-disable-next-line no-new
+    const ref = new URL(input);
+    return { origin: ref.origin, pathname: ref.pathname || '/' };
+  } catch {
+    const match = input.match(/^(https?:)\/\/([^/]+)(\/[^?#]*)?/i);
+    if (!match) return null;
+    return { origin: `${match[1]!.toLowerCase()}//${match[2]!}`, pathname: match[3] || '/' };
+  }
+}
+
 function authHeadersForUrl(url: string, token?: string): Record<string, string> {
   if (!token) return {};
   const apiBaseUrl = getApiBaseUrlSync() || config.apiBaseUrl;
   if (!apiBaseUrl) return {};
-  const base = apiBaseUrl.replace(/\/+$/, '');
-  return url.startsWith(base) ? { Authorization: `Bearer ${token}` } : {};
+  const base = parseUrl(apiBaseUrl);
+  const target = parseUrl(url);
+  if (!base || !target) return {};
+  if (target.origin !== base.origin) return {};
+  const prefix = `${base.pathname.replace(/\/+$/, '')}/`;
+  return target.pathname.startsWith(prefix) ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function openOnlineResource(params: {
@@ -48,9 +65,8 @@ async function openOnlineResource(params: {
     throw new Error(t('Solo se permiten descargas protegidas por HTTPS.'));
   }
 
-  const dir = `${FileSystem.cacheDirectory}atora-online/`;
-  await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
-  const destination = `${dir}res-${Date.now()}${safeExtension(target, kind === 'pdf' ? '.pdf' : '.bin')}`;
+  await FileSystem.makeDirectoryAsync(ONLINE_CACHE_DIR, { intermediates: true });
+  const destination = `${ONLINE_CACHE_DIR}res-${Date.now()}${safeExtension(target, kind === 'pdf' ? '.pdf' : '.bin')}`;
   const result = await FileSystem.downloadAsync(target, destination, {
     headers: authHeadersForUrl(target, params.token),
   });

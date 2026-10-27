@@ -126,5 +126,65 @@ describe('offline/resourceDownloadAndOpen', () => {
     const opts = ((FileSystem as any).downloadAsync as jest.Mock).mock.calls[0]?.[2];
     expect(opts?.headers?.Authorization).toBe('Bearer token-123');
   });
+
+  it('does not add Authorization header for origin/path lookalikes', async () => {
+    const runtime = await import('../../runtimeConfig');
+    (runtime.getApiBaseUrlSync as unknown as jest.Mock).mockReturnValue('https://academia.com/wp-json/atora-mobile/v1');
+    const { downloadAndOpenResourceOrOpenOnline } = await import('../resourceDownloadAndOpen');
+    const FileSystem = await import('expo-file-system/legacy');
+
+    const onOpenResource = jest.fn();
+    const openUrl = jest.fn(async () => undefined);
+    const openLocal = jest.fn(async () => undefined);
+    const setNotice = jest.fn();
+    const loadSavedResources = jest.fn(async () => undefined);
+
+    await downloadAndOpenResourceOrOpenOnline({
+      lesson: { id: 1, course_id: 2 },
+      token: 'token-123',
+      resource: {
+        id: 7,
+        type: 'pdf',
+        title: 'Guía',
+        mime: 'application/pdf',
+        downloadable: true,
+        url: 'https://academia.com.otro.com/wp-json/atora-mobile/v1/protected.pdf',
+        download_url: 'https://academia.com.otro.com/wp-json/atora-mobile/v1/protected.pdf',
+        updated_at: null,
+      } as any,
+      loadSavedResources,
+      openLocal,
+      onOpenResource,
+      openUrl,
+      setNotice,
+    });
+
+    let opts = ((FileSystem as any).downloadAsync as jest.Mock).mock.calls[0]?.[2];
+    expect(opts?.headers?.Authorization).toBeUndefined();
+
+    ((FileSystem as any).downloadAsync as jest.Mock).mockClear();
+    await downloadAndOpenResourceOrOpenOnline({
+      lesson: { id: 1, course_id: 2 },
+      token: 'token-123',
+      resource: {
+        id: 7,
+        type: 'pdf',
+        title: 'Guía',
+        mime: 'application/pdf',
+        downloadable: true,
+        url: 'https://academia.com/wp-json/atora-mobile/v1evil/protected.pdf',
+        download_url: 'https://academia.com/wp-json/atora-mobile/v1evil/protected.pdf',
+        updated_at: null,
+      } as any,
+      loadSavedResources,
+      openLocal,
+      onOpenResource,
+      openUrl,
+      setNotice,
+    });
+
+    opts = ((FileSystem as any).downloadAsync as jest.Mock).mock.calls[0]?.[2];
+    expect(opts?.headers?.Authorization).toBeUndefined();
+  });
 });
 
