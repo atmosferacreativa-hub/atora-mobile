@@ -35,6 +35,8 @@ import { emitQueueCount, fetchQueue, subscribeQueueCount } from '../api/teacher'
 import { TeacherCoursesScreen } from '../screens/teacher/TeacherCoursesScreen';
 import { TeacherCourseScreen } from '../screens/teacher/TeacherCourseScreen';
 import { TeacherAttendanceScreen } from '../screens/teacher/TeacherAttendanceScreen';
+import { TeacherPlansScreen } from '../screens/teacher/TeacherPlansScreen';
+import { TeacherPlanScreen } from '../screens/teacher/TeacherPlanScreen';
 import { TeacherStudentScreen } from '../screens/teacher/TeacherStudentScreen';
 import { TeacherStudentsScreen } from '../screens/teacher/TeacherStudentsScreen';
 import { TeacherTodayScreen } from '../screens/teacher/TeacherTodayScreen';
@@ -94,6 +96,8 @@ export type LearningStackParams = {
   /** 0.7.0: docente. */
   TeacherCourse: { courseId: number; title: string; sections: { id: number; title: string }[] };
   TeacherAttendance: { courseId: number; title: string };
+  TeacherPlans: { courseId: number; title: string };
+  TeacherPlan: { courseId: number; planId: number };
   TeacherStudents: { courseId: number; title: string; sections: { id: number; title: string }[] };
   TeacherStudent: { studentId: number; courseId: number; name: string };
   Announcement: { courseId: number; title: string; sections: { id: number; title: string }[] };
@@ -292,6 +296,7 @@ function TeacherCourseRoute({ route, navigation }: LearningProps<'TeacherCourse'
       onOpenStudents={() => navigation.push('TeacherStudents', { courseId, title, sections })}
       onAnnounce={() => navigation.push('Announcement', { courseId, title, sections })}
       onAttendance={() => navigation.push('TeacherAttendance', { courseId, title })}
+      onPlans={() => navigation.push('TeacherPlans', { courseId, title })}
     />
   );
 }
@@ -299,6 +304,17 @@ function TeacherCourseRoute({ route, navigation }: LearningProps<'TeacherCourse'
 function TeacherAttendanceRoute({ route, navigation }: LearningProps<'TeacherAttendance'>) {
   const { token } = useAppSession();
   return <TeacherAttendanceScreen token={token} courseId={route.params.courseId} title={route.params.title} onBack={() => navigation.goBack()} />;
+}
+
+function TeacherPlansRoute({ route, navigation }: LearningProps<'TeacherPlans'>) {
+  const { token } = useAppSession();
+  const { courseId, title } = route.params;
+  return <TeacherPlansScreen token={token} courseId={courseId} title={title} onBack={() => navigation.goBack()} onOpenPlan={(planId) => navigation.push('TeacherPlan', { courseId, planId })} />;
+}
+
+function TeacherPlanRoute({ route, navigation }: LearningProps<'TeacherPlan'>) {
+  const { token } = useAppSession();
+  return <TeacherPlanScreen token={token} courseId={route.params.courseId} planId={route.params.planId} onBack={() => navigation.goBack()} />;
 }
 
 function TeacherStudentsRoute({ route, navigation }: LearningProps<'TeacherStudents'>) {
@@ -526,6 +542,8 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="Compose" component={ComposeRoute} />
         <Stack.Screen name="TeacherCourse" component={TeacherCourseRoute} />
         <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceRoute} />
+        <Stack.Screen name="TeacherPlans" component={TeacherPlansRoute} />
+        <Stack.Screen name="TeacherPlan" component={TeacherPlanRoute} />
         <Stack.Screen name="TeacherStudents" component={TeacherStudentsRoute} />
         <Stack.Screen name="TeacherStudent" component={TeacherStudentRoute} />
         <Stack.Screen name="Announcement" component={AnnouncementRoute} />

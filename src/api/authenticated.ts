@@ -1,7 +1,7 @@
 import { ApiError, apiRequest } from './client';
 import { refreshAccessToken } from './session';
 
-type RequestOptions = RequestInit & { token?: string };
+type RequestOptions = RequestInit & { token?: string; timeoutMs?: number };
 
 export async function authenticatedRequest<T>(
   path: string,

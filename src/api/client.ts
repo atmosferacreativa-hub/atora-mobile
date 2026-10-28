@@ -16,7 +16,7 @@ export class ApiError extends Error {
 }
 
 /** `baseUrl`: 1.0.1, para enviar a una academia concreta (bajas pendientes), no a la configurada ahora. */
-type RequestOptions = RequestInit & { token?: string; baseUrl?: string };
+type RequestOptions = RequestInit & { token?: string; baseUrl?: string; timeoutMs?: number };
 
 export function isOfflineError(reason: unknown): boolean {
   return reason instanceof ApiError && reason.status === 0;
@@ -38,8 +38,10 @@ export async function apiRequest<T>(
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.requestTimeoutMs);
-  const { token, headers, baseUrl: _baseUrl, ...requestOptions } = options;
+  const { token, headers, baseUrl: _baseUrl, timeoutMs, ...requestOptions } = options;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs ?? config.requestTimeoutMs);
+  // 1.3.0: con FormData (subida multipart) el propio fetch pone el Content-Type con su boundary.
+  const multipart = typeof FormData !== 'undefined' && requestOptions.body instanceof FormData;
 
   try {
     const response = await fetch(`${apiBaseUrl}/${path.replace(/^\//, '')}`, {
@@ -47,7 +49,7 @@ export async function apiRequest<T>(
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
+        ...(multipart ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },

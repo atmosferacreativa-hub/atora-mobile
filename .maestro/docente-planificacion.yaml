@@ -1,0 +1,103 @@
+appId: com.atmosferacreativa.atora
+name: docente-planificacion
+# 1.3.0 (plugin 6.40.0): el docente prepara una semana híbrida desde el teléfono: escribe, guarda, sale y la retoma
+# (también lo escrito sin guardar), ve la vista previa y publica. El estudiante ve la lección publicada.
+# La subida de un audio del teléfono no se recorre aquí (el selector de archivos del sistema queda fuera de la app):
+# la cubren TeacherPlanApiTest (servidor) y plans.test.ts (reintento sin duplicar).
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- tapOn: "Curso E2E"
+- extendedWaitUntil:
+    visible:
+      id: "teacher-plans"
+    timeout: 30000
+- tapOn:
+    id: "teacher-plans"
+- extendedWaitUntil:
+    visible:
+      id: "plan-new"
+    timeout: 30000
+- tapOn:
+    id: "plan-new"
+- tapOn:
+    id: "plan-title"
+- inputText: "Semana E2E"
+- assertVisible:
+    id: "plan-title"
+- tapOn:
+    id: "plan-step-distancia"
+- tapOn:
+    id: "plan-remote-before"
+- inputText: "Escuchar el audio y leer la guía."
+- assertVisible:
+    id: "plan-remote-before"
+- takeScreenshot: capturas/docente-planificacion-01-pasos
+- scrollUntilVisible:
+    element:
+      id: "plan-save"
+- tapOn:
+    id: "plan-save"
+- extendedWaitUntil:
+    visible: "Planificación guardada."
+    timeout: 30000
+# Sale y la retoma: queda en la lista como borrador.
+- tapOn: "Volver"
+- extendedWaitUntil:
+    visible: "Semana E2E"
+    timeout: 30000
+- tapOn: "Semana E2E"
+- extendedWaitUntil:
+    visible:
+      id: "plan-status"
+      text: "Borrador"
+    timeout: 30000
+# Escribe sin guardar, sale y vuelve: se recupera del teléfono.
+- tapOn:
+    id: "plan-objective"
+- inputText: "Comprender fracciones"
+- assertVisible:
+    id: "plan-objective"
+- tapOn: "Volver"
+- extendedWaitUntil:
+    visible: "Semana E2E"
+    timeout: 30000
+- tapOn: "Semana E2E"
+- extendedWaitUntil:
+    visible:
+      id: "plan-recovered"
+    timeout: 30000
+- assertVisible: "Comprender fracciones"
+- takeScreenshot: capturas/docente-planificacion-02-retomada
+# Vista previa (guarda lo recuperado) y publicar.
+- scrollUntilVisible:
+    element:
+      id: "plan-preview"
+- tapOn:
+    id: "plan-preview"
+- scrollUntilVisible:
+    element:
+      id: "plan-publish"
+    timeout: 30000
+- assertVisible: "Nueva · Semana E2E · Trabajo a distancia"
+- takeScreenshot: capturas/docente-planificacion-03-vista-previa
+- tapOn:
+    id: "plan-publish"
+- extendedWaitUntil:
+    visible: "Publicada: 1 lección\\(es\\) para los estudiantes\\."
+    timeout: 30000
+- takeScreenshot: capturas/docente-planificacion-04-publicada
+# El estudiante ve la lección nueva en el curso.
+- runFlow: common/login-estudiante.yaml
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- tapOn: "Curso E2E"
+- scrollUntilVisible:
+    element: "Semana E2E · Trabajo a distancia"
+    timeout: 30000
+- takeScreenshot: capturas/docente-planificacion-05-estudiante
