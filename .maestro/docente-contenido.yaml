@@ -1,0 +1,45 @@
+appId: com.atmosferacreativa.atora
+name: docente-contenido
+# 1.3.0 (plugin 6.40.0): el docente ve las lecciones de su curso, abre una en vista de estudiante y cambia la fecha
+# de entrega de una tarea.
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- tapOn: "Curso E2E"
+- extendedWaitUntil:
+    visible: "CONTENIDO"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Videos"
+- takeScreenshot: capturas/docente-contenido-01-lecciones
+- tapOn: "Videos"
+- extendedWaitUntil:
+    visible:
+      id: "lesson-teacher-preview"
+    timeout: 30000
+- assertNotVisible: "Marcar como completada"
+- takeScreenshot: capturas/docente-contenido-02-vista-previa
+- back
+- extendedWaitUntil:
+    visible: "CONTENIDO"
+    timeout: 30000
+# "Tarea" vence en 7 días (semilla): se mueve una semana.
+- scrollUntilVisible:
+    element: "Tarea"
+- tapOn: "Gestionar Tarea"
+- extendedWaitUntil:
+    visible: "Fecha de entrega"
+    timeout: 15000
+- tapOn: "Una semana después"
+- tapOn: "18:00"
+# Sin aviso al curso: no se mezcla con los avisos que revisan otros recorridos.
+- tapOn:
+    id: "teacher-due-notify"
+- tapOn: "Guardar fecha"
+- extendedWaitUntil:
+    visible: "Fecha de entrega actualizada."
+    timeout: 30000
+- takeScreenshot: capturas/docente-contenido-03-fecha

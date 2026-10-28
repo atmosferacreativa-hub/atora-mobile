@@ -5,7 +5,7 @@ import { enqueueEvent, listOutbox, newEventId, registerOutboxHandler, OutboxDefi
 import { ANNOUNCEMENT_SEND, announcementDedupeKey, cleanAnnouncement, type AnnouncementPayload } from '../teacher/announcements';
 import * as FileSystem from 'expo-file-system/legacy';
 import { refreshAccessToken } from './session';
-import type { GradeOutcome, GradeRequest, QueuePage, StudentFile, StudentsPage, SubmissionDetail, SubmissionFileRef, TeacherCourse, TeacherToday } from '../teacher/types';
+import type { GradeOutcome, GradeRequest, LessonChange, QueuePage, StudentFile, StudentsPage, SubmissionDetail, SubmissionFileRef, TeacherCourse, TeacherLesson, TeacherLessons, TeacherToday } from '../teacher/types';
 import { t } from '../i18n/core';
 import { retryOnceIfBusy } from './busyRetry';
 
@@ -26,6 +26,24 @@ export function fetchCourseStudents(token: string, courseId: number, page = 1, s
   const query = `teacher/courses/${courseId}/students?page=${page}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
   if (page === 1 && !search) return cachedRequest<StudentsPage>(query, 'teacher_students', courseId, token);
   return authenticatedRequest<StudentsPage>(query, { token }).then((data) => ({ data, syncedAt: Date.now(), fromCache: false }));
+}
+
+/** 1.3.0: lecciones del curso (también ocultas); guardadas para verlas sin conexión. */
+export function fetchTeacherLessons(token: string, courseId: number): Promise<Synced<TeacherLessons>> {
+  return cachedRequest<TeacherLessons>(`teacher/courses/${courseId}/lessons`, 'teacher_lessons', courseId, token);
+}
+
+/**
+ * 1.3.0: publicar u ocultar una lección o cambiar su fecha de entrega. Necesita conexión (la respuesta confirma el
+ * cambio); el id de evento hace que un reintento no se aplique dos veces.
+ */
+export async function updateTeacherLesson(token: string, lessonId: number, change: LessonChange, eventId: string = newEventId()): Promise<TeacherLesson> {
+  const data = await authenticatedRequest<{ lesson: TeacherLesson; replayed: boolean }>(`teacher/lessons/${lessonId}`, {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ ...change, client_event_id: eventId }),
+  });
+  return data.lesson;
 }
 
 export function fetchStudentFile(token: string, studentId: number, courseId: number): Promise<StudentFile> {

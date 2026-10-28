@@ -33,6 +33,7 @@ import { GradingQueueScreen } from '../screens/teacher/GradingQueueScreen';
 import { GradeSubmissionScreen } from '../screens/teacher/GradeSubmissionScreen';
 import { emitQueueCount, fetchQueue, subscribeQueueCount } from '../api/teacher';
 import { TeacherCoursesScreen } from '../screens/teacher/TeacherCoursesScreen';
+import { TeacherCourseScreen } from '../screens/teacher/TeacherCourseScreen';
 import { TeacherStudentScreen } from '../screens/teacher/TeacherStudentScreen';
 import { TeacherStudentsScreen } from '../screens/teacher/TeacherStudentsScreen';
 import { TeacherTodayScreen } from '../screens/teacher/TeacherTodayScreen';
@@ -90,6 +91,7 @@ export type LearningStackParams = {
   Thread: { threadId?: number; title?: string; recipient?: { id: number; name: string; courseId?: number } };
   Compose: undefined;
   /** 0.7.0: docente. */
+  TeacherCourse: { courseId: number; title: string; sections: { id: number; title: string }[] };
   TeacherStudents: { courseId: number; title: string; sections: { id: number; title: string }[] };
   TeacherStudent: { studentId: number; courseId: number; name: string };
   Announcement: { courseId: number; title: string; sections: { id: number; title: string }[] };
@@ -275,6 +277,22 @@ function ResourceRoute({ route, navigation }: LearningProps<'Resource'>) {
   );
 }
 
+function TeacherCourseRoute({ route, navigation }: LearningProps<'TeacherCourse'>) {
+  const { token } = useAppSession();
+  const { courseId, title, sections } = route.params;
+  return (
+    <TeacherCourseScreen
+      token={token}
+      courseId={courseId}
+      title={title}
+      onBack={() => navigation.goBack()}
+      onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
+      onOpenStudents={() => navigation.push('TeacherStudents', { courseId, title, sections })}
+      onAnnounce={() => navigation.push('Announcement', { courseId, title, sections })}
+    />
+  );
+}
+
 function TeacherStudentsRoute({ route, navigation }: LearningProps<'TeacherStudents'>) {
   const { token } = useAppSession();
   const { courseId, title, sections } = route.params;
@@ -357,7 +375,7 @@ function CoursesRoot({ navigation }: LearningProps<'Root'>) {
     return (
       <TeacherCoursesScreen
         token={token}
-        onOpenCourse={(course) => navigation.push('TeacherStudents', { courseId: course.id, title: course.title, sections: course.sections.map(({ id, title }) => ({ id, title })) })}
+        onOpenCourse={(course) => navigation.push('TeacherCourse', { courseId: course.id, title: course.title, sections: course.sections.map(({ id, title }) => ({ id, title })) })}
       />
     );
   }
@@ -497,6 +515,7 @@ function learningStack(Root: (props: LearningProps<'Root'>) => ReactElement) {
         <Stack.Screen name="CourseGrades" component={CourseGradesRoute} />
         <Stack.Screen name="Thread" component={ThreadRoute} />
         <Stack.Screen name="Compose" component={ComposeRoute} />
+        <Stack.Screen name="TeacherCourse" component={TeacherCourseRoute} />
         <Stack.Screen name="TeacherStudents" component={TeacherStudentsRoute} />
         <Stack.Screen name="TeacherStudent" component={TeacherStudentRoute} />
         <Stack.Screen name="Announcement" component={AnnouncementRoute} />

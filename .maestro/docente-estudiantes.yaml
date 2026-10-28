@@ -7,6 +7,13 @@ name: docente-estudiantes
     visible: "Curso E2E"
     timeout: 30000
 - tapOn: "Curso E2E"
+# 1.3.0: el curso abre en su contenido; los estudiantes están en su botón.
+- extendedWaitUntil:
+    visible:
+      id: "teacher-course-students"
+    timeout: 30000
+- tapOn:
+    id: "teacher-course-students"
 - extendedWaitUntil:
     visible: "Estudiante E2E"
     timeout: 30000
