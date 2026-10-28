@@ -5,10 +5,13 @@ name: docente-clase-en-vivo
 ---
 - runFlow: common/login-docente.yaml
 - extendedWaitUntil:
-    visible: "Hoy en tus cursos"
+    visible: "MI DÍA DOCENTE"
     timeout: 30000
 - scrollUntilVisible:
-    element: "Clase en vivo"
+    element: "Hoy en tus cursos"
+- scrollUntilVisible:
+    element: "Unirse a la clase|Iniciar la clase \\(anfitrión\\)"
+    centerElement: true
 - assertVisible: "Unirse a la clase|Iniciar la clase \\(anfitrión\\)"
 - takeScreenshot: capturas/docente-vivo-01-hoy
 - tapOn: "Cursos"
