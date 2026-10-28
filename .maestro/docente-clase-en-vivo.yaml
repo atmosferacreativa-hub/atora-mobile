@@ -27,6 +27,9 @@ name: docente-clase-en-vivo
 - tapOn: "Gestionar Clase en vivo"
 - scrollUntilVisible:
     element: "Grabación: https://example.org/grabacion-e2e"
+- scrollUntilVisible:
+    element: "Ver quién entró"
+    centerElement: true
 - tapOn: "Ver quién entró"
 - extendedWaitUntil:
     visible: "El proveedor todavía no entregó la asistencia."
