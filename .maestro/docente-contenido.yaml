@@ -28,7 +28,8 @@ name: docente-contenido
     timeout: 30000
 # "Tarea" vence en 7 días (semilla): se mueve una semana.
 - scrollUntilVisible:
-    element: "Tarea"
+    element: "Gestionar Tarea"
+    centerElement: true
 - tapOn: "Gestionar Tarea"
 - extendedWaitUntil:
     visible: "Fecha de entrega"
