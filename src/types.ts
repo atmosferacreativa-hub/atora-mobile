@@ -112,6 +112,8 @@ export type LessonDetail = {
   videos?: LessonVideo[];
   /** 6.39.0+: clase en vivo (Zoom, Meet, Teams o enlace). El enlace solo llega con la clase abierta. */
   live?: LiveInfo | null;
+  /** 6.40.0+: el docente la ve en vista de estudiante (puede estar oculta; no marca avance). */
+  teacher_preview?: boolean;
 };
 
 /** 6.39.0+: clase en vivo de la lección (`GET /lessons/{id}` → `live`). Fechas en ISO UTC. */

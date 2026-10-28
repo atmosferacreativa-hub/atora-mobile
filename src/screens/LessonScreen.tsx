@@ -313,6 +313,9 @@ function LessonContent({
 
   return (
     <>
+      {lesson.teacher_preview ? (
+        <Text style={styles.previewBanner} testID="lesson-teacher-preview">{t('Vista de estudiante · como docente no cuenta tu avance')}</Text>
+      ) : null}
       <Text style={styles.title}>{lesson.title}</Text>
       <Text style={styles.meta}>{t('{count} minutos', { count: lesson.duration_min })} · {lesson.type}</Text>
       {lesson.live ? <LiveClassCard info={lesson.live} onRefresh={refreshLive} /> : null}
@@ -433,15 +436,17 @@ function LessonContent({
           </Pressable>
         </View>
       ) : null}
-      <Pressable
-        disabled={busy || lesson.completed}
-        onPress={onComplete}
-        style={[styles.button, lesson.completed && styles.doneButton]}
-      >
-        {busy ? <ActivityIndicator color={colors.white} /> : (
-          <Text style={styles.buttonText}>{lesson.completed ? t('Lección completada') : t('Marcar como completada')}</Text>
-        )}
-      </Pressable>
+      {lesson.teacher_preview ? null : (
+        <Pressable
+          disabled={busy || lesson.completed}
+          onPress={onComplete}
+          style={[styles.button, lesson.completed && styles.doneButton]}
+        >
+          {busy ? <ActivityIndicator color={colors.white} /> : (
+            <Text style={styles.buttonText}>{lesson.completed ? t('Lección completada') : t('Marcar como completada')}</Text>
+          )}
+        </Pressable>
+      )}
     </>
   );
 }
@@ -811,6 +816,7 @@ export function LessonScreen({ lessonId, token, onBack, onCompleted, onOpenQuiz,
 }
 
 const styles = StyleSheet.create({
+  previewBanner: { backgroundColor: colors.accentSoft, borderRadius: 8, color: colors.accentText, fontWeight: '700', overflow: 'hidden', padding: 10 },
   videoList: { gap: spacing.sm },
   videoRow: { minHeight: 44, alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: 'transparent', borderRadius: 14, borderWidth: 2, flexDirection: 'row', gap: spacing.md, padding: spacing.sm },
   videoRowCurrent: { borderColor: colors.blue },

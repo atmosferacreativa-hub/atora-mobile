@@ -1,5 +1,5 @@
 /** API del docente (0.7.0, plugin 6.31.0: `atora-mobile/v1/teacher/*`). */
-import type { AgendaItem } from '../types';
+import type { AgendaItem, LiveInfo } from '../types';
 
 export type RiskLevel = 'bajo' | 'medio' | 'alto';
 export type Risk = { level: RiskLevel; label: string; reasons: string[] };
@@ -113,3 +113,27 @@ export type GradeRequest = {
 export type GradeOutcome =
   | { kind: 'saved'; submission: SubmissionDetail; replayed: boolean }
   | { kind: 'conflict'; message: string; submission: SubmissionDetail };
+
+/** 1.3.0 (plugin 6.40.0): lección del curso vista por el docente (`/teacher/courses/{id}/lessons`). */
+export type TeacherLesson = {
+  id: number;
+  wp_id: number;
+  title: string;
+  order: number;
+  type: string;
+  visible: boolean;
+  status: string;
+  /** ISO UTC. */
+  due_at: string | null;
+  /** Fecha y hora como las guarda el sitio (zona del sitio), para editarlas. */
+  due_date: string | null;
+  due_time: string | null;
+  site_timezone?: string;
+  pending_submissions: number;
+  in_person: boolean;
+  live: LiveInfo | null;
+};
+
+export type TeacherLessons = { course_id: number; items: TeacherLesson[]; can_manage: boolean };
+
+export type LessonChange = { visible?: boolean; due_date?: string; due_time?: string; notify?: boolean };
