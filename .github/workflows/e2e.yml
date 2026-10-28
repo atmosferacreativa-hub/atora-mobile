@@ -422,6 +422,11 @@ jobs:
           force-avd-creation: true
           script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
 
+      - name: Diagnóstico del servidor tras los recorridos
+        if: always() && steps.flows.outputs.list != ''
+        continue-on-error: true
+        run: python3 scripts/e2e-diag.py
+
       - name: Resumen (recorridos + resultado)
         if: always()
         run: |

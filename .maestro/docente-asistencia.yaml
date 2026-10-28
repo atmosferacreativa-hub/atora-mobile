@@ -22,10 +22,14 @@ name: docente-asistencia
 - tapOn: "Todos presentes"
 - tapOn: "Ausente Estudiante Dos E2E"
 - assertVisible: "Presentes 1 · Tarde 0 · Ausentes 1 · Justificados 0 · Sin marcar 0"
+- scrollUntilVisible:
+    element:
+      id: "attendance-save"
+    centerElement: true
 - tapOn:
     id: "attendance-save"
-- extendedWaitUntil:
-    visible: "Asistencia guardada en el teléfono.*"
+- scrollUntilVisible:
+    element: "Asistencia guardada en el teléfono.*"
     timeout: 15000
 # Sale por la cola y vuelve del servidor al recargar.
 - extendedWaitUntil:
