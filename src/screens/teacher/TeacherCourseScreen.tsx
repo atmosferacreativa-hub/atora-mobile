@@ -18,6 +18,7 @@ type Props = {
   onOpenLesson: (lessonId: number) => void;
   onOpenStudents: () => void;
   onAnnounce: () => void;
+  onAttendance: () => void;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -41,7 +42,7 @@ function formatDue(iso: string | null): string {
 }
 
 /** 1.3.0: curso del docente — lecciones (también ocultas), estudiantes y aviso; publicar, ocultar y cambiar fechas. */
-export function TeacherCourseScreen({ token, courseId, title, onBack, onOpenLesson, onOpenStudents, onAnnounce }: Props) {
+export function TeacherCourseScreen({ token, courseId, title, onBack, onOpenLesson, onOpenStudents, onAnnounce, onAttendance }: Props) {
   const network = useNetworkState();
   const offline = network.isConnected === false;
   const [items, setItems] = useState<TeacherLesson[] | null>(null);
@@ -88,6 +89,10 @@ export function TeacherCourseScreen({ token, courseId, title, onBack, onOpenLess
           <Text style={styles.actionText}>{t('Aviso al grupo')}</Text>
         </Pressable>
       </View>
+      <Pressable accessibilityRole="button" onPress={onAttendance} style={styles.action} testID="teacher-attendance">
+        <Ionicons name="checkbox-outline" size={18} color={colors.primaryStrong} />
+        <Text style={styles.actionText}>{t('Tomar asistencia')}</Text>
+      </Pressable>
       <Text style={styles.eyebrow}>{t('CONTENIDO')}</Text>
       {fromCache ? <Text style={styles.sync}>{t('Sin conexión · lo último sincronizado')}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}

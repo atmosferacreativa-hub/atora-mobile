@@ -3,6 +3,7 @@ import { authenticatedRequest } from './authenticated';
 import { cachedRequest, type Synced } from './cached';
 import { enqueueEvent, listOutbox, newEventId, registerOutboxHandler, OutboxDefinitiveError } from '../offline/outbox/runtime';
 import { ANNOUNCEMENT_SEND, announcementDedupeKey, cleanAnnouncement, type AnnouncementPayload } from '../teacher/announcements';
+import { ATTENDANCE_SAVE, attendanceDedupeKey, type AttendanceMark, type AttendancePayload, type AttendanceRoster } from '../teacher/attendance';
 import * as FileSystem from 'expo-file-system/legacy';
 import { refreshAccessToken } from './session';
 import type { GradeOutcome, GradeRequest, LessonChange, QueuePage, StudentFile, StudentsPage, SubmissionDetail, SubmissionFileRef, TeacherCourse, TeacherLesson, TeacherLessons, TeacherToday } from '../teacher/types';
@@ -174,3 +175,46 @@ export async function downloadSubmissionFile(token: string, submissionId: number
 export async function purgeGradingFiles(): Promise<void> {
   await FileSystem.deleteAsync(FILES_DIR, { idempotent: true });
 }
+
+// ── 1.3.0: asistencia presencial ─────────────────────────────────────────
+
+/** Lista del día (o de un encuentro presencial). La última vista se guarda para abrirla sin conexión. */
+export function fetchAttendance(token: string, courseId: number, date: string, lessonId = 0): Promise<Synced<AttendanceRoster>> {
+  const query = `teacher/courses/${courseId}/attendance?date=${encodeURIComponent(date)}${lessonId ? `&lesson=${lessonId}` : ''}`;
+  return cachedRequest<AttendanceRoster>(query, 'teacher_attendance', courseId, token);
+}
+
+/** Guarda las marcas en la cola del teléfono: salen ya con conexión o al volver, una sola vez. */
+export async function saveAttendance(courseId: number, lessonId: number, date: string, marks: AttendanceMark[]): Promise<string | null> {
+  if (!marks.length) return null;
+  const id = newEventId();
+  await enqueueEvent<AttendancePayload>({
+    id,
+    type: ATTENDANCE_SAVE,
+    dedupeKey: attendanceDedupeKey(id),
+    payload: { courseId, lessonId, date, marks },
+  });
+  return id;
+}
+
+export async function pendingAttendance(courseId: number): Promise<{ id: string; status: 'pending' | 'failed'; lastError: string; payload: AttendancePayload }[]> {
+  const { pending, failed } = await listOutbox().catch(() => ({ pending: [], failed: [] }));
+  return [...pending, ...failed]
+    .filter((event) => event.type === ATTENDANCE_SAVE && (event.payload as AttendancePayload).courseId === courseId)
+    .map((event) => ({ id: event.id, status: event.status, lastError: event.lastError, payload: event.payload as AttendancePayload }));
+}
+
+registerOutboxHandler<AttendancePayload>(ATTENDANCE_SAVE, async (event, { token }) => {
+  const { payload } = event;
+  try {
+    await authenticatedRequest(`teacher/courses/${payload.courseId}/attendance`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ lesson_id: payload.lessonId, date: payload.date, marks: payload.marks, client_event_id: event.id }),
+    });
+  } catch (reason) {
+    // 400/403/404: el servidor no la aceptará nunca; queda "no se envió" con su motivo.
+    if (reason instanceof ApiError && [400, 403, 404].includes(reason.status)) throw new OutboxDefinitiveError(reason.message);
+    throw reason;
+  }
+});

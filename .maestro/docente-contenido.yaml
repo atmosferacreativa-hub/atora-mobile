@@ -37,6 +37,10 @@ name: docente-contenido
 - tapOn: "Una semana después"
 - tapOn: "18:00"
 # Sin aviso al curso: no se mezcla con los avisos que revisan otros recorridos.
+- scrollUntilVisible:
+    element:
+      id: "teacher-due-notify"
+    centerElement: true
 - tapOn:
     id: "teacher-due-notify"
 - scrollUntilVisible:

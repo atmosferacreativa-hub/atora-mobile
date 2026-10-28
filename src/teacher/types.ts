@@ -54,6 +54,8 @@ export type StudentFile = {
   submissions: { id: number; lesson: Named; status: string; grade: number | null; submitted_at: string | null }[];
   alerts: { type: string; status: string; severity: number; count: number; updated_at: string | null }[];
   pending: number;
+  /** 6.40.0+: asistencia (aula y clases en vivo). */
+  attendance?: { sessions: number; presente: number; tarde: number; ausente: number; justificado: number; rate: number | null } | null;
 };
 
 export type QueuePage = { items: QueueItem[]; total: number; next_cursor: string | null };

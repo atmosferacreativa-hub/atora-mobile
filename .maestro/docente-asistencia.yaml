@@ -1,0 +1,44 @@
+appId: com.atmosferacreativa.atora
+name: docente-asistencia
+# 1.3.0 (plugin 6.40.0): el docente toma lista en el aula: todos presentes, una excepción, guardar. La marca pasa
+# por la cola del teléfono y llega al servidor (se ve al recargar).
+---
+- runFlow: common/login-docente.yaml
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- tapOn: "Curso E2E"
+- extendedWaitUntil:
+    visible:
+      id: "teacher-attendance"
+    timeout: 30000
+- tapOn:
+    id: "teacher-attendance"
+- extendedWaitUntil:
+    visible: "Todos presentes"
+    timeout: 30000
+- takeScreenshot: capturas/docente-asistencia-01-lista
+- tapOn: "Todos presentes"
+- tapOn: "Ausente Estudiante Dos E2E"
+- assertVisible: "Presentes 1 · Tarde 0 · Ausentes 1 · Justificados 0 · Sin marcar 0"
+- scrollUntilVisible:
+    element:
+      id: "attendance-save"
+    centerElement: true
+- tapOn:
+    id: "attendance-save"
+- scrollUntilVisible:
+    element: "Asistencia guardada en el teléfono.*"
+    timeout: 15000
+# Sale por la cola y vuelve del servidor al recargar.
+- extendedWaitUntil:
+    notVisible: "Pendiente · se enviará al tener conexión"
+    timeout: 30000
+- swipe:
+    direction: DOWN
+- extendedWaitUntil:
+    visible: "Sin cambios"
+    timeout: 30000
+- assertVisible: "Presentes 1 · Tarde 0 · Ausentes 1 · Justificados 0 · Sin marcar 0"
+- takeScreenshot: capturas/docente-asistencia-02-guardada
