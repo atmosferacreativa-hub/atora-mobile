@@ -39,6 +39,9 @@ name: docente-contenido
 # Sin aviso al curso: no se mezcla con los avisos que revisan otros recorridos.
 - tapOn:
     id: "teacher-due-notify"
+- scrollUntilVisible:
+    element: "Guardar fecha"
+    centerElement: true
 - tapOn: "Guardar fecha"
 - extendedWaitUntil:
     visible: "Fecha de entrega actualizada."
