@@ -218,3 +218,21 @@ registerOutboxHandler<AttendancePayload>(ATTENDANCE_SAVE, async (event, { token 
     throw reason;
   }
 });
+
+// ── 1.3.0: clase en vivo del docente ─────────────────────────────────────
+
+/** Publica el enlace de la grabación o la quita (`null`). Necesita conexión. */
+export async function setLiveRecording(token: string, lessonId: number, url: string | null): Promise<TeacherLesson> {
+  const data = await authenticatedRequest<{ lesson: TeacherLesson }>(`teacher/lessons/${lessonId}/recording`, {
+    method: 'POST',
+    token,
+    body: JSON.stringify(url === null ? { clear: true } : { url }),
+  });
+  return data.lesson;
+}
+
+export type LiveAttendanceRow = { name: string; registered: boolean; status: string; duration_minutes: number; source: string };
+
+export function fetchLiveAttendance(token: string, lessonId: number): Promise<{ items: LiveAttendanceRow[]; session_status: string | null }> {
+  return authenticatedRequest(`teacher/lessons/${lessonId}/live-attendance`, { token });
+}

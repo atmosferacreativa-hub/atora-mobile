@@ -1,5 +1,18 @@
 /** Catálogo en inglés: clave = texto en español (1.0.0). */
 export const en: Record<string, string> = {
+  "No pudimos cargar la asistencia de la clase.": "We couldn't load the class attendance.",
+  "Grabación: {url}": "Recording: {url}",
+  "Grabación quitada.": "Recording removed.",
+  "Quitar la grabación": "Remove the recording",
+  "Sin grabación (puedes agregar una si quieres).": "Not recorded (you can add one if you want).",
+  "Todavía no hay grabación publicada.": "No recording published yet.",
+  "Enlace de la grabación": "Recording link",
+  "Grabación publicada.": "Recording published.",
+  "Publicar grabación": "Publish recording",
+  "Ver quién entró": "See who joined",
+  "{name} · {minutes} min · {status}": "{name} · {minutes} min · {status}",
+  "{name} (invitado)": "{name} (guest)",
+  "El proveedor todavía no entregó la asistencia.": "The provider hasn't delivered attendance yet.",
   "P": "P",
   "Presente": "Present",
   "T": "L",

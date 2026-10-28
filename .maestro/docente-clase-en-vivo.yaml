@@ -1,0 +1,37 @@
+appId: com.atmosferacreativa.atora
+name: docente-clase-en-vivo
+# 1.3.0 (plugin 6.40.0): el docente ve la clase en vivo del día en Hoy con su botón y, en el curso, la grabación y
+# la asistencia del proveedor. Solo lectura: la semilla la comparte con el recorrido del estudiante.
+---
+- runFlow: common/login-docente.yaml
+- extendedWaitUntil:
+    visible: "MI DÍA DOCENTE"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Hoy en tus cursos"
+- scrollUntilVisible:
+    element: "Unirse a la clase|Iniciar la clase \\(anfitrión\\)"
+    centerElement: true
+- assertVisible: "Unirse a la clase|Iniciar la clase \\(anfitrión\\)"
+- takeScreenshot: capturas/docente-vivo-01-hoy
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+- tapOn: "Curso E2E"
+- extendedWaitUntil:
+    visible: "CONTENIDO"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Gestionar Clase en vivo"
+- tapOn: "Gestionar Clase en vivo"
+- scrollUntilVisible:
+    element: "Grabación: https://example.org/grabacion-e2e"
+- scrollUntilVisible:
+    element: "Ver quién entró"
+    centerElement: true
+- tapOn: "Ver quién entró"
+- extendedWaitUntil:
+    visible: "El proveedor todavía no entregó la asistencia."
+    timeout: 30000
+- takeScreenshot: capturas/docente-vivo-02-curso

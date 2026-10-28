@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fetchTeacherToday } from '../../api/teacher';
@@ -14,10 +14,11 @@ type Props = {
   onOpenGrading: () => void;
   onOpenStudent: (studentId: number, courseId: number, name: string) => void;
   onOpenMessages: () => void;
+  onOpenLesson?: (lessonId: number) => void;
 };
 
 /** Hoy del docente (0.7.0): por calificar, estudiantes en riesgo, clases y fechas del día, mensajes. */
-export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, onOpenMessages }: Props) {
+export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, onOpenMessages, onOpenLesson }: Props) {
   const [data, setData] = useState<TeacherToday | null>(null);
   const [syncedAt, setSyncedAt] = useState(0);
   const [fromCache, setFromCache] = useState(false);
@@ -86,7 +87,13 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
         <View style={styles.section}>
           <Text style={styles.heading}>{t('Hoy en tus cursos')}</Text>
           {data.today.length ? data.today.map((item, index) => (
-            <View key={`t-${index}`} style={styles.row}>
+            <Pressable
+              key={`t-${index}`}
+              accessibilityRole="button"
+              disabled={!item.link || !onOpenLesson}
+              onPress={() => item.link && onOpenLesson?.(item.link.id)}
+              style={styles.row}
+            >
               <Ionicons name={item.type === 'live_class' ? 'videocam-outline' : item.type === 'event' ? 'calendar-outline' : 'time-outline'} size={20} color={colors.primary} />
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{item.title}</Text>
@@ -95,8 +102,17 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
                   {new Date(item.starts_at).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })}
                   {item.course ? ` · ${item.course.title}` : ''}
                 </Text>
+                {item.live?.join_url ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void Linking.openURL(item.live!.join_url).catch(() => Alert.alert(t('No se pudo abrir el enlace')))}
+                    style={styles.join}
+                  >
+                    <Text style={styles.joinText}>{item.live.is_host ? t('Iniciar la clase (anfitrión)') : t('Unirse a la clase')}</Text>
+                  </Pressable>
+                ) : null}
               </View>
-            </View>
+            </Pressable>
           )) : <Text style={styles.empty}>{t('Sin clases ni fechas límite hoy.')}</Text>}
         </View>
       ) : null}
@@ -113,6 +129,8 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
 }
 
 const styles = StyleSheet.create({
+  join: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.sm, justifyContent: 'center', marginTop: 6, minHeight: 44, paddingHorizontal: spacing.md },
+  joinText: { color: colors.white, fontWeight: '800' },
   content: { gap: spacing.md, padding: spacing.lg },
   eyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   title: { color: colors.text, fontSize: 28, fontWeight: '900' },

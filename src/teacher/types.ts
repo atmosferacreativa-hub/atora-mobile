@@ -22,7 +22,8 @@ export type QueueItem = {
 export type TeacherToday = {
   to_grade: { count: number; oldest: QueueItem[] };
   at_risk: { count: number; items: { student: Person; course: Named; risk: Risk }[] };
-  today: Omit<AgendaItem, 'done'>[];
+  /** 6.40.0+: la clase en vivo trae `live` (enlace de anfitrión al abrir la ventana). */
+  today: (Omit<AgendaItem, 'done'> & { live?: LiveInfo | null })[];
   unread_messages: number;
   generated_at: string;
 };

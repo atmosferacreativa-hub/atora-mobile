@@ -346,6 +346,7 @@ function TodayRoot({ navigation }: LearningProps<'Root'>) {
         onOpenGrading={() => navigation.getParent()?.navigate('Grading')}
         onOpenStudent={(studentId, courseId, name) => navigation.push('TeacherStudent', { studentId, courseId, name })}
         onOpenMessages={() => navigation.getParent()?.navigate('Messages')}
+        onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
       />
     );
   }
