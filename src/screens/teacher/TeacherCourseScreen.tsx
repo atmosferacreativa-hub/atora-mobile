@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { fetchTeacherLessons, updateTeacherLesson } from '../../api/teacher';
+import { fetchLiveAttendance, fetchTeacherLessons, setLiveRecording, updateTeacherLesson, type LiveAttendanceRow } from '../../api/teacher';
 import { newEventId } from '../../offline/outbox/runtime';
 import { useNetworkState } from '../../hooks/useNetworkState';
 import { DUE_TIMES, hasDeadline, initialDue, shiftDate } from '../../teacher/lessons';
@@ -201,7 +201,76 @@ function ManagePanel({ token, lesson, offline, onSaved }: { token: string; lesso
           </Pressable>
         </View>
       ) : null}
+      {lesson.live ? <LivePanel token={token} lesson={lesson} onSaved={onSaved} /> : null}
       {busy ? <ActivityIndicator color={colors.primary} /> : null}
+      {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
+    </View>
+  );
+}
+
+/** Clase en vivo: grabación (enlace o quitarla) y asistencia del proveedor. */
+function LivePanel({ token, lesson, onSaved }: { token: string; lesson: TeacherLesson; onSaved: (lesson: TeacherLesson) => void }) {
+  const live = lesson.live!;
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [rows, setRows] = useState<LiveAttendanceRow[] | null>(null);
+
+  const run = async (value: string | null, done: string) => {
+    setBusy(true);
+    setMessage('');
+    try {
+      onSaved(await setLiveRecording(token, lesson.id, value));
+      setUrl('');
+      setMessage(done);
+    } catch (reason) {
+      setMessage(reason instanceof Error && reason.message ? reason.message : t('No se pudo guardar. Inténtalo de nuevo.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadAttendance = async () => {
+    try {
+      setRows((await fetchLiveAttendance(token, lesson.id)).items);
+    } catch {
+      setMessage(t('No pudimos cargar la asistencia de la clase.'));
+    }
+  };
+
+  return (
+    <View style={styles.due}>
+      <Text style={styles.dueLabel}>{t('Clase en vivo · {provider}', { provider: live.provider_label })}</Text>
+      {live.recording ? (
+        <>
+          <Text style={styles.meta} numberOfLines={2}>{t('Grabación: {url}', { url: live.recording.url })}</Text>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => void run(null, t('Grabación quitada.'))} style={styles.panelButton}>
+            <Text style={styles.panelButtonText}>{t('Quitar la grabación')}</Text>
+          </Pressable>
+        </>
+      ) : (
+        <Text style={styles.meta}>{live.recording_mode === 'none' ? t('Sin grabación (puedes agregar una si quieres).') : t('Todavía no hay grabación publicada.')}</Text>
+      )}
+      <TextInput
+        value={url}
+        onChangeText={setUrl}
+        placeholder="https://…"
+        autoCapitalize="none"
+        keyboardType="url"
+        accessibilityLabel={t('Enlace de la grabación')}
+        style={styles.input}
+      />
+      <Pressable accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void run(url.trim(), t('Grabación publicada.'))} style={[styles.save, (!url.trim() || busy) && { opacity: 0.5 }]}>
+        <Text style={styles.saveText}>{t('Publicar grabación')}</Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={() => void loadAttendance()} style={styles.panelButton}>
+        <Text style={styles.panelButtonText}>{t('Ver quién entró')}</Text>
+      </Pressable>
+      {rows ? (rows.length ? rows.map((row, index) => (
+        <Text key={`${row.name}-${index}`} style={styles.meta}>
+          {t('{name} · {minutes} min · {status}', { name: row.registered ? row.name : t('{name} (invitado)', { name: row.name }), minutes: row.duration_minutes, status: row.status })}
+        </Text>
+      )) : <Text style={styles.meta}>{t('El proveedor todavía no entregó la asistencia.')}</Text>) : null}
       {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
     </View>
   );
@@ -249,4 +318,5 @@ const styles = StyleSheet.create({
   save: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.sm, justifyContent: 'center', minHeight: 48 },
   saveText: { color: colors.white, fontWeight: '900' },
   message: { color: colors.text },
+  input: { borderColor: colors.line, borderRadius: radius.sm, borderWidth: 1, color: colors.text, minHeight: 44, paddingHorizontal: spacing.sm },
 });
