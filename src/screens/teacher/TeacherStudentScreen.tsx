@@ -53,6 +53,20 @@ export function TeacherStudentScreen({ token, studentId, courseId, name, onBack,
             <RiskBadge risk={data.summary.risk} />
           </View>
 
+          {data.attendance && data.attendance.sessions > 0 ? (
+            <>
+              <Text style={styles.heading}>{t('Asistencia')}</Text>
+              <View style={styles.row}>
+                <Text style={[styles.rowTitle, styles.flex]}>
+                  {data.attendance.rate === null ? '—' : t('{rate}% de asistencia', { rate: data.attendance.rate })}
+                </Text>
+                <Text style={styles.meta}>
+                  {t('P {p} · T {t} · A {a} · J {j}', { p: data.attendance.presente, t: data.attendance.tarde, a: data.attendance.ausente, j: data.attendance.justificado })}
+                </Text>
+              </View>
+            </>
+          ) : null}
+
           <Text style={styles.heading}>{t('Notas')}</Text>
           {data.grades.length ? data.grades.map((grade, index) => (
             <View key={`g-${index}`} style={styles.row}>
