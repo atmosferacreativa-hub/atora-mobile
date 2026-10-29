@@ -81,14 +81,28 @@ mkdir -p capturas
 
 args=()
 if [ "$flows" = "todos" ]; then
-  args+=(.maestro)
-else
-  IFS=',' read -ra names <<< "$flows"
-  for name in "${names[@]}"; do
-    args+=(".maestro/${name}.yaml")
-  done
+  # «todos» también pasa por la selección: con la carpeta completa, Maestro solo garantizaba los de flowsOrder.
+  # Los recorridos *-ios son del simulador de iOS (job aparte).
+  flows="$(find .maestro -maxdepth 1 -name '*.yaml' ! -name config.yaml ! -name '*-ios.yaml' -exec basename {} .yaml \; | sort | paste -sd, -)"
 fi
+{
+  # Con archivos sueltos Maestro no aplica el flowsOrder de config.yaml (los corría en orden alfabético y, como los
+  # recorridos del docente comparten entregas sembradas, docente-borrador-recuperado y docente-sugerencia-ia corrían
+  # antes o después de lo que necesitan). Se arma una carpeta con solo los recorridos pedidos y el orden filtrado.
+  IFS=',' read -ra names <<< "$flows"
+  sel="$PWD/.e2e/sel"
+  rm -rf "$sel" && mkdir -p "$sel"
+  cp -R .maestro/common .maestro/scripts "$sel/" 2>/dev/null || true
+  [ -d .maestro/perf ] && cp -R .maestro/perf "$sel/"
+  for name in "${names[@]}"; do
+    cp ".maestro/${name}.yaml" "$sel/"
+  done
+  python3 scripts/e2e-select-config.py .maestro/config.yaml "$sel/config.yaml" "${names[@]}"
+  args+=("$sel")
+}
 
 # API_HOST: los scripts de los recorridos (p. ej. el segundo docente del 409) llaman a la API desde el runner.
 touch .e2e/maestro-started
-maestro test -e API_HOST="${API_HOST:-http://localhost:8080/wp-json/atora-mobile/v1}" --format junit --output maestro-report.xml "${args[@]}"
+# --debug-output: capturas de cada fallo en un lugar fijo (el paso de OCR del CI las lee).
+mkdir -p .e2e/debug
+maestro test -e API_HOST="${API_HOST:-http://localhost:8080/wp-json/atora-mobile/v1}" --debug-output "$PWD/.e2e/debug" --format junit --output maestro-report.xml "${args[@]}"

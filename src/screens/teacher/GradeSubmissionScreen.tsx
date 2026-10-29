@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { downloadSubmissionFile, fetchSubmissionDetail, gradeSubmission } from '../../api/teacher';
+import { downloadSubmissionFile, fetchSubmissionDetail, gradeSubmission, returnPregrade } from '../../api/teacher';
+import { canReturn, confirmText, onlyPregrades, pregradeBanner, publishLabel, savedKind, savedMessage, type SavedKind } from '../../teacher/pregrade';
 import { getSessionUserId } from '../../api/session';
 import { fetchSuggestionJob, requestSuggestion } from '../../api/ai';
 import { ApiError } from '../../api/client';
@@ -50,7 +51,9 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState<'draft' | 'published' | null>(null);
+  const [saved, setSaved] = useState<SavedKind | null>(null);
+  const [returning, setReturning] = useState(false);
+  const [returnComment, setReturnComment] = useState('');
   const [conflict, setConflict] = useState<{ message: string; theirs: SubmissionDetail } | null>(null);
   /** 0.8.1: borrador recuperado después de que otro docente guardó (se muestra su versión al lado). */
   const [otherVersion, setOtherVersion] = useState<SubmissionDetail | null>(null);
@@ -230,7 +233,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       if (userId.current) await discardDraft(sqliteGradingDraftStore, userId.current, submissionId).catch(() => undefined);
       setDetail(outcome.submission);
       setRevision(outcome.submission.revision);
-      setSaved(publish ? 'published' : 'draft');
+      setSaved(savedKind(publish, outcome.submission));
     } catch (reason) {
       Alert.alert(t('No se guardó'), reason instanceof Error ? reason.message : t('Inténtalo otra vez. Tu borrador sigue en el teléfono.'));
     } finally {
@@ -238,11 +241,35 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
     }
   };
 
-  const confirmPublish = () =>
-    Alert.alert(t('¿Publicar la calificación?'), detail?.group ? t('El estudiante verá la nota y recibirá un aviso. La nota se aplica a todos los integrantes del grupo.') : t('El estudiante verá la nota y los comentarios, y recibirá un aviso.'), [
+  const confirmPublish = () => {
+    if (!detail) return;
+    const text = confirmText(detail);
+    Alert.alert(text.title, text.body, [
       { text: t('Cancelar'), style: 'cancel' },
-      { text: t('Publicar'), onPress: () => void submit(true) },
+      { text: publishLabel(detail), onPress: () => void submit(true) },
     ]);
+  };
+
+  /** 1.4.0: el instructor devuelve la pre-calificación al asistente. */
+  const sendBack = async () => {
+    if (!returnComment.trim()) return;
+    if (offline) {
+      Alert.alert(t('Sin conexión'), t('Devolver necesita conexión.'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const updated = await returnPregrade(token, submissionId, returnComment.trim());
+      setDetail(updated);
+      setRevision(updated.revision);
+      setReturning(false);
+      setReturnComment('');
+    } catch (reason) {
+      Alert.alert(t('No se devolvió'), reason instanceof Error ? reason.message : t('Inténtalo otra vez.'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (!detail || !form) {
     return (
@@ -313,6 +340,10 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
             </Pressable>
           ))}
         </View>
+      ) : null}
+
+      {pregradeBanner(detail.pregrade, !onlyPregrades(detail)) ? (
+        <Text accessibilityRole="alert" style={styles.pregrade} testID="pregrade-banner">{pregradeBanner(detail.pregrade, !onlyPregrades(detail))}</Text>
       ) : null}
 
       {aiEnabled && detail.ai_suggestion_available && saved !== 'published' ? (
@@ -452,7 +483,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
       {saved ? (
         <View style={styles.saved} testID="grading-saved">
           <Ionicons name="checkmark-circle" size={20} color={colors.white} />
-          <Text style={styles.savedText}>{saved === 'published' ? t('Calificación publicada') : t('Borrador guardado: el estudiante todavía no la ve')}</Text>
+          <Text style={styles.savedText}>{savedMessage(saved)}</Text>
           <Pressable accessibilityRole="button" onPress={onNext} style={styles.next} testID="grading-next">
             <Text style={styles.nextText}>{t('Siguiente entrega')}</Text>
           </Pressable>
@@ -464,10 +495,24 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
             <Text style={styles.secondaryText}>{t('Guardar borrador')}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" disabled={busy} onPress={confirmPublish} style={[styles.primary, busy && styles.disabled]} testID="grading-publish">
-            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>{t('Publicar')}</Text>}
+            {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>{publishLabel(detail)}</Text>}
           </Pressable>
         </View>
       )}
+      {saved !== 'published' && canReturn(detail) ? (
+        returning ? (
+          <View style={styles.card}>
+            <TextInput accessibilityLabel={t('Qué debe revisar el asistente')} multiline onChangeText={setReturnComment} placeholder={t('Qué debe revisar el asistente')} style={[styles.input, styles.feedback]} testID="pregrade-return-comment" value={returnComment} />
+            <Pressable accessibilityRole="button" disabled={busy || !returnComment.trim()} onPress={() => void sendBack()} style={[styles.secondary, (busy || !returnComment.trim()) && styles.disabled]} testID="pregrade-return-send">
+              <Text style={styles.secondaryText}>{t('Devolver al asistente')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable accessibilityRole="button" onPress={() => setReturning(true)} style={styles.secondary} testID="pregrade-return">
+            <Text style={styles.secondaryText}>{t('Devolver al asistente')}</Text>
+          </Pressable>
+        )
+      ) : null}
 
       <Modal transparent visible={Boolean(conflict)} animationType="fade" onRequestClose={() => setConflict(null)}>
         <View style={styles.backdrop}>
@@ -534,6 +579,7 @@ export function GradeSubmissionScreen({ token, submissionId, onBack, onOpenFile,
 }
 
 const styles = StyleSheet.create({
+  pregrade: { backgroundColor: colors.accentSoft, borderRadius: radius.md, color: colors.accentText, fontWeight: '700', overflow: 'hidden', padding: spacing.sm },
   content: { gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   center: { alignItems: 'center', flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },

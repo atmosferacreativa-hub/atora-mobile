@@ -732,4 +732,18 @@ export const en: Record<string, string> = {
   "Todavía no hay planificaciones en este curso.": "This course has no plans yet.",
   "Sin título": "Untitled",
   "Publicada · con cambios sin publicar": "Published · with unpublished changes",
+  // 1.4.0: pre-calificación del instructor asistente.
+  "Devolver necesita conexión.": "Sending back needs a connection.",
+  "No se devolvió": "Not sent back",
+  "Qué debe revisar el asistente": "What the assistant should review",
+  "Devolver al asistente": "Send back to the assistant",
+  "Por validar": "To validate",
+  "Pre-calificación de {name}": "Pre-grade by {name}",
+  "Enviar al instructor": "Send to the instructor",
+  "¿Enviar al instructor?": "Send to the instructor?",
+  "Queda como pre-calificación: el instructor la revisa y la publica. El estudiante todavía no la ve.": "It stays as a pre-grade: the instructor reviews and publishes it. The student can't see it yet.",
+  "Enviada al instructor: el estudiante todavía no la ve": "Sent to the instructor: the student can't see it yet",
+  "Pre-calificación de {name}. Revísala: al publicar queda validada; también puedes devolverla.": "Pre-grade by {name}. Review it: publishing validates it; you can also send it back.",
+  "Enviada al instructor: está por validar.": "Sent to the instructor: waiting for validation.",
+  "{name} devolvió la pre-calificación: {comment}": "{name} sent the pre-grade back: {comment}",
 };
