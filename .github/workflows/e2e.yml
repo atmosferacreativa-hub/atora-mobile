@@ -407,8 +407,16 @@ jobs:
           force-avd-creation: false
           script: bash ${{ inputs.modo == 'gama-baja' && 'scripts/perf-run.sh' || format('scripts/e2e-run.sh "{0}"', steps.flows.outputs.list) }}
 
+      # El respaldo solo recrea el AVD si Maestro no llegó a correr (fallo del emulador). Si Maestro corrió y un recorrido
+      # falló, repetir toda la suite sobre el mismo WordPress (sin resembrar, con las entregas ya calificadas) producía
+      # fallos falsos («Estudiante Dos E2E» no visible) que tapaban el fallo real del primer intento.
+      - name: ¿Maestro llegó a correr con el AVD en caché?
+        id: cached_started
+        if: always() && steps.avd_cache.outputs.cache-hit == 'true'
+        run: echo "yes=$([ -f .e2e/maestro-started ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: "Recorridos en el emulador (fallback: recrear AVD)"
-        if: steps.avd_cache.outputs.cache-hit != 'true' || steps.e2e_cached_avd.outcome == 'failure'
+        if: steps.avd_cache.outputs.cache-hit != 'true' || (steps.e2e_cached_avd.outcome == 'failure' && steps.cached_started.outputs.yes != 'true')
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -502,6 +510,13 @@ jobs:
             seed.json
             ~/.maestro/tests/
           if-no-files-found: warn
+
+      # El paso del AVD en caché tiene continue-on-error (para permitir el respaldo); si Maestro corrió y falló, el job falla aquí.
+      - name: Resultado de los recorridos
+        if: always() && steps.e2e_cached_avd.outcome == 'failure' && steps.cached_started.outputs.yes == 'true'
+        run: |
+          echo "::error title=E2E::fallaron recorridos (ver anotaciones E2E FAIL)"
+          exit 1
           retention-days: 30
 
   ios-e2e:
