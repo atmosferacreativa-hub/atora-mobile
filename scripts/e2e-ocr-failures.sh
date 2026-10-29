@@ -2,8 +2,8 @@
 # Texto de las capturas de fallo de Maestro (OCR) como anotaciones: sin acceso a los artefactos, así se ve qué había
 # en pantalla cuando un recorrido falló.
 set -uo pipefail
-dirs=("$HOME/.maestro/tests" "$PWD/.maestro" "$PWD")
-pngs=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | grep -E 'screenshot-.*(❌|fail|FAIL)' | head -8)
+dirs=("$PWD/.e2e/debug" "$HOME/.maestro/tests")
+pngs=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | grep -Ei 'screenshot.*(❌|fail)' | head -8)
 count=$(printf '%s' "$pngs" | grep -c . || true)
 echo "::notice title=Pantallas de fallo::${count} captura(s) de fallo encontradas"
 [ "$count" -gt 0 ] || exit 0

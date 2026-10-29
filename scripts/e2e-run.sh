@@ -91,4 +91,6 @@ fi
 
 # API_HOST: los scripts de los recorridos (p. ej. el segundo docente del 409) llaman a la API desde el runner.
 touch .e2e/maestro-started
-maestro test -e API_HOST="${API_HOST:-http://localhost:8080/wp-json/atora-mobile/v1}" --format junit --output maestro-report.xml "${args[@]}"
+# --debug-output: capturas de cada fallo en un lugar fijo (el paso de OCR del CI las lee).
+mkdir -p .e2e/debug
+maestro test -e API_HOST="${API_HOST:-http://localhost:8080/wp-json/atora-mobile/v1}" --debug-output "$PWD/.e2e/debug" --format junit --output maestro-report.xml "${args[@]}"
