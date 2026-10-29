@@ -7,6 +7,7 @@ import { getSessionUserId } from '../../api/session';
 import { createPlan, fetchPlan, keepPickedFile, previewPlan, publishPlan, savePlan, sqlitePlanDraftStore, uploadPlanFile } from '../../api/teacherPlans';
 import { newEventId } from '../../offline/outbox/runtime';
 import { useNetworkState } from '../../hooks/useNetworkState';
+import { KeyboardScroll } from '../../components/KeyboardScroll';
 import {
   PLAN_STEPS,
   addPendingFile,
@@ -248,7 +249,7 @@ export function TeacherPlanScreen({ token, courseId, planId: initialPlanId, onBa
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardScroll contentStyle={styles.content}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Volver')} onPress={onBack} hitSlop={12} style={styles.back}>
           <Ionicons name="arrow-back" size={24} color={colors.primaryStrong} />
@@ -414,7 +415,7 @@ export function TeacherPlanScreen({ token, courseId, planId: initialPlanId, onBa
           )}
         </View>
       ) : null}
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 
