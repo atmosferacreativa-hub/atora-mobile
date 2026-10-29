@@ -5,7 +5,9 @@ set -uo pipefail
 dirs=("$PWD/.e2e/debug" "$HOME/.maestro/tests")
 pngs=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | grep -Ei 'screenshot.*(❌|fail)' | head -8)
 count=$(printf '%s' "$pngs" | grep -c . || true)
-echo "::notice title=Pantallas de fallo::${count} captura(s) de fallo encontradas"
+total=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | wc -l | tr -d ' ')
+sample=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | head -3 | xargs -r -n1 basename | tr '\n' ' ')
+echo "::notice title=Pantallas de fallo::${count} de fallo · ${total} capturas en total · ejemplo: ${sample}"
 [ "$count" -gt 0 ] || exit 0
 if ! command -v tesseract >/dev/null 2>&1; then
   sudo apt-get update -qq >/dev/null 2>&1
