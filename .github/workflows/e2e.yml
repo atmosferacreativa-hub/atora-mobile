@@ -153,6 +153,11 @@ jobs:
             fi
           fi
 
+          # Períodos (1.4.0): «Mis cursos» agrupado y el historial.
+          if echo "$CHANGED" | grep -Eq '^(src/courses/|src/screens/CoursesScreen\.tsx$|src/api/history\.ts$)'; then
+            add_flows "periodos"
+          fi
+
           # Tarea.
           if echo "$CHANGED" | grep -Eq '^(src/api/assignments\.ts$|src/screens/AssignmentScreen\.tsx$|src/offline/sync/)' ; then
             add_flows "tarea"

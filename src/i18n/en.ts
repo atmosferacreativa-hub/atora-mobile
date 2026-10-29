@@ -761,4 +761,16 @@ export const en: Record<string, string> = {
   "Pre-calificación de {name}. Revísala: al publicar queda validada; también puedes devolverla.": "Pre-grade by {name}. Review it: publishing validates it; you can also send it back.",
   "Enviada al instructor: está por validar.": "Sent to the instructor: waiting for validation.",
   "{name} devolvió la pre-calificación: {comment}": "{name} sent the pre-grade back: {comment}",
+  // 1.4.0: períodos (cursos anteriores e historial).
+  "Historial académico": "Academic record",
+  "Períodos anteriores": "Previous periods",
+  "{name}, {count} cursos": "{name}, {count} courses",
+  "{count} cursos": "{count} courses",
+  "Disponible hasta {date}": "Available until {date}",
+  "{progress}% completado": "{progress}% complete",
+  "Repasar {title}": "Review {title}",
+  "Repasar": "Review",
+  "Descargar mi historial (PDF)": "Download my academic record (PDF)",
+  "No se pudo descargar el historial. Revisa tu conexión e inténtalo otra vez.": "The academic record couldn't be downloaded. Check your connection and try again.",
+  "No se pudo descargar el historial.": "The academic record couldn't be downloaded.",
 };

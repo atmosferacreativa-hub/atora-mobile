@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { fetchCourse } from '../api/courses';
+import { downloadHistory } from '../api/history';
+import { groupCourses } from '../courses/periods';
 import { fetchPrograms } from '../api/programs';
 import { MediaImage } from '../components/MediaImage';
 import { colors, spacing } from '../theme';
@@ -15,10 +18,28 @@ type Props = {
   onOpenCourse: (courseId: number) => void;
   onOpenLesson: (lessonId: number) => void;
   onOpenProgram: (programId: number) => void;
+  /** 1.4.0 (plugin 6.41.0): abre el historial académico descargado. */
+  onOpenHistory?: (title: string, localUri: string) => void;
 };
 
-export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOpenProgram, onRefresh, refreshing }: Props) {
+export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOpenProgram, onOpenHistory, onRefresh, refreshing }: Props) {
   const [continuingId, setContinuingId] = useState<number | null>(null);
+  const [openPeriods, setOpenPeriods] = useState<Record<number, boolean>>({});
+  const [history, setHistory] = useState<'idle' | 'loading' | 'error'>('idle');
+  const { active, past } = groupCourses(courses);
+  // El historial existe desde el plugin 6.41.0, el mismo que manda `period` en cada curso.
+  const historyAvailable = Boolean(onOpenHistory) && courses.some((course) => course.period !== undefined);
+
+  const openHistory = async () => {
+    if (!onOpenHistory) return;
+    setHistory('loading');
+    try {
+      onOpenHistory(t('Historial académico'), await downloadHistory(token));
+      setHistory('idle');
+    } catch {
+      setHistory('error');
+    }
+  };
   const [programs, setPrograms] = useState<ProgramSummary[]>([]);
 
   useEffect(() => {
@@ -68,8 +89,9 @@ export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOp
           ))}
         </View>
       ) : null}
-      {courses.map((course) => (
+      {active.map((course) => (
         <Pressable key={course.id} onPress={() => onOpenCourse(course.id)} style={styles.card}>
+          {course.color ? <View style={[styles.colorStrip, { backgroundColor: course.color }]} /> : null}
           <MediaImage uri={course.thumbnail_url} />
           <View style={styles.row}>
             <Text style={styles.cardTitle}>{course.title}</Text>
@@ -95,7 +117,55 @@ export function CoursesScreen({ courses, token, onOpenCourse, onOpenLesson, onOp
           </View>
         </Pressable>
       ))}
-      {!courses.length ? <Text style={styles.empty}>{t('No hay cursos activos.')}</Text> : null}
+      {!active.length ? <Text style={styles.empty}>{t('No hay cursos activos.')}</Text> : null}
+      {past.length || historyAvailable ? (
+        <View style={styles.pastWrap}>
+          {past.length ? <Text style={styles.programHeading}>{t('Períodos anteriores')}</Text> : null}
+          {past.map(({ period, courses: items }) => {
+            const open = Boolean(openPeriods[period.id]);
+            const dates = [period.starts_on, period.ends_on].filter(Boolean).join(' – ');
+            return (
+              <View key={period.id} style={styles.periodCard}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: open }}
+                  accessibilityLabel={t('{name}, {count} cursos', { name: period.name, count: items.length })}
+                  onPress={() => setOpenPeriods((current) => ({ ...current, [period.id]: !open }))}
+                  style={styles.periodHeader}
+                  testID={`period-${period.id}`}
+                >
+                  <View style={styles.periodCopy}>
+                    <Text style={styles.periodTitle}>{period.name}</Text>
+                    <Text style={styles.periodMeta}>
+                      {t('{count} cursos', { count: items.length })}{dates ? ` · ${dates}` : ''}
+                      {period.visible_until ? ` · ${t('Disponible hasta {date}', { date: period.visible_until })}` : ''}
+                    </Text>
+                  </View>
+                  <Ionicons color={colors.textMuted} name={open ? 'chevron-up' : 'chevron-down'} size={22} />
+                </Pressable>
+                {open ? items.map((course) => (
+                  <View key={course.id} style={styles.pastRow}>
+                    <View style={[styles.pastSwatch, { backgroundColor: course.color || colors.surfaceMuted }]} />
+                    <View style={styles.periodCopy}>
+                      <Text numberOfLines={2} style={styles.pastTitle}>{course.title}</Text>
+                      <Text style={styles.periodMeta}>{t('{progress}% completado', { progress: course.progress })}</Text>
+                    </View>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t('Repasar {title}', { title: course.title })} onPress={() => onOpenCourse(course.id)} style={styles.pastAction}>
+                      <Text style={styles.secondaryText}>{t('Repasar')}</Text>
+                    </Pressable>
+                  </View>
+                )) : null}
+              </View>
+            );
+          })}
+          {historyAvailable ? (
+            <Pressable accessibilityRole="button" onPress={() => void openHistory()} style={styles.secondary} testID="history-download">
+              {history === 'loading' ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.secondaryText}>{t('Descargar mi historial (PDF)')}</Text>}
+            </Pressable>
+          ) : null}
+          {history === 'error' ? <Text style={styles.error}>{t('No se pudo descargar el historial. Revisa tu conexión e inténtalo otra vez.')}</Text> : null}
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -125,4 +195,16 @@ const styles = StyleSheet.create({
   programTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },
   programText: { color: colors.muted, lineHeight: 18 },
   programCta: { color: colors.blue, fontWeight: '900', marginTop: 4 },
+  colorStrip: { borderRadius: 999, height: 4, width: 48 },
+  pastWrap: { gap: spacing.sm },
+  periodCard: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  periodHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, minHeight: 56, padding: spacing.md },
+  periodCopy: { flex: 1, gap: 2 },
+  periodTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  periodMeta: { color: colors.textMuted, fontSize: 14, fontVariant: ['tabular-nums'] },
+  pastRow: { alignItems: 'center', borderColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  pastSwatch: { borderRadius: 8, height: 40, width: 8 },
+  pastTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  pastAction: { alignItems: 'center', borderColor: colors.primary, borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.md },
+  error: { color: colors.danger, textAlign: 'center' },
 });

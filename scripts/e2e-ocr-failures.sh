@@ -3,7 +3,7 @@
 # en pantalla cuando un recorrido falló.
 set -uo pipefail
 dirs=("$PWD/.e2e/debug" "$HOME/.maestro/tests")
-pngs=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | grep -Ei 'screenshot.*(❌|fail)|step-[0-9]+-(assertCondition|assertVisible|extendedWait|tapOn)' | head -8)
+pngs=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | grep -Ei 'screenshot.*(❌|fail)|step-[0-9]+-(assertCondition|assertVisible|extendedWait)' | head -8)
 count=$(printf '%s' "$pngs" | grep -c . || true)
 total=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | wc -l | tr -d ' ')
 sample=$(find "${dirs[@]}" -type f -name '*.png' 2>/dev/null | head -3 | xargs -r -n1 basename | tr '\n' ' ')

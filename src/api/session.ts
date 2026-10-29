@@ -6,6 +6,7 @@ import { purgeLocalDb } from '../offline/db';
 import { cacheGet, cacheSet } from '../offline/localCache';
 import { purgeOutboxFiles } from '../offline/outboxFiles';
 import { purgeLocalThumbnails } from '../offline/thumbnailFiles';
+import { purgePrivateDocuments } from '../offline/privateDocs';
 import { flushPendingLogout, logoutDevice, withAcademy, type PendingDevice, type PendingRevocation } from './logoutFlow';
 import { getApiBaseUrlSync } from '../runtimeConfig';
 import { clearConversations } from '../ai/conversation';
@@ -43,7 +44,7 @@ async function clearAppCaches(): Promise<void> {
   // Base local (cachés y cola): no queda nada del usuario anterior.
   await purgeLocalDb().catch(() => undefined);
   // Archivos locales del usuario: un fallo en uno no debe impedir el resto ni el cierre de sesión.
-  for (const purge of [purgeOutboxFiles, purgeLocalThumbnails]) {
+  for (const purge of [purgeOutboxFiles, purgeLocalThumbnails, purgePrivateDocuments]) {
     try {
       purge();
     } catch {
