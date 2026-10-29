@@ -81,8 +81,11 @@ mkdir -p capturas
 
 args=()
 if [ "$flows" = "todos" ]; then
-  args+=(.maestro)
-else
+  # «todos» también pasa por la selección: con la carpeta completa, Maestro solo garantizaba los de flowsOrder.
+  # Los recorridos *-ios son del simulador de iOS (job aparte).
+  flows="$(find .maestro -maxdepth 1 -name '*.yaml' ! -name config.yaml ! -name '*-ios.yaml' -exec basename {} .yaml \; | sort | paste -sd, -)"
+fi
+{
   # Con archivos sueltos Maestro no aplica el flowsOrder de config.yaml (los corría en orden alfabético y, como los
   # recorridos del docente comparten entregas sembradas, docente-borrador-recuperado y docente-sugerencia-ia corrían
   # antes o después de lo que necesitan). Se arma una carpeta con solo los recorridos pedidos y el orden filtrado.
@@ -96,7 +99,7 @@ else
   done
   python3 scripts/e2e-select-config.py .maestro/config.yaml "$sel/config.yaml" "${names[@]}"
   args+=("$sel")
-fi
+}
 
 # API_HOST: los scripts de los recorridos (p. ej. el segundo docente del 409) llaman a la API desde el runner.
 touch .e2e/maestro-started
