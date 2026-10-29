@@ -151,6 +151,16 @@ export async function gradeSubmission(token: string, submissionId: number, reque
   }
 }
 
+/** 1.4.0: el instructor devuelve la pre-calificación al asistente con un comentario (necesita conexión). */
+export async function returnPregrade(token: string, submissionId: number, comment: string): Promise<SubmissionDetail> {
+  const data = await authenticatedRequest<{ submission: SubmissionDetail }>(`teacher/submissions/${submissionId}/pregrade/return`, {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ comment }),
+  });
+  return data.submission;
+}
+
 const FILES_DIR = `${FileSystem.cacheDirectory ?? ''}grading-files/`;
 
 /** Descarga un archivo de la entrega (enlace firmado y temporal + token del docente) para verlo. */
