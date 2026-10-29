@@ -22,8 +22,11 @@ name: periodos
 - takeScreenshot: capturas/periodos-02-abierto
 - tapOn: "Repasar.*"
 - extendedWaitUntil:
-    visible: "Repaso del período"
+    visible: "Curso Anterior E2E"
     timeout: 30000
+- scrollUntilVisible:
+    element: "Repaso del período"
+    timeout: 20000
 - takeScreenshot: capturas/periodos-03-curso
 - back
 - scrollUntilVisible:
