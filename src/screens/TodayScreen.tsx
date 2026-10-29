@@ -1,4 +1,6 @@
 import { useCallback, useState } from 'react';
+import { Avatar } from '../components/Avatar';
+import { firstName, type AvatarSource } from '../profile/avatar';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -10,6 +12,8 @@ import type { AgendaItem, InternalLink, TodayStudent } from '../types';
 import { locale, t } from '../i18n';
 
 type Props = {
+  /** 1.4.0: foto o iniciales en el saludo. */
+  person?: AvatarSource;
   token: string;
   name: string;
   newGradeCourses: number[];
@@ -38,7 +42,7 @@ function Deadline({ item, late, onOpen }: { item: AgendaItem; late?: boolean; on
 }
 
 /** Hoy del estudiante (0.6.0): bloques de /today; sin conexión, lo último sincronizado. */
-export function TodayScreen({ token, name, newGradeCourses, onOpenLesson, onOpenQuiz, onOpenLink, onOpenMessages, onOpenCourseGrades }: Props) {
+export function TodayScreen({ token, name, person, newGradeCourses, onOpenLesson, onOpenQuiz, onOpenLink, onOpenMessages, onOpenCourseGrades }: Props) {
   const pendingQuizzes = usePendingQuizzes();
   const [data, setData] = useState<TodayStudent | null>(null);
   const [syncedAt, setSyncedAt] = useState(0);
@@ -68,7 +72,10 @@ export function TodayScreen({ token, name, newGradeCourses, onOpenLesson, onOpen
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
       <Text style={styles.eyebrow}>{t('MI JORNADA')}</Text>
-      <Text style={styles.title}>{t('Hola, {name}', { name: name || t('Estudiante') })}</Text>
+      <View style={styles.greetRow}>
+        <Avatar person={person ?? { name }} size={48} testID="today-avatar" />
+        <Text style={[styles.title, styles.greetText]}>{t('Hola, {name}', { name: firstName(name) || t('Estudiante') })}</Text>
+      </View>
       {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
 
@@ -126,6 +133,8 @@ export function TodayScreen({ token, name, newGradeCourses, onOpenLesson, onOpen
 }
 
 const styles = StyleSheet.create({
+  greetRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  greetText: { flex: 1 },
   content: { gap: spacing.md, padding: spacing.lg },
   eyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   title: { color: colors.text, fontSize: 28, fontWeight: '900' },

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Avatar } from '../components/Avatar';
+import { firstName } from '../profile/avatar';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchCourse } from '../api/courses';
 import { fetchPrograms } from '../api/programs';
@@ -57,7 +59,10 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
       refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}
     >
       <Text style={styles.eyebrow}>{t('MI JORNADA')}</Text>
-      <Text style={styles.title}>{t('Hola, {name}', { name: data?.user.display_name || t('Estudiante') })}</Text>
+      <View style={styles.greetRow}>
+        {data ? <Avatar person={data.user} size={48} testID="today-avatar" /> : null}
+        <Text style={[styles.title, styles.greetText]}>{t('Hola, {name}', { name: firstName(data?.user.display_name ?? '') || t('Estudiante') })}</Text>
+      </View>
       <Text style={styles.subtitle}>{t('Continúa aprendiendo donde lo dejaste.')}</Text>
 
       {onOpenQuiz ? pendingQuizzes.map((item) => (
@@ -108,6 +113,8 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
 }
 
 const styles = StyleSheet.create({
+  greetRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  greetText: { flex: 1 },
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   content: { padding: spacing.lg, gap: spacing.md },
   eyebrow: { color: colors.accentText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },

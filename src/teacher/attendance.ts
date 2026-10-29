@@ -10,7 +10,7 @@ export const ATTENDANCE_SAVE = 'attendance.save';
 export const STATUSES = ['presente', 'tarde', 'ausente', 'justificado'] as const;
 export type AttendanceStatus = (typeof STATUSES)[number];
 
-export type RosterStudent = { id: number; name: string; status: AttendanceStatus | null; note: string; marked_at: string | null };
+export type RosterStudent = { id: number; name: string; status: AttendanceStatus | null; note: string; marked_at: string | null; avatar_url?: string; avatar_initials?: string; avatar_color?: string };
 export type AttendanceSession = { id: number; course_id: number; lesson_id: number; date: string; starts_at: string | null; title: string };
 export type AttendanceRoster = {
   session: AttendanceSession;
@@ -75,4 +75,14 @@ export function counts(students: { status: AttendanceStatus | null }[]): Record<
 
 export function attendanceDedupeKey(eventId: string): string {
   return `attendance:${eventId}`;
+}
+
+/**
+ * ¿Salió de la cola alguna marca que estaba pendiente? (se envió: ni pendiente ni fallida). La pantalla entonces
+ * recarga la lista del servidor; si no, al terminar el envío mostraba la lista anterior sin marcas.
+ */
+export function sentFromQueue(before: ReadonlySet<string>, items: { id: string; status: 'pending' | 'failed' }[]): { sent: boolean; pending: Set<string> } {
+  const pending = new Set(items.filter((item) => item.status === 'pending').map((item) => item.id));
+  const known = new Set(items.map((item) => item.id));
+  return { sent: [...before].some((id) => !known.has(id)), pending };
 }

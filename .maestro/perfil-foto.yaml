@@ -1,0 +1,28 @@
+appId: com.atmosferacreativa.atora
+name: perfil-foto
+# 1.4.0 (plugin 6.41.0): Hoy saluda con el primer nombre y la foto (o las iniciales); en Yo se ofrece agregar la foto
+# con la cámara o la galería. El selector del sistema y la cámara quedan fuera de la app: no se recorren aquí.
+---
+- runFlow: common/login-estudiante.yaml
+- extendedWaitUntil:
+    visible: "Hola, Estudiante"
+    timeout: 30000
+- assertVisible:
+    id: "today-avatar"
+- takeScreenshot: capturas/perfil-foto-01-hoy
+- tapOn: "Yo"
+- extendedWaitUntil:
+    visible:
+      id: "profile-avatar"
+    timeout: 30000
+- tapOn:
+    id: "profile-photo-change"
+- extendedWaitUntil:
+    visible: "Foto de perfil"
+    timeout: 10000
+- assertVisible: "Tomar foto"
+- assertVisible: "Elegir de la galería"
+- takeScreenshot: capturas/perfil-foto-02-opciones
+- tapOn: "Cancelar"
+- assertVisible:
+    id: "profile-avatar"

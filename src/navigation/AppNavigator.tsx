@@ -14,6 +14,7 @@ import { LessonScreen } from '../screens/LessonScreen';
 import { AssistantScreen } from '../screens/AssistantScreen';
 import { requestAccountDeletion } from '../api/account';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { ProfilePhoto } from '../components/ProfilePhoto';
 import { ProgramScreen } from '../screens/ProgramScreen';
 import { QuizScreen } from '../screens/QuizScreen';
 import { DownloadsScreen } from '../screens/DownloadsScreen';
@@ -359,6 +360,7 @@ function TodayRoot({ navigation }: LearningProps<'Root'>) {
       <TeacherTodayScreen
         token={today.token}
         name={today.dashboard?.user.display_name ?? ''}
+        person={today.dashboard?.user}
         onOpenGrading={() => navigation.getParent()?.navigate('Grading')}
         onOpenStudent={(studentId, courseId, name) => navigation.push('TeacherStudent', { studentId, courseId, name })}
         onOpenMessages={() => navigation.getParent()?.navigate('Messages')}
@@ -371,6 +373,7 @@ function TodayRoot({ navigation }: LearningProps<'Root'>) {
       <TodayScreen
         token={today.token}
         name={today.dashboard?.user.display_name ?? ''}
+        person={today.dashboard?.user}
         newGradeCourses={today.newGradeCourses}
         onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
         onOpenQuiz={(lessonId) => navigation.push('Quiz', { lessonId })}
@@ -428,11 +431,12 @@ type ProfileStackParams = {
 type ProfileProps<T extends keyof ProfileStackParams> = NativeStackScreenProps<ProfileStackParams, T>;
 
 function ProfileRoot({ navigation }: ProfileProps<'Root'>) {
-  const { token, dashboard, logout, mode, canSwitchMode, switchMode, features, newGradeCourses } = useAppSession();
+  const { token, dashboard, logout, mode, canSwitchMode, switchMode, features, newGradeCourses, refresh } = useAppSession();
   const student = mode === 'student';
   return (
     <ProfileScreen
       displayName={dashboard?.user.display_name || ''}
+      photo={dashboard ? <ProfilePhoto token={token} person={dashboard.user} onChanged={refresh} /> : undefined}
       email={dashboard?.user.email}
       onLogout={logout}
       mode={mode}

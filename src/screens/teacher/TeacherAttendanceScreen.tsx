@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Avatar } from '../../components/Avatar';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchAttendance, pendingAttendance, saveAttendance } from '../../api/teacher';
 import { subscribeOutbox } from '../../offline/outbox/runtime';
-import { buildMarks, counts, markAllPresent, withPending, type AttendancePayload, type AttendanceRoster, type AttendanceStatus, type LocalMarks } from '../../teacher/attendance';
+import { buildMarks, counts, markAllPresent, sentFromQueue, withPending, type AttendancePayload, type AttendanceRoster, type AttendanceStatus, type LocalMarks } from '../../teacher/attendance';
 import { shiftDate, todayIn } from '../../teacher/lessons';
 import { colors, radius, spacing } from '../../theme';
 import { t, tk } from '../../i18n';
@@ -33,8 +34,17 @@ export function TeacherAttendanceScreen({ token, courseId, title, onBack }: Prop
   const [pending, setPending] = useState<{ id: string; status: 'pending' | 'failed'; lastError: string; payload: AttendancePayload }[]>([]);
   const [message, setMessage] = useState('');
 
+  // Ids de marcas que estaban en la cola: si una sale (se envió), la lista se recarga del servidor. Sin esto, al
+  // terminar el envío la pantalla volvía a la lista anterior sin marcas hasta recargar a mano.
+  const queued = useRef<Set<string>>(new Set());
+  const reload = useRef<() => void>(() => undefined);
   const loadPending = useCallback(() => {
-    void pendingAttendance(courseId).then(setPending).catch(() => undefined);
+    void pendingAttendance(courseId).then((items) => {
+      const { sent, pending: now } = sentFromQueue(queued.current, items);
+      queued.current = now;
+      setPending(items);
+      if (sent) reload.current();
+    }).catch(() => undefined);
   }, [courseId]);
 
   const load = useCallback(async () => {
@@ -57,6 +67,7 @@ export function TeacherAttendanceScreen({ token, courseId, title, onBack }: Prop
     }
   }, [token, courseId, date, lessonId]);
 
+  useEffect(() => { reload.current = () => void load(); }, [load]);
   useEffect(() => { setLocal({}); setMessage(''); void load(); }, [load]);
   useEffect(() => { loadPending(); return subscribeOutbox(loadPending); }, [loadPending]);
 
@@ -142,7 +153,10 @@ export function TeacherAttendanceScreen({ token, courseId, title, onBack }: Prop
           {!view.length ? <Text style={styles.sync}>{t('Este curso no tiene estudiantes matriculados.')}</Text> : null}
           {view.map((student) => (
             <View key={student.id} style={styles.row}>
-              <Text style={styles.name}>{student.name}</Text>
+              <View style={styles.who}>
+                <Avatar person={student} size={36} />
+                <Text style={styles.name}>{student.name}</Text>
+              </View>
               <View style={styles.buttons}>
                 {ORDER.map((status) => {
                   const on = student.status === status;
@@ -187,6 +201,7 @@ export function TeacherAttendanceScreen({ token, courseId, title, onBack }: Prop
 }
 
 const styles = StyleSheet.create({
+  who: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   content: { gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   back: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Avatar } from '../../components/Avatar';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchCourseStudents } from '../../api/teacher';
@@ -78,6 +79,7 @@ export function TeacherStudentsScreen({ token, courseId, title, onBack, onOpenSt
         ListEmptyComponent={loading ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.empty}>{query ? t('Sin estudiantes con ese nombre.') : t('Sin estudiantes.')}</Text>}
         renderItem={({ item }) => (
           <Pressable accessibilityRole="button" onPress={() => onOpenStudent(item)} style={styles.row}>
+            <Avatar person={item} />
             <View style={styles.rowText}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.meta}>

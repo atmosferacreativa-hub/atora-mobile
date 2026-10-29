@@ -3,6 +3,9 @@ export type UserProfile = {
   display_name: string;
   email: string;
   avatar_url: string;
+  /** 6.41.0+: sin foto, la app dibuja estas iniciales con este color. */
+  avatar_initials?: string;
+  avatar_color?: string;
   roles: string[];
 };
 

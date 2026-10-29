@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { Avatar } from '../../components/Avatar';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -71,6 +72,7 @@ export function GradingQueueScreen({ token, onOpen, onCount }: Props) {
         ListEmptyComponent={loading ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.note}>{t('Nada en esta lista.')}</Text>}
         renderItem={({ item }) => (
           <Pressable accessibilityRole="button" disabled={!onOpen} onPress={() => onOpen?.(item)} style={styles.row}>
+            <Avatar person={item.student} />
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>{item.student.name}{item.group ? ` · ${t('Grupal')}` : ''}</Text>
               <Text style={styles.rowMeta}>{item.lesson.title} · {item.course.title}</Text>

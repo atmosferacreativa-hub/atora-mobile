@@ -3,7 +3,8 @@ import type { AgendaItem, LiveInfo } from '../types';
 
 export type RiskLevel = 'bajo' | 'medio' | 'alto';
 export type Risk = { level: RiskLevel; label: string; reasons: string[] };
-export type Person = { id: number; name: string };
+/** 6.41.0+: con foto de perfil o iniciales y color. */
+export type Person = { id: number; name: string; avatar_url?: string; avatar_initials?: string; avatar_color?: string };
 export type Named = { id: number; title: string };
 
 export type QueueStatus = 'pending' | 'draft' | 'graded' | 'late';

@@ -1,4 +1,6 @@
 import { useCallback, useState } from 'react';
+import { Avatar } from '../../components/Avatar';
+import { firstName, type AvatarSource } from '../../profile/avatar';
 import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +11,8 @@ import type { TeacherToday } from '../../teacher/types';
 import { locale, t } from '../../i18n';
 
 type Props = {
+  /** 1.4.0: foto o iniciales en el saludo. */
+  person?: AvatarSource;
   token: string;
   name: string;
   onOpenGrading: () => void;
@@ -18,7 +22,7 @@ type Props = {
 };
 
 /** Hoy del docente (0.7.0): por calificar, estudiantes en riesgo, clases y fechas del día, mensajes. */
-export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, onOpenMessages, onOpenLesson }: Props) {
+export function TeacherTodayScreen({ token, name, person, onOpenGrading, onOpenStudent, onOpenMessages, onOpenLesson }: Props) {
   const [data, setData] = useState<TeacherToday | null>(null);
   const [syncedAt, setSyncedAt] = useState(0);
   const [fromCache, setFromCache] = useState(false);
@@ -45,7 +49,10 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
   return (
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
       <Text style={styles.eyebrow}>{t('MI DÍA DOCENTE')}</Text>
-      <Text style={styles.title}>{t('Hola, {name}', { name: name || t('Docente') })}</Text>
+      <View style={styles.greetRow}>
+        <Avatar person={person ?? { name }} size={48} testID="today-avatar" />
+        <Text style={[styles.title, styles.greetText]}>{t('Hola, {name}', { name: firstName(name) || t('Docente') })}</Text>
+      </View>
       {fromCache && syncedAt ? <Text style={styles.sync}>{t('Sin conexión · actualizado el {date}', { date: new Date(syncedAt).toLocaleString(locale()) })}</Text> : null}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {!data && !error ? <ActivityIndicator color={colors.primary} /> : null}
@@ -129,6 +136,8 @@ export function TeacherTodayScreen({ token, name, onOpenGrading, onOpenStudent, 
 }
 
 const styles = StyleSheet.create({
+  greetRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  greetText: { flex: 1 },
   join: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.primary, borderRadius: radius.sm, justifyContent: 'center', marginTop: 6, minHeight: 44, paddingHorizontal: spacing.md },
   joinText: { color: colors.white, fontWeight: '800' },
   content: { gap: spacing.md, padding: spacing.lg },
