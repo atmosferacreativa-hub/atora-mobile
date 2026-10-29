@@ -45,6 +45,9 @@ name: docente-planificacion
     visible: "Planificación guardada."
     timeout: 30000
 # Sale y la retoma: queda en la lista como borrador.
+- scrollUntilVisible:
+    element: "Volver"
+    direction: UP
 - tapOn: "Volver"
 - extendedWaitUntil:
     visible: "Semana E2E"
@@ -61,6 +64,9 @@ name: docente-planificacion
 - inputText: "Comprender fracciones"
 - assertVisible:
     id: "plan-objective"
+- scrollUntilVisible:
+    element: "Volver"
+    direction: UP
 - tapOn: "Volver"
 - extendedWaitUntil:
     visible: "Semana E2E"
