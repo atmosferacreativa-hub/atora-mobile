@@ -112,3 +112,14 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 65. [ ] **Audio en el navegador del teléfono**: la misma lección en Chrome (Android) y Safari (iPhone): reproductor, velocidad, posición recordada y transcripción.
 66. [ ] **Clase en vivo (Zoom/Meet/Teams)**: en una lección con clase programada, la hora aparece en la zona del teléfono y la cuenta regresiva baja; «Unirse a la clase» aparece 10 min antes sin salir y volver a entrar, y abre la app del proveedor (o el navegador si no está instalada).
 67. [ ] **Grabación de la clase**: después de la clase, «Ver la grabación» abre el enlace o el video; si el docente eligió «sin grabación», se dice que no se grabó.
+
+## 1.3.0 — App del docente
+
+68. [ ] **Curso del docente**: abrir un curso, ver lecciones ocultas marcadas «Oculta»; abrir una en vista de estudiante (banner, sin «Marcar como completada»); ocultarla y comprobar con la cuenta de estudiante que ya no la ve; volver a publicarla.
+69. [ ] **Fecha de entrega**: mover la entrega de una tarea con «+7» y otra hora, con «Avisar al curso»: el estudiante ve la fecha nueva y recibe el aviso; sin el interruptor, no llega aviso.
+70. [ ] **Asistencia en el aula sin señal**: modo avión, «Tomar asistencia», «Todos presentes», marcar una ausencia y una llegada tarde con nota, guardar: queda «Pendiente»; al volver la red se envía y se ve igual en la web (ATORA → Asistencia).
+71. [ ] **Dos teléfonos**: dos docentes del curso toman la misma lista; queda la marca más reciente de cada estudiante. Tres ausencias seguidas aparecen en el seguimiento.
+72. [ ] **Clase en vivo del docente**: en Hoy, «Iniciar la clase (anfitrión)» abre la app del proveedor; después, publicar el enlace de la grabación y verlo como estudiante; «Ver quién entró» muestra la asistencia del proveedor (con cuenta real).
+73. [ ] **Planificación desde el teléfono**: crear una semana, subir un audio grabado en el teléfono (cortar la red a mitad: queda «falló», reintentar no lo duplica), cerrar la app sin guardar y volver (se recupera), guardar, vista previa y publicar; el estudiante ve las lecciones y puede descargarlas para usarlas sin conexión.
+74. [ ] **Asistente con delegación**: prepara una planificación pero no puede publicarla; no ve «Gestionar» en las lecciones; sí toma asistencia.
+

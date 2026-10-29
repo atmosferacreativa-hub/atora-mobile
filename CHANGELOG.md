@@ -1,5 +1,16 @@
 # Changelog — ATORA Mobile
 
+## 1.3.0 (2026-10-29)
+
+App del docente. Requiere **ATORA LMS 6.40.0** (6.40.1 para ver en Hoy una clase en vivo que sigue en curso después de medianoche); con versiones anteriores las pantallas nuevas del docente responden «No encontrado».
+
+- **Curso del docente**: lecciones (también ocultas) con tipo, vencimiento en la hora de la academia, entregas por calificar, encuentro presencial y clase en vivo. Abrir una lección en vista de estudiante (no cuenta avance). Publicar u ocultar y cambiar la fecha y hora de entrega con aviso opcional al curso. El asistente ve, pero no gestiona.
+- **Asistencia presencial**: fecha, lección presencial, «Todos presentes», presente/tarde/ausente/justificado con nota. Sin conexión las marcas quedan en la cola con su hora y salen al volver; el servidor se queda con la más reciente. Resumen en la ficha del estudiante.
+- **Clase en vivo**: en Hoy, la clase abre la lección y muestra «Unirse» o «Iniciar (anfitrión)» con la ventana abierta; en el curso, publicar o quitar la grabación y ver quién entró según el proveedor. Integración con proveedores externos, no transmisión propia.
+- **Planificación híbrida**: seis pasos, borrador en el teléfono a cada cambio (se recupera al volver), guardar con revisión y elección de versión ante un conflicto, vista previa y publicar (el asistente prepara y no publica). Subir audio (MP3/M4A/OGG), PDF o imagen del teléfono con estados pendiente/falló y reintento sin duplicar; transcripción del audio.
+- **Pruebas**: Jest (`lessons`, `attendance`, `plans`); recorridos `docente-contenido`, `docente-asistencia`, `docente-clase-en-vivo` y `docente-planificacion` contra WordPress temporal del CI. La subida desde el selector de archivos del sistema no se recorre en pantalla. iOS **no ejecutado**. Validación en teléfono: filas 68–74 de `docs/PRUEBA-TELEFONO.md`, pendiente.
+- CI: diagnóstico del servidor y texto de las capturas de fallo como anotaciones.
+
 ## 1.2.0 (2026-10-27)
 
 Audio y clases en vivo. Requiere **ATORA LMS 6.39.0** (audio desde 6.37.0, clase en vivo desde 6.39.0); con versiones anteriores las lecciones no traen esos datos y la app no los muestra.
