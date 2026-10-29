@@ -498,6 +498,22 @@ jobs:
 
           cat /tmp/atora-e2e-summary.txt >> "$GITHUB_STEP_SUMMARY"
 
+      # Un recorrido pedido que no aparece en el informe no corrió: el job no puede quedar verde por omisión.
+      - name: Todos los recorridos pedidos corrieron
+        if: always() && steps.flows.outputs.list != '' && steps.flows.outputs.list != 'todos' && hashFiles('maestro-report.xml') != ''
+        run: |
+          python3 - "${{ steps.flows.outputs.list }}" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          wanted = [n for n in sys.argv[1].split(',') if n]
+          root = ET.parse('maestro-report.xml').getroot()
+          ran = {c.attrib.get('name', '') for c in root.iter('testcase')}
+          missing = [n for n in wanted if n not in ran]
+          if missing:
+              print(f"::error title=E2E::no corrieron: {', '.join(missing)}")
+              sys.exit(1)
+          print(f"Corrieron los {len(wanted)} recorridos pedidos.")
+          PY
+
       - name: Capturas y registros
         if: always()
         uses: actions/upload-artifact@v4

@@ -24,3 +24,11 @@ test('no deja en flowsOrder recorridos que no se pidieron (Maestro fallaría al 
   expect(order(['leccion'])).toEqual(['leccion']);
 });
 
+test('los recorridos pedidos que no están en flowsOrder se agregan al final (Maestro se saltaba algunos)', () => {
+  expect(order(['docente-asistencia', 'docente-calificar', 'docente-precalificacion', 'login'])).toEqual([
+    'login',
+    'docente-calificar',
+    'docente-asistencia',
+    'docente-precalificacion',
+  ]);
+});
