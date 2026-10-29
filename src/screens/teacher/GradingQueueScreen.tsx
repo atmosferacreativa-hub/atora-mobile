@@ -18,6 +18,7 @@ type Props = {
 const FILTERS: { key: string; label: string }[] = [
   { key: 'pending', label: tk('Por calificar') },
   { key: 'draft', label: tk('En borrador') },
+  { key: 'to_validate', label: tk('Por validar') },
   { key: 'late', label: tk('Tardías') },
   { key: 'graded', label: tk('Calificadas') },
 ];
@@ -75,6 +76,7 @@ export function GradingQueueScreen({ token, onOpen, onCount }: Props) {
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>{item.student.name}{item.group ? ` · ${t('Grupal')}` : ''}</Text>
               <Text style={styles.rowMeta}>{item.lesson.title} · {item.course.title}</Text>
+              {item.pregrade?.pending ? <Text style={styles.rowMeta}>{t('Pre-calificación de {name}', { name: item.pregrade.by?.name ?? '' })}</Text> : null}
               <Text style={[styles.rowMeta, item.is_late && styles.late]}>
                 {item.submitted_at ? new Date(item.submitted_at).toLocaleString(locale()) : ''}{item.is_late ? ` · ${t('Tardía')}` : ''}
               </Text>

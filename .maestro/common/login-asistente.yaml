@@ -1,0 +1,31 @@
+appId: com.atmosferacreativa.atora
+---
+# Los recorridos deben ser independientes del orden: forzar red habilitada al inicio.
+- setAirplaneMode: disabled
+# El emulador del CI a veces tarda en cargar la app tras borrar sus datos: se reintenta el arranque.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: "Ingresar a tu academia"
+          timeout: 60000
+- extendedWaitUntil:
+    visible: "NET:WIFI"
+    timeout: 60000
+- tapOn:
+    id: "login-user"
+- inputText: "asistente_e2e"
+# 1.0.1: el campo con el foco se ve encima del teclado; "Siguiente" pasa a la contraseña.
+- assertVisible:
+    id: "login-user"
+- pressKey: Enter
+- inputText: "atora-e2e-2026"
+- assertVisible:
+    id: "login-password"
+# "Listo" inicia sesión.
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Calificar"
+    timeout: 60000

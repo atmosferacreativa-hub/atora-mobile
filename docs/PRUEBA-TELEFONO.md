@@ -121,5 +121,5 @@ Cuentas: un **estudiante** y un **docente** del demo (el docente asignado a la s
 71. [ ] **Dos teléfonos**: dos docentes del curso toman la misma lista; queda la marca más reciente de cada estudiante. Tres ausencias seguidas aparecen en el seguimiento.
 72. [ ] **Clase en vivo del docente**: en Hoy, «Iniciar la clase (anfitrión)» abre la app del proveedor; después, publicar el enlace de la grabación y verlo como estudiante; «Ver quién entró» muestra la asistencia del proveedor (con cuenta real).
 73. [ ] **Planificación desde el teléfono**: crear una semana, subir un audio grabado en el teléfono (cortar la red a mitad: queda «falló», reintentar no lo duplica), cerrar la app sin guardar y volver (se recupera), guardar, vista previa y publicar; el estudiante ve las lecciones y puede descargarlas para usarlas sin conexión.
-74. [ ] **Asistente con delegación**: prepara una planificación pero no puede publicarla; no ve «Gestionar» en las lecciones; sí toma asistencia.
+74. [ ] **Asistente con delegación** (desde plugin 6.41.0 tiene los mismos privilegios que el instructor): gestiona las lecciones, publica la planificación y toma asistencia; sin delegación no ve el curso. (Con plugin 6.40.x: prepara pero no publica.)
 

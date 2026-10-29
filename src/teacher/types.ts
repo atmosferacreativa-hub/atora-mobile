@@ -18,6 +18,17 @@ export type QueueItem = {
   is_late: boolean;
   group: boolean;
   submitted_at: string | null;
+  /** 6.41.0+: pre-calificación del instructor asistente. */
+  pregrade?: Pregrade | null;
+};
+
+/** 6.41.0+: pre-calificación del instructor asistente (pendiente de validar o devuelta por el instructor). */
+export type Pregrade = {
+  pending: boolean;
+  by: Person | null;
+  at: string | null;
+  action: string | null;
+  returned: { by: string; at: string; comment: string } | null;
 };
 
 export type TeacherToday = {
@@ -102,6 +113,9 @@ export type SubmissionDetail = {
   moderated: boolean;
   /** 6.32.0+: se puede pedir sugerencia de IA (función activa y tarea abierta). */
   ai_suggestion_available?: boolean;
+  /** 6.41.0+: pre-calificación y si quien mira publica (el instructor asistente solo pre-califica). */
+  pregrade?: Pregrade | null;
+  can_publish?: boolean;
 };
 
 export type GradeRequest = {

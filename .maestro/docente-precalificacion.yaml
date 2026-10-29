@@ -1,0 +1,71 @@
+appId: com.atmosferacreativa.atora
+name: docente-precalificacion
+# 1.4.0 (plugin 6.41.0): el instructor asistente califica y lo envía al instructor (pre-calificación: el estudiante
+# no la ve); el instructor la encuentra en «Por validar», ve de quién es y la publica.
+# Usa el curso «Pre-calificación E2E» de la semilla (no toca las colas de «Curso E2E»).
+---
+- runFlow: common/login-asistente.yaml
+- tapOn: "Calificar"
+- extendedWaitUntil:
+    visible: "Estudiante Tres E2E"
+    timeout: 30000
+- tapOn: "Estudiante Tres E2E"
+- extendedWaitUntil:
+    visible:
+      id: "general-feedback"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "final-grade"
+    centerElement: true
+- tapOn:
+    id: "final-grade"
+- inputText: "85"
+- assertVisible:
+    id: "final-grade"
+- scrollUntilVisible:
+    element:
+      id: "grading-publish"
+    centerElement: true
+- assertVisible: "Enviar al instructor"
+- tapOn:
+    id: "grading-publish"
+- extendedWaitUntil:
+    visible: "¿Enviar al instructor\\?"
+    timeout: 10000
+- tapOn: "Enviar al instructor"
+- extendedWaitUntil:
+    visible: "Enviada al instructor: el estudiante todavía no la ve"
+    timeout: 30000
+- takeScreenshot: capturas/docente-precalificacion-01-asistente
+# El instructor la valida.
+- runFlow: common/login-docente.yaml
+- tapOn: "Calificar"
+- extendedWaitUntil:
+    visible: "Por validar"
+    timeout: 30000
+- tapOn: "Por validar"
+- extendedWaitUntil:
+    visible: "Pre-calificación de Asistente E2E"
+    timeout: 30000
+- tapOn: "Estudiante Tres E2E"
+- extendedWaitUntil:
+    visible:
+      id: "pregrade-banner"
+    timeout: 30000
+- assertVisible: "Pre-calificación de Asistente E2E\\..*"
+- takeScreenshot: capturas/docente-precalificacion-02-por-validar
+- scrollUntilVisible:
+    element:
+      id: "grading-publish"
+    centerElement: true
+- tapOn:
+    id: "grading-publish"
+- extendedWaitUntil:
+    visible: "¿Publicar la calificación\\?"
+    timeout: 10000
+- tapOn: "Publicar"
+- extendedWaitUntil:
+    visible: "Calificación publicada"
+    timeout: 30000
+- takeScreenshot: capturas/docente-precalificacion-03-validada
