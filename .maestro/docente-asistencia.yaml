@@ -31,14 +31,16 @@ name: docente-asistencia
 - scrollUntilVisible:
     element: "Asistencia guardada en el teléfono.*"
     timeout: 15000
-# Sale por la cola y vuelve del servidor al recargar.
+# Sale por la cola y, al enviarse, la lista se recarga sola del servidor (sin recargar a mano: antes volvía a la
+# lista sin marcas hasta deslizar).
 - extendedWaitUntil:
     notVisible: "Pendiente · se enviará al tener conexión"
     timeout: 30000
-- swipe:
-    direction: DOWN
-- extendedWaitUntil:
-    visible: "Sin cambios"
+- scrollUntilVisible:
+    element: "Sin cambios"
     timeout: 30000
-- assertVisible: "Presentes 1 · Tarde 0 · Ausentes 1 · Justificados 0 · Sin marcar 0"
+- scrollUntilVisible:
+    element: "Presentes 1 · Tarde 0 · Ausentes 1 · Justificados 0 · Sin marcar 0"
+    direction: UP
+    timeout: 30000
 - takeScreenshot: capturas/docente-asistencia-02-guardada

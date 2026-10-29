@@ -1,4 +1,4 @@
-import { buildMarks, counts, markAllPresent, withPending, type AttendanceRoster, type RosterStudent } from '../attendance';
+import { buildMarks, counts, markAllPresent, sentFromQueue, withPending, type AttendanceRoster, type RosterStudent } from '../attendance';
 
 const students: RosterStudent[] = [
   { id: 1, name: 'Ana', status: null, note: '', marked_at: null },
@@ -36,5 +36,21 @@ describe('asistencia', () => {
     ]);
     expect(view.map((s) => s.status)).toEqual(['tarde', 'ausente', null]);
     expect(counts(view)).toEqual({ presente: 0, tarde: 1, ausente: 1, justificado: 0, sin_marcar: 1 });
+  });
+});
+
+describe('sentFromQueue', () => {
+  test('una marca pendiente que salió de la cola (enviada) pide recargar la lista', () => {
+    const first = sentFromQueue(new Set(), [{ id: 'a', status: 'pending' }]);
+    expect(first.sent).toBe(false);
+    expect(sentFromQueue(first.pending, []).sent).toBe(true);
+  });
+
+  test('si quedó fallida no se recarga (sigue en pantalla con su motivo)', () => {
+    expect(sentFromQueue(new Set(['a']), [{ id: 'a', status: 'failed' }]).sent).toBe(false);
+  });
+
+  test('sin cambios en la cola no se recarga', () => {
+    expect(sentFromQueue(new Set(['a']), [{ id: 'a', status: 'pending' }, { id: 'b', status: 'pending' }]).sent).toBe(false);
   });
 });
