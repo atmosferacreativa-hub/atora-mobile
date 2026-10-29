@@ -267,7 +267,7 @@ export function TeacherPlanScreen({ token, courseId, planId: initialPlanId, onBa
         </Text>
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.steps}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.steps}>
         {PLAN_STEPS.map((key, index) => (
           <Pressable
             key={key}
