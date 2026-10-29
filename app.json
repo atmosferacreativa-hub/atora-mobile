@@ -2,7 +2,7 @@
   "expo": {
     "name": "ATORA",
     "slug": "atora-mobile",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "updates": {
       "url": "https://u.expo.dev/a3b6c6d0-c58c-4508-ac3b-25c6ea11dd62"
     },
@@ -49,7 +49,7 @@
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true
       },
-      "buildNumber": "6"
+      "buildNumber": "7"
     },
     "android": {
       "package": "com.atmosferacreativa.atora",
@@ -64,7 +64,7 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.FOREGROUND_SERVICE_MICROPHONE"
       ],
-      "versionCode": 18
+      "versionCode": 19
     },
     "web": {
       "bundler": "metro",
