@@ -20,7 +20,7 @@ Audio y clases en vivo. Requiere **ATORA LMS 6.39.0** (audio desde 6.37.0, clase
 - **Pruebas**: Jest (`audioMeta`, `liveClass`); recorridos `audio` y `clase-en-vivo` contra WordPress temporal del CI. iOS **no ejecutado** en CI. Validación en teléfono: filas 62–67 de `docs/PRUEBA-TELEFONO.md`, pendiente.
 - Dependencias: `expo-audio ~1.1.1` con `expo-asset ~12.0` fijado (evita el módulo nativo duplicado).
 
-## 1.1.0 (2026-10-27)
+## 1.1.0 (2026-10-27, no publicada: versión de desarrollo, incluida en 1.2.0 — ver `docs/VERSIONES.md`)
 
 SCORM en la app (Orden B). Requiere **ATORA LMS 6.35.0** (rutas `atora-mobile/v1/scorm/*`); con versiones anteriores las lecciones no traen recursos SCORM.
 
