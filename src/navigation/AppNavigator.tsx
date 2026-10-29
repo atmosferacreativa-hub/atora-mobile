@@ -416,6 +416,7 @@ function CoursesRoot({ navigation }: LearningProps<'Root'>) {
       onOpenCourse={(courseId) => navigation.push('Course', { courseId })}
       onOpenLesson={(lessonId) => navigation.push('Lesson', { lessonId })}
       onOpenProgram={(programId) => navigation.push('Program', { programId })}
+      onOpenHistory={(title, localUri) => navigation.push('Resource', { title, localUri, kind: 'pdf', mime: 'application/pdf' })}
     />
   );
 }

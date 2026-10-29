@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { fetchCourse } from '../api/courses';
 import { fetchPrograms } from '../api/programs';
 import { MediaImage } from '../components/MediaImage';
+import { isPastCourse } from '../courses/periods';
 import { colors, spacing } from '../theme';
 import { PendingQuizNotice } from '../components/PendingQuizNotice';
 import { usePendingQuizzes } from '../hooks/usePendingQuizzes';
@@ -92,9 +93,10 @@ export function HomeScreen({ data, loading, onRefresh, token, onOpenCourse, onOp
       ) : null}
 
       <Text style={styles.heading}>{t('Cursos en progreso')}</Text>
-      {!data?.courses.length ? (
+      {/* 1.4.0: los cursos de períodos cerrados están en «Mis cursos», en «Períodos anteriores». */}
+      {!data?.courses.filter((course) => !isPastCourse(course)).length ? (
         <Text style={styles.empty}>{t('Todavía no tienes cursos activos.')}</Text>
-      ) : data.courses.map((course) => (
+      ) : data.courses.filter((course) => !isPastCourse(course)).map((course) => (
         <Pressable key={course.id} onPress={() => void continueCourse(course.id)} style={styles.card}>
           <MediaImage uri={course.thumbnail_url} />
           <Text style={styles.cardTitle}>{course.title}</Text>

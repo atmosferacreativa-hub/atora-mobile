@@ -1,0 +1,39 @@
+appId: com.atmosferacreativa.atora
+name: periodos
+# 1.4.0 (plugin 6.41.0): los cursos de un período cerrado quedan en «Mis cursos» bajo «Períodos anteriores»,
+# colapsados por período; se abren para repasar. El historial académico se descarga en PDF y se abre en el visor.
+# Semilla: «Curso Anterior E2E» en «Período 2025-2 E2E» (cerrado, visible).
+---
+- runFlow: common/login-estudiante.yaml
+- tapOn: "Cursos"
+- extendedWaitUntil:
+    visible: "Curso E2E"
+    timeout: 30000
+# Colapsado: el curso anterior no se ve hasta abrir su período.
+- assertNotVisible: "Curso Anterior E2E"
+# El encabezado lleva como etiqueta «{período}, {n} cursos».
+- scrollUntilVisible:
+    element: "Período 2025-2 E2E.*"
+- takeScreenshot: capturas/periodos-01-colapsado
+- tapOn: "Período 2025-2 E2E.*"
+- extendedWaitUntil:
+    visible: "Curso Anterior E2E"
+    timeout: 10000
+- takeScreenshot: capturas/periodos-02-abierto
+- tapOn: "Repasar.*"
+- extendedWaitUntil:
+    visible: "Repaso del período"
+    timeout: 30000
+- takeScreenshot: capturas/periodos-03-curso
+- back
+- scrollUntilVisible:
+    element:
+      id: "history-download"
+- tapOn:
+    id: "history-download"
+- extendedWaitUntil:
+    visible:
+      id: "resource-ready"
+    timeout: 60000
+- assertNotVisible: "No se pudo abrir el archivo aquí."
+- takeScreenshot: capturas/periodos-04-historial

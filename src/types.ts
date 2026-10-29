@@ -31,6 +31,18 @@ export type CourseSummary = {
   is_complete: boolean;
   grade: number | null;
   last_activity: string;
+  /** Plugin 6.41.0: período académico del curso (null si no tiene) y color del curso. */
+  period?: CoursePeriod | null;
+  color?: string | null;
+};
+
+export type CoursePeriod = {
+  id: number;
+  name: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  status: 'open' | 'closed';
+  visible_until: string | null;
 };
 
 export type ProgramSummary = {
