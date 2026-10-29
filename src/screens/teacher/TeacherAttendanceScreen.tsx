@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Avatar } from '../../components/Avatar';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchAttendance, pendingAttendance, saveAttendance } from '../../api/teacher';
@@ -142,7 +143,10 @@ export function TeacherAttendanceScreen({ token, courseId, title, onBack }: Prop
           {!view.length ? <Text style={styles.sync}>{t('Este curso no tiene estudiantes matriculados.')}</Text> : null}
           {view.map((student) => (
             <View key={student.id} style={styles.row}>
-              <Text style={styles.name}>{student.name}</Text>
+              <View style={styles.who}>
+                <Avatar person={student} size={36} />
+                <Text style={styles.name}>{student.name}</Text>
+              </View>
               <View style={styles.buttons}>
                 {ORDER.map((status) => {
                   const on = student.status === status;
@@ -187,6 +191,7 @@ export function TeacherAttendanceScreen({ token, courseId, title, onBack }: Prop
 }
 
 const styles = StyleSheet.create({
+  who: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   content: { gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   header: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   back: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },

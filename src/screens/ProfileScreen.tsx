@@ -35,6 +35,8 @@ import type { DeletionRequest } from '../api/account';
 
 type Props = {
   displayName: string;
+  /** 1.4.0: foto de perfil (cámara o galería). */
+  photo?: React.ReactNode;
   email?: string;
   onLogout: () => void;
   mode?: AppMode;
@@ -66,7 +68,7 @@ const EVENT_LABELS: Record<string, string> = {
   playback_position: tk('Posición del video'),
 };
 
-export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode, onOpenDownloads, onOpenEvolution, newGrades = 0, onOpenCertificates, notificationSettings, onDeleteAccount }: Props) {
+export function ProfileScreen({ displayName, photo, email, onLogout, mode, onSwitchMode, onOpenDownloads, onOpenEvolution, newGrades = 0, onOpenCertificates, notificationSettings, onDeleteAccount }: Props) {
   const [language, setLanguagePref] = useState<LanguagePreference>('system');
   const [deleting, setDeleting] = useState(false);
   useEffect(() => { void loadLanguagePreference().then(setLanguagePref); }, []);
@@ -168,6 +170,7 @@ export function ProfileScreen({ displayName, email, onLogout, mode, onSwitchMode
   return (
     <View style={styles.root}>
     <ScrollView contentContainerStyle={styles.content}>
+      {photo}
       <Text style={styles.title}>{displayName || t('Perfil')}</Text>
       {email ? <Text style={styles.email}>{email}</Text> : null}
 

@@ -38,6 +38,14 @@
           "url": "https://sentry.io/"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ATORA usa tus fotos solo cuando eliges una para tu foto de perfil.",
+          "cameraPermission": "ATORA usa la cámara solo cuando tomas tu foto de perfil.",
+          "microphonePermission": false
+        }
+      ],
       "./plugins/withAndroidLocalhostCleartext"
     ],
     "ios": {

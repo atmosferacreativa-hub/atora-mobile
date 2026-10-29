@@ -10,7 +10,7 @@ export const ATTENDANCE_SAVE = 'attendance.save';
 export const STATUSES = ['presente', 'tarde', 'ausente', 'justificado'] as const;
 export type AttendanceStatus = (typeof STATUSES)[number];
 
-export type RosterStudent = { id: number; name: string; status: AttendanceStatus | null; note: string; marked_at: string | null };
+export type RosterStudent = { id: number; name: string; status: AttendanceStatus | null; note: string; marked_at: string | null; avatar_url?: string; avatar_initials?: string; avatar_color?: string };
 export type AttendanceSession = { id: number; course_id: number; lesson_id: number; date: string; starts_at: string | null; title: string };
 export type AttendanceRoster = {
   session: AttendanceSession;
