@@ -4,7 +4,9 @@ Aplicación móvil oficial de ATORA LMS para Android e iOS.
 
 ## Estado
 
-Versión **1.0.3**. Requiere **ATORA LMS 6.33.0** o superior para el certificado en PDF y la eliminación de cuenta. Requiere **ATORA LMS 6.32.0** o superior para la IA (asistente de la lección para el estudiante y sugerencia de calificación para el docente; solo si la academia las activó y tiene proveedor configurado, si no, no aparecen). Requiere **ATORA LMS 6.31.1** o superior para el modo docente (Hoy, cursos y estudiantes con riesgo, ficha, aviso al grupo y calificar con rúbrica); con versiones anteriores el docente ve lo de antes. Requiere **ATORA LMS 6.30.0** o superior para Mensajes, Agenda, Hoy del estudiante y avisos al teléfono (con versiones anteriores esas pestañas muestran "Próximamente" y Hoy usa el panel anterior). Notas: `null` = sin calificaciones, `0` = cero (6.29.5). Desde 6.29.1 (Mobile API v1) para notas, evolución, aviso de nota nueva y certificados (con 6.28.x se ocultan); el nivel alcanzado por criterio de la rúbrica llega desde 6.29.2 (con las bandas de SpeedGrader desde 6.29.3); sincronización incremental, material descargable, posición de video y varios videos por lección desde 6.28.2 (con 6.28.0 se muestra un solo video); con 6.27.x se ocultan esas funciones y siguen las entregas y miniaturas (6.27.1). pdf.js se empaqueta en `postinstall` (`scripts/vendor-pdfjs.js`). Pruebas de pantalla: recorridos Maestro en `.maestro/`, corridos en CI por `.github/workflows/e2e.yml` contra un WordPress temporal (plugin 6.30.2 o superior, `wp atora seed-e2e`); la lista para el teléfono está en `docs/PRUEBA-TELEFONO.md`. El desarrollo se mantiene separado:
+Última versión publicada: **1.3.0** (app del docente). Requiere **ATORA LMS 6.40.0** (6.40.1 para ver en Hoy una clase en vivo que sigue después de medianoche). En desarrollo: **1.4.0** (pre-calificación del Instructor asistente y foto de perfil propia), que requiere **ATORA LMS 6.41.0** y no se publica como compatible con 6.40.x. Matriz completa Plugin–Tema–App: [Atora-LMS-6/docs/COMPATIBILIDAD.md](https://github.com/atmosferacreativa-hub/Atora-LMS-6/blob/main/docs/COMPATIBILIDAD.md); requisitos por versión en [CHANGELOG.md](CHANGELOG.md).
+
+Pruebas de pantalla: recorridos Maestro en `.maestro/`, corridos en CI por `.github/workflows/e2e.yml` contra un WordPress temporal (`wp atora seed-e2e`). El selector de archivos y la cámara del sistema no se recorren en pantalla; iOS no se ha ejecutado en CI. Las pruebas en teléfono real están en curso y sus resultados se registran en `docs/PRUEBA-TELEFONO.md`. pdf.js se empaqueta en `postinstall` (`scripts/vendor-pdfjs.js`). El desarrollo se mantiene separado:
 
 - `Atora-LMS-6`: backend académico y API REST.
 - `atora-mobile`: cliente móvil, navegación y experiencia de usuario.
@@ -75,6 +77,10 @@ npx expo start --tunnel --clear
 - Pestañas por rol: estudiante (Hoy · Cursos · Agenda · Mensajes · Yo) y docente (Hoy · Cursos · Calificar · Mensajes · Yo).
 - Entregas de tareas con texto y adjuntos, también sin conexión: se envían solas al reconectar, una sola vez.
 - Miniaturas de video en el currículo, como carátula del reproductor y en descargas.
+- PDF dentro de la app, audio con transcripción, SCORM (también sin conexión) y certificados en PDF.
+- Mensajes, Agenda, Hoy y avisos al teléfono; IA del estudiante y del docente si la academia la activa.
+- Clase en vivo con proveedores externos (Zoom, Google Meet, Microsoft Teams o enlace), sin transmisión propia.
+- Docente: calificar con rúbrica, curso (publicar/ocultar, fechas), asistencia presencial sin conexión y planificación híbrida.
 
 ## Seguridad
 
